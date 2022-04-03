@@ -31,7 +31,7 @@ public:
 
 	//플레이어 성별
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerInfo")
-	int sex;
+	int gender;
 
 protected:
 	// Called when the game starts or when spawned

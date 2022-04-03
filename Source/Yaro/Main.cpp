@@ -20,8 +20,6 @@ AMain::AMain()
 	CameraBoom->TargetArmLength = 600.f; //Camera follows at this distance
 	CameraBoom->bUsePawnControlRotation = true; // Rotate arm based on controller
 
-	//성별 따라 캡슐사이즈 조정할 것
-	GetCapsuleComponent()->SetCapsuleSize(25.f, 80.f);
 
 	// Create FollowCamera
 	FollowCamera = CreateAbstractDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
