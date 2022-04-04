@@ -70,10 +70,12 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
+
 	// Axis는 매 프레임마다 호출
 							//“키 이름”, bind할 함수가 있는 클래스의 인스턴스, bind할 함수의 주소
 	PlayerInputComponent->BindAxis("MoveForward", this, &AMain::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AMain::MoveRight);
+	PlayerInputComponent->BindAxis("Run", this, &AMain::Run);
 
 	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
@@ -106,6 +108,22 @@ void AMain::MoveRight(float Value)
 	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 	AddMovementInput(Direction, Value);
 }
+
+void AMain::Run(float Value)
+{
+	if (!Value) //쉬프트키 안 눌려 있으면
+	{
+		bRunning = false;
+		GetCharacterMovement()->MaxWalkSpeed = 350.f; //속도 하향
+	}
+	else if(!bRunning) //쉬프트키가 눌려있고 달리는 상태가 아니면
+	{
+		bRunning = true;
+		GetCharacterMovement()->MaxWalkSpeed = 600.f; //속도 상향
+	}
+	
+}
+
 
 void AMain::TurnAtRate(float Rate)
 {

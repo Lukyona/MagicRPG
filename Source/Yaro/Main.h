@@ -33,6 +33,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerInfo")
 	int gender;
 
+	//달리는 상태인지 확인
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
+	bool bRunning;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -49,6 +53,9 @@ public:
 
 	// Called for side to side input
 	void MoveRight(float Value);
+
+	// Called for shift input
+	void Run(float Value);
 
 	// Called via(means ~를 통해) input to turn at a given rate
 	// @param(매개변수 설명) Rate This is a normalized rate, i.e.(means 다시 말해, 바로) 1.0 means 100% of desired turn rate
