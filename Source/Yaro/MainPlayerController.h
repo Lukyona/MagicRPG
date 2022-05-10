@@ -14,4 +14,9 @@ class YARO_API AMainPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
+public:
+
+
+protected:
+	virtual void BeginPlay() override;
 };

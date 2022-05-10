@@ -7,6 +7,7 @@
 #include "Engine/world.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AMain::AMain()
@@ -19,7 +20,6 @@ AMain::AMain()
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->TargetArmLength = 600.f; //Camera follows at this distance
 	CameraBoom->bUsePawnControlRotation = true; // Rotate arm based on controller
-
 
 	// Create FollowCamera
 	FollowCamera = CreateAbstractDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
@@ -43,6 +43,13 @@ AMain::AMain()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.f, 0.0f); //... at this rotation rate
 	GetCharacterMovement()->JumpZVelocity = 400.f;
 	GetCharacterMovement()->AirControl = 0.2f;
+
+	MaxHP = 100.f;
+	HP = 65.f;
+	MaxMP = 100.f;
+	MP = 50.f;
+	MaxSP = 300.f;
+	SP = 200.f;
 }
 
 
@@ -111,15 +118,25 @@ void AMain::MoveRight(float Value)
 
 void AMain::Run(float Value)
 {
-	if (!Value) //쉬프트키 안 눌려 있으면
+	if (!Value || SP <= 0.f) //쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
 	{
 		bRunning = false;
 		GetCharacterMovement()->MaxWalkSpeed = 350.f; //속도 하향
+		if (SP < MaxSP)
+		{
+			SP += 0.1f;
+		}
 	}
-	else if(!bRunning) //쉬프트키가 눌려있고 달리는 상태가 아니면
+	else if(!bRunning && SP >= 1.f) //쉬프트키가 눌려있고 달리는 상태가 아니면
 	{
 		bRunning = true;
-		GetCharacterMovement()->MaxWalkSpeed = 600.f; //속도 상향
+		GetCharacterMovement()->MaxWalkSpeed = 600.f; //속도 상향		
+	}
+	
+	if (bRunning && SP >= 0.f)// 달리고 있는 상태 + 스태미나가 5이상일 때 스태미나 감소
+	{
+		SP -= 1.f;
+		//UE_LOG(LogTemp, Log, TEXT("Text, %f"), SP);
 	}
 	
 }

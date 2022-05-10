@@ -2,11 +2,10 @@
 
 #include "YaroCharacter.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/InputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/Controller.h"
-#include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h" //GetPlayerCharacter
+#include "AIController.h"
+#include "Main.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AYaroCharacter
@@ -19,82 +18,74 @@ AYaroCharacter::AYaroCharacter()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
-
-
-
+	
+	//AIController = Cast<AAIController>(GetController());
+	
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 }
 
-//////////////////////////////////////////////////////////////////////////
-// Input
+void AYaroCharacter::BeginPlay()
+{
+	Super::BeginPlay();
 
-//void AYaroCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
-//{
-//	// Set up gameplay key bindings
-//	//check(PlayerInputComponent);
-//	//PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-//	//PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-//
-//	//PlayerInputComponent->BindAxis("MoveForward", this, &AYaroCharacter::MoveForward);
-//	//PlayerInputComponent->BindAxis("MoveRight", this, &AYaroCharacter::MoveRight);
-//
-//
-//	//// handle touch devices
-//	//PlayerInputComponent->BindTouch(IE_Pressed, this, &AYaroCharacter::TouchStarted);
-//	//PlayerInputComponent->BindTouch(IE_Released, this, &AYaroCharacter::TouchStopped);
-//
-//	//// VR headset functionality
-//	//PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AYaroCharacter::OnResetVR);
-//}
+	AIController = Cast<AAIController>(GetController());
+	MoveToPlayer();
+}
 
-
-//void AYaroCharacter::OnResetVR()
+//void AYaroCharacter::Tick(float DeltaTime)
 //{
-//	// If Yaro is added to a project via 'Add Feature' in the Unreal Editor the dependency on HeadMountedDisplay in Yaro.Build.cs is not automatically propagated
-//	// and a linker error will result.
-//	// You will need to either:
-//	//		Add "HeadMountedDisplay" to [YourProject].Build.cs PublicDependencyModuleNames in order to build successfully (appropriate if supporting VR).
-//	// or:
-//	//		Comment or delete the call to ResetOrientationAndPosition below (appropriate if not supporting VR)
-//	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
-//}
-//
-//void AYaroCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
-//{
-//		Jump();
-//}
-//
-//void AYaroCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-//{
-//		StopJumping();
-//}
-//
-//void AYaroCharacter::MoveForward(float Value)
-//{
-//	if ((Controller != nullptr) && (Value != 0.0f))
-//	{
-//		// find out which way is forward
-//		const FRotator Rotation = Controller->GetControlRotation();
-//		const FRotator YawRotation(0, Rotation.Yaw, 0);
-//
-//		// get forward vector
-//		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-//		AddMovementInput(Direction, Value);
-//	}
-//}
-//
-//void AYaroCharacter::MoveRight(float Value)
-//{
-//	if ( (Controller != nullptr) && (Value != 0.0f) )
-//	{
-//		// find out which way is right
-//		const FRotator Rotation = Controller->GetControlRotation();
-//		const FRotator YawRotation(0, Rotation.Yaw, 0);
 //	
-//		// get right vector 
-//		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-//		// add movement in that direction
-//		AddMovementInput(Direction, Value);
-//	}
 //}
+
+void AYaroCharacter::MoveToPlayer()
+{
+	FTimerHandle WaitHandle;
+	float WaitTime = 1.5f; // 딜레이 타임 설정
+	GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
+		{
+			ACharacter* p = UGameplayStatics::GetPlayerCharacter(this, 0);
+			AMain* player = Cast<AMain>(p);
+			float distance = GetDistanceTo(player);
+
+			if (distance >= 500.f) //일정 거리 이상 떨어져있다면 속도 높여 달리기
+			{
+				//UE_LOG(LogTemp, Log, TEXT("%s"), *(this->GetName()));
+				if ((this->GetName()).Contains("Momo"))
+				{
+					GetCharacterMovement()->MaxWalkSpeed = 600.f;
+				}
+				else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
+				{
+					GetCharacterMovement()->MaxWalkSpeed = 500.f;
+				}
+				else
+				{
+					GetCharacterMovement()->MaxWalkSpeed = 450.f;
+				}
+			}
+			else //가깝다면 속도 낮춰 걷기
+			{
+				if ((this->GetName()).Contains("Momo"))
+				{
+					GetCharacterMovement()->MaxWalkSpeed = 300.f;
+				}
+				else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
+				{
+					GetCharacterMovement()->MaxWalkSpeed = 250.f;
+				}
+				else
+				{
+					GetCharacterMovement()->MaxWalkSpeed = 225.f;
+				}
+			}
+
+			FAIMoveRequest MoveRequest;
+			MoveRequest.SetGoalActor(player);
+			MoveRequest.SetAcceptanceRadius(5.f);
+
+			FNavPathSharedPtr NavPath;
+			AIController->MoveTo(MoveRequest, &NavPath);
+
+		}), WaitTime, true);	//딜레이 시간 적용하여 계속 반복
+}

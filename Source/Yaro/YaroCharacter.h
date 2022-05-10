@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "YaroCharacter.generated.h"
 
+
 UCLASS(config=Game)
 class AYaroCharacter : public ACharacter
 {
@@ -15,24 +16,18 @@ class AYaroCharacter : public ACharacter
 public:
 	AYaroCharacter();
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+	class AAIController* AIController;
+
+	//virtual void Tick(float DeltaTime) override;
+
+	void MoveToPlayer();
 
 protected:
 
-	///** Resets HMD orientation in VR. */
-	//void OnResetVR();
+	virtual void BeginPlay() override;
 
-	///** Called for forwards/backward input */
-	//void MoveForward(float Value);
-
-	///** Called for side to side input */
-	//void MoveRight(float Value);
-
-
-	///** Handler for when a touch input begins. */
-	//void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
-
-	///** Handler for when a touch input stops. */
-	//void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
+	
 
 protected:
 	// APawn interface
