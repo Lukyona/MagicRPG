@@ -82,7 +82,7 @@ void AYaroCharacter::MoveToPlayer()
 
 			FAIMoveRequest MoveRequest;
 			MoveRequest.SetGoalActor(player);
-			MoveRequest.SetAcceptanceRadius(5.f);
+			MoveRequest.SetAcceptanceRadius(80.f);
 
 			FNavPathSharedPtr NavPath;
 			AIController->MoveTo(MoveRequest, &NavPath);
