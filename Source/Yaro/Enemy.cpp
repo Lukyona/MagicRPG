@@ -19,7 +19,7 @@ AEnemy::AEnemy()
 
 	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
 	CombatSphere->SetupAttachment(GetRootComponent());
-	CombatSphere->InitSphereRadius(100.f);
+	CombatSphere->InitSphereRadius(200.f);
 }
 
 // Called when the game starts or when spawned

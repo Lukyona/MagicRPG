@@ -66,6 +66,19 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// About CameraZoom
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraZoom")
+	float MinZoomLength = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraZoom")
+	float MaxZoomLength = 800.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraZoom")
+	float DefaultArmLength = 500.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraZoom")
+	float ZoomStep = 30.f;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -90,6 +103,7 @@ public:
 	// @param(매개변수 설명) Rate This is a normalized rate, i.e.(means 다시 말해, 바로) 1.0 means 100% of desired look up/down rate
 	void LookUpAtRate(float Rate);
 
+	void CameraZoom(const float Value);
 
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }

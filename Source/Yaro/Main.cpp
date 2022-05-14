@@ -23,6 +23,7 @@ AMain::AMain()
 	CameraBoom->bUsePawnControlRotation = true; // Rotate arm based on controller
 	// but npc, enemy들도 여기에 콜리전으로 해당되어 게임 플레이가 불편하므로 콜리전 테스트 끔
 	CameraBoom->bDoCollisionTest = false;
+	CameraBoom->TargetArmLength = DefaultArmLength;
 
 	// Create FollowCamera
 	FollowCamera = CreateAbstractDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
@@ -92,6 +93,8 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("TurnRate", this, &AMain::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AMain::LookUpAtRate);
 
+	PlayerInputComponent->BindAxis("CameraZoom", this, &AMain::CameraZoom);
+
 }
 
 // 매 프레임마다 키가 눌렸는지 안 눌렸는지 확인될 것
@@ -144,7 +147,6 @@ void AMain::Run(float Value)
 	
 }
 
-
 void AMain::TurnAtRate(float Rate)
 {
 	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
@@ -153,4 +155,12 @@ void AMain::TurnAtRate(float Rate)
 void AMain::LookUpAtRate(float Rate)
 {
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+void AMain::CameraZoom(const float Value)
+{
+	if (Value == 0.f || !Controller) return;
+
+	const float NewTargetArmLength = CameraBoom->TargetArmLength + Value * ZoomStep;
+	CameraBoom->TargetArmLength = FMath::Clamp(NewTargetArmLength, MinZoomLength, MaxZoomLength);
 }
