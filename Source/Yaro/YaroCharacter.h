@@ -23,6 +23,11 @@ public:
 
 	void MoveToPlayer();
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items)
+	class AItem* ActiveOverlappingItem;
+
+	FORCEINLINE void SetActiveOverlappingItem(AItem* Item) { ActiveOverlappingItem = Item; }
+
 protected:
 
 	virtual void BeginPlay() override;

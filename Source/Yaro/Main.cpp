@@ -9,6 +9,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Weapon.h"
 
 // Sets default values
 AMain::AMain()
@@ -80,6 +81,9 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	// 액션은 키를 누르거나 놓는 즉시 한번만 실행
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+
+	PlayerInputComponent->BindAction("LMB", IE_Pressed, this, &AMain::LMBDown);
+	PlayerInputComponent->BindAction("LMB", IE_Released, this, &AMain::LMBUp);
 
 
 	// Axis는 매 프레임마다 호출
@@ -163,4 +167,24 @@ void AMain::CameraZoom(const float Value)
 
 	const float NewTargetArmLength = CameraBoom->TargetArmLength + Value * ZoomStep;
 	CameraBoom->TargetArmLength = FMath::Clamp(NewTargetArmLength, MinZoomLength, MaxZoomLength);
+}
+
+void AMain::LMBDown()
+{
+	bLMBDown = true;
+
+	if (ActiveOverlappingItem)
+	{
+		AWeapon* Weapon = Cast<AWeapon>(ActiveOverlappingItem);
+		if (Weapon)
+		{
+			Weapon->Equip(this);
+			SetActiveOverlappingItem(nullptr);
+		}
+	}
+}
+
+void AMain::LMBUp()
+{
+	bLMBDown = false;
 }
