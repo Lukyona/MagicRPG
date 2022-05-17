@@ -6,6 +6,8 @@
 #include "Main.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "YaroCharacter.h"
+//#include "Components/SphereComponent.h"
+
 
 AWeapon::AWeapon()
 {
@@ -16,22 +18,19 @@ AWeapon::AWeapon()
 
 }
 
+
 void AWeapon::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     UE_LOG(LogTemp, Log, TEXT("%s"), *(this->GetName()));
     Super::OnOverlapBegin(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
     if ((WeaponState == EWeaponState::EWS_Pickup) && OtherActor)
     {
-        AYaroCharacter* Yaro = Cast<AYaroCharacter>(OtherActor);
-        if (Yaro)
-        {
-            Yaro->SetActiveOverlappingItem(this);
-        }
-        /*AMain* Main = Cast<AMain>(OtherActor);
+        AMain* Main = Cast<AMain>(OtherActor);
         if (Main)
         {
             Main->SetActiveOverlappingItem(this);
-        }*/
+        }
+        
     }
 }
 
@@ -62,17 +61,13 @@ void AWeapon::Equip(AMain* Char)
         {
             RightHandSocket->AttachActor(this, Char->GetMesh());
             bRotate = false;
-            Char->SetEquippedWeapon(this);
             Char->SetActiveOverlappingItem(nullptr);
-
         }
     }
 }
 
 void AWeapon::Equip_NPC(AYaroCharacter* Char)
 {
-    UE_LOG(LogTemp, Log, TEXT("npc weapon"));
-
     if (Char)
     {
         SkeletalMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
@@ -85,7 +80,6 @@ void AWeapon::Equip_NPC(AYaroCharacter* Char)
         {
             RightHandSocket->AttachActor(this, Char->GetMesh());
             bRotate = false;
-            Char->SetActiveOverlappingItem(nullptr);
         }
     }
 }

@@ -62,6 +62,7 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 		if (Main)
 		{
 			MoveToTarget(Main);
+			UE_LOG(LogTemp, Log, TEXT("brgin"));
 		}
 	}
 }

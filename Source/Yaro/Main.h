@@ -112,12 +112,9 @@ public:
 	void LMBDown();
 	void LMBUp();
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Items)
-	class AWeapon* EquippedWeapon;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items)
 	class AItem* ActiveOverlappingItem;
 
-	FORCEINLINE void SetEquippedWeapon(AWeapon* WeaponToSet) { EquippedWeapon = WeaponToSet; }
 	FORCEINLINE void SetActiveOverlappingItem(AItem* Item) { ActiveOverlappingItem = Item; }
 };

@@ -6,7 +6,6 @@
 #include "Kismet/GameplayStatics.h" //GetPlayerCharacter
 #include "AIController.h"
 #include "Main.h"
-#include "Weapon.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AYaroCharacter
@@ -21,8 +20,6 @@ AYaroCharacter::AYaroCharacter()
 	GetCharacterMovement()->AirControl = 0.2f;
 
 
-	//AIController = Cast<AAIController>(GetController());
-	
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 }
@@ -31,29 +28,13 @@ void AYaroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	
 	AIController = Cast<AAIController>(GetController());
 	MoveToPlayer();
-}
 
-//void AYaroCharacter::Tick(float DeltaTime)
-//{
-//	if (ActiveOverlappingItem)
-//	{
-//	
-//
-//		AWeapon* Weapon = Cast<AWeapon>(ActiveOverlappingItem);
-//		if (Weapon)
-//		{
-//			Weapon->Equip_NPC(this);
-//			SetActiveOverlappingItem(nullptr);
-//		}
-//	}
-//}
+}
 
 void AYaroCharacter::MoveToPlayer()
 {
-	
 	FTimerHandle WaitHandle;
 	float WaitTime = 1.5f; // 딜레이 타임 설정
 	GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()

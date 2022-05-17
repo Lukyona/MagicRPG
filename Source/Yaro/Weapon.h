@@ -22,6 +22,10 @@ UCLASS()
 class YARO_API AWeapon : public AItem
 {
 	GENERATED_BODY()
+
+protected:
+	// Called when the game starts or when spawned
+	//virtual void BeginPlay() override;
 	
 public:
 	AWeapon();
@@ -37,9 +41,13 @@ public:
 
 	virtual void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
+	UFUNCTION(BlueprintCallable)
 	void Equip(class AMain* Char);
+
+	UFUNCTION(BlueprintCallable)
 	void Equip_NPC(class AYaroCharacter* Char);
 
 	FORCEINLINE void SetWeaponState(EWeaponState State) { WeaponState = State; }
 	FORCEINLINE EWeaponState GetWeaponState() { return WeaponState; }
+
 };
