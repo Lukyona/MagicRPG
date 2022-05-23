@@ -61,6 +61,10 @@ public:
 	float SP;
 
 
+	float InterpSpeed;
+	bool bInterpToEnemy;
+	void SetInterpToEnemy(bool Interp);
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -117,4 +121,17 @@ public:
 	class AItem* ActiveOverlappingItem;
 
 	FORCEINLINE void SetActiveOverlappingItem(AItem* Item) { ActiveOverlappingItem = Item; }
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items)
+	class AWeapon* EquippedWeapon;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Anims")
+	bool bAttacking;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
+	class UAnimMontage* CombatMontage;
+
+	void Attack();
+	void AttackEnd();
+
 };

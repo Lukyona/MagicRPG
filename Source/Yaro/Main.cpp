@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Weapon.h"
+#include "Animation/AnimInstance.h"
 
 // Sets default values
 AMain::AMain()
@@ -56,6 +57,9 @@ AMain::AMain()
 	MP = 50.f;
 	MaxSP = 300.f;
 	SP = 200.f;
+
+	InterpSpeed = 15.f;
+	bInterpToEnemy = false;
 }
 
 
@@ -85,6 +89,8 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("LMB", IE_Pressed, this, &AMain::LMBDown);
 	PlayerInputComponent->BindAction("LMB", IE_Released, this, &AMain::LMBUp);
 
+	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AMain::Attack);
+	//PlayerInputComponent->BindAction("Attack", IE_Released, this, &AMain::AttackEnd);
 
 	// Axis는 매 프레임마다 호출
 							//“키 이름”, bind할 함수가 있는 클래스의 인스턴스, bind할 함수의 주소
@@ -105,7 +111,7 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 // 키가 안 눌렸으면 Value는 0
 void AMain::MoveForward(float Value)
 {
-	if ((Controller != nullptr) && (Value != 0.0f)) 
+	if ((Controller != nullptr) && (Value != 0.0f) && (!bAttacking))
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation(); // 회전자 반환 함수
@@ -118,12 +124,15 @@ void AMain::MoveForward(float Value)
 
 void AMain::MoveRight(float Value)
 {
-	// find out which way is forward
-	const FRotator Rotation = Controller->GetControlRotation(); // 회전자 반환 함수
-	const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
+	if ((Controller != nullptr) && (Value != 0.0f) && (!bAttacking))
+	{
+		// find out which way is forward
+		const FRotator Rotation = Controller->GetControlRotation(); // 회전자 반환 함수
+		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
 
-	const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-	AddMovementInput(Direction, Value);
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		AddMovementInput(Direction, Value);
+	}
 }
 
 void AMain::Run(float Value)
@@ -187,4 +196,30 @@ void AMain::LMBDown()
 void AMain::LMBUp()
 {
 	bLMBDown = false;
+}
+
+void AMain::SetInterpToEnemy(bool Interp)
+{
+	bInterpToEnemy = Interp;
+}
+
+void AMain::Attack()
+{
+	if (EquippedWeapon)
+	{
+		bAttacking = true;
+
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && CombatMontage)
+		{
+			AnimInstance->Montage_Play(CombatMontage, 0.8f);
+			AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
+		}
+	}
+
+}
+
+void AMain::AttackEnd()
+{
+	//bAttacking = false;
 }
