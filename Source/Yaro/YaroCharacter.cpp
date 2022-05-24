@@ -29,7 +29,7 @@ void AYaroCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	AIController = Cast<AAIController>(GetController());
-	//MoveToPlayer();
+	MoveToPlayer();
 
 }
 

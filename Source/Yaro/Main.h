@@ -132,6 +132,8 @@ public:
 	class UAnimMontage* CombatMontage;
 
 	void Attack();
+
+	UFUNCTION(BlueprintCallable)
 	void AttackEnd();
 
 };

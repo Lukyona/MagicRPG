@@ -90,7 +90,7 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("LMB", IE_Released, this, &AMain::LMBUp);
 
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AMain::Attack);
-	//PlayerInputComponent->BindAction("Attack", IE_Released, this, &AMain::AttackEnd);
+
 
 	// Axis는 매 프레임마다 호출
 							//“키 이름”, bind할 함수가 있는 클래스의 인스턴스, bind할 함수의 주소
@@ -212,7 +212,7 @@ void AMain::Attack()
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance && CombatMontage)
 		{
-			AnimInstance->Montage_Play(CombatMontage, 0.8f);
+			AnimInstance->Montage_Play(CombatMontage);
 			AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
 		}
 	}
@@ -221,5 +221,5 @@ void AMain::Attack()
 
 void AMain::AttackEnd()
 {
-	//bAttacking = false;
+	bAttacking = false;
 }
