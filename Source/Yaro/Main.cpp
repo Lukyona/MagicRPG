@@ -11,6 +11,10 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Weapon.h"
 #include "Animation/AnimInstance.h"
+#include "Components/SphereComponent.h"
+#include "Enemy.h"
+#include "Components/ArrowComponent.h"
+#include "MagicSkill.h"
 
 // Sets default values
 AMain::AMain()
@@ -60,6 +64,16 @@ AMain::AMain()
 
 	InterpSpeed = 15.f;
 	bInterpToEnemy = false;
+
+	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
+	CombatSphere->SetupAttachment(GetRootComponent());
+	CombatSphere->InitSphereRadius(500.f);
+
+	bOverlappingCombatSphere = false;
+	targetIndex = 0;
+
+	AttackArrow = CreateAbstractDefaultSubobject<UArrowComponent>(TEXT("AttackArrow"));
+	AttackArrow->SetupAttachment(GetRootComponent());
 }
 
 
@@ -67,6 +81,9 @@ AMain::AMain()
 void AMain::BeginPlay()
 {
 	Super::BeginPlay();
+
+	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapBegin);
+	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapEnd);
 }
 
 // Called every frame
@@ -90,6 +107,8 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("LMB", IE_Released, this, &AMain::LMBUp);
 
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AMain::Attack);
+
+	PlayerInputComponent->BindAction("Targeting", IE_Pressed, this, &AMain::Targeting);
 
 
 	// Axis는 매 프레임마다 호출
@@ -178,11 +197,11 @@ void AMain::CameraZoom(const float Value)
 	CameraBoom->TargetArmLength = FMath::Clamp(NewTargetArmLength, MinZoomLength, MaxZoomLength);
 }
 
-void AMain::LMBDown()
+void AMain::LMBDown() //Left Mouse Button
 {
 	bLMBDown = true;
 
-	if (ActiveOverlappingItem)
+	if (ActiveOverlappingItem && !EquippedWeapon)
 	{
 		AWeapon* Weapon = Cast<AWeapon>(ActiveOverlappingItem);
 		if (Weapon)
@@ -191,6 +210,8 @@ void AMain::LMBDown()
 			SetActiveOverlappingItem(nullptr);
 		}
 	}
+
+	//if targeting on, then tageting off
 }
 
 void AMain::LMBUp()
@@ -214,6 +235,9 @@ void AMain::Attack()
 		{
 			AnimInstance->Montage_Play(CombatMontage);
 			AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
+
+			Spawn();
+			
 		}
 	}
 
@@ -223,3 +247,81 @@ void AMain::AttackEnd()
 {
 	bAttacking = false;
 }
+
+void AMain::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor)
+	{
+		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
+		if (Enemy)
+		{
+			bOverlappingCombatSphere = true;
+			for (int i = 0; i < Targets.Num(); i++)
+			{
+				if (Enemy == Targets[i]) //already exist
+				{
+					return;
+				}
+			}
+			Targets.Add(Enemy); 
+		}
+	}
+}
+
+void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (OtherActor)
+	{
+		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
+		if (Enemy)
+		{
+			bOverlappingCombatSphere = false;
+			for (int i = 0; i < Targets.Num(); i++)
+			{
+				if (Enemy == Targets[i]) //already exist
+				{
+					Targets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
+				}
+			}
+		}
+	}
+}
+
+void AMain::Targeting() //Targeting using Tap key
+{
+	if (bOverlappingCombatSphere) //There is a enemy in combatsphere
+	{
+		if (targetIndex >= Targets.Num()) //타겟인덱스가 총 타겟 가능 몹 수 이상이면 다시 0으로 초기화
+		{
+			targetIndex = 0;
+		}
+		CombatTarget = Targets[targetIndex];
+		//UE_LOG(LogTemp, Log, TEXT("%s"), *(CombatTarget->GetName()));
+		targetIndex++;
+	}
+}
+
+void AMain::Spawn()
+{
+	if (ToSpawn)
+	{
+		FTimerHandle WaitHandle;
+		GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
+			{
+				UWorld* world = GetWorld();
+				if (world)
+				{
+					FActorSpawnParameters spawnParams;
+					spawnParams.Owner = this;
+
+					FRotator rotator = this->GetActorRotation();
+
+					FVector spawnLocation = AttackArrow->GetComponentTransform().GetLocation();
+
+					world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);
+				}
+			}), 0.6f, false); // 0.6초 뒤 실행, 반복X
+	}
+
+}
+

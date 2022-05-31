@@ -11,4 +11,6 @@ void AMainPlayerController::BeginPlay()
     
     this->PlayerCameraManager->ViewPitchMin = -50.f; // 세로회전 위
     this->PlayerCameraManager->ViewPitchMax = 10.f; //아래
+
+
 }

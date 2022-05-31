@@ -66,6 +66,21 @@ public:
 	void SetInterpToEnemy(bool Interp);
 
 
+	//About Combat System
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	class USphereComponent* CombatSphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	bool bOverlappingCombatSphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	class AEnemy* CombatTarget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TArray<AEnemy*> Targets;
+
+	int targetIndex;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -136,4 +151,18 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void AttackEnd();
 
+	UFUNCTION()
+	virtual void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION()
+	virtual void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	void Targeting();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	class UArrowComponent* AttackArrow;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skills")
+	TSubclassOf<class AMagicSkill> ToSpawn;
+
+	void Spawn();
 };
