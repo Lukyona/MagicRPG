@@ -315,7 +315,7 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 		if (Enemy)
 		{
-			bOverlappingCombatSphere = false;
+			
 			for (int i = 0; i < Targets.Num(); i++)
 			{
 				if (Enemy == Targets[i]) //already exist
@@ -324,9 +324,14 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 
 				}
 			}
-
-			if (MainPlayerController->bTargetArrowVisible)
+			if (Targets.Num() == 0)
 			{
+				bOverlappingCombatSphere = false;
+			}
+
+			if (CombatTarget == Enemy)
+			{
+				MainPlayerController->bTargetArrowVisible = false;
 				MainPlayerController->RemoveTargetArrow();
 				CombatTarget = nullptr;
 				bHasCombatTarget = false;
@@ -346,6 +351,7 @@ void AMain::Targeting() //Targeting using Tap key
 		//There is already exist targeted enemy, then targetArrow remove
 		if (MainPlayerController->bTargetArrowVisible)
 		{
+			MainPlayerController->bTargetArrowVisible = false;
 			MainPlayerController->RemoveTargetArrow();
 		}
 		bHasCombatTarget = true;
