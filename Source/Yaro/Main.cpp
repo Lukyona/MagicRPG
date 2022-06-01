@@ -15,6 +15,8 @@
 #include "Enemy.h"
 #include "Components/ArrowComponent.h"
 #include "MagicSkill.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "MainPlayerController.h"
 
 // Sets default values
 AMain::AMain()
@@ -67,9 +69,10 @@ AMain::AMain()
 
 	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
 	CombatSphere->SetupAttachment(GetRootComponent());
-	CombatSphere->InitSphereRadius(500.f);
+	CombatSphere->InitSphereRadius(600.f);
 
 	bOverlappingCombatSphere = false;
+	bHasCombatTarget = false;
 	targetIndex = 0;
 
 	AttackArrow = CreateAbstractDefaultSubobject<UArrowComponent>(TEXT("AttackArrow"));
@@ -84,6 +87,8 @@ void AMain::BeginPlay()
 
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapBegin);
 	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapEnd);
+
+	MainPlayerController = Cast<AMainPlayerController>(GetController());
 }
 
 // Called every frame
@@ -91,6 +96,22 @@ void AMain::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (bInterpToEnemy && CombatTarget)
+	{
+		FRotator LookAtYaw = GetLookAtRotationYaw(CombatTarget->GetActorLocation());
+		FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed); //smooth transition
+
+		SetActorRotation(InterpRotation);
+	}
+
+	if (CombatTarget)
+	{
+		CombatTargetLocation = CombatTarget->GetActorLocation();
+		if (MainPlayerController)
+		{
+			MainPlayerController->EnemyLocation = CombatTargetLocation;
+		}
+	}
 }
 
 // Called to bind functionality to input
@@ -211,7 +232,16 @@ void AMain::LMBDown() //Left Mouse Button
 		}
 	}
 
-	//if targeting on, then tageting off
+	// Targeting Off
+	if (CombatTarget)
+	{
+		if (MainPlayerController->bTargetArrowVisible)
+		{
+			MainPlayerController->RemoveTargetArrow();
+		}
+		CombatTarget = nullptr;
+		bHasCombatTarget = false;
+	}
 }
 
 void AMain::LMBUp()
@@ -224,11 +254,19 @@ void AMain::SetInterpToEnemy(bool Interp)
 	bInterpToEnemy = Interp;
 }
 
+FRotator AMain::GetLookAtRotationYaw(FVector Target)
+{
+	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Target);
+	FRotator LookAtRotationYaw(0.f, LookAtRotation.Yaw, 0.f);
+	return LookAtRotationYaw;
+}
+
 void AMain::Attack()
 {
 	if (EquippedWeapon)
 	{
 		bAttacking = true;
+		SetInterpToEnemy(true);
 
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance && CombatMontage)
@@ -246,6 +284,8 @@ void AMain::Attack()
 void AMain::AttackEnd()
 {
 	bAttacking = false;
+	SetInterpToEnemy(false);
+
 }
 
 void AMain::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -281,7 +321,15 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 				if (Enemy == Targets[i]) //already exist
 				{
 					Targets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
+
 				}
+			}
+
+			if (MainPlayerController->bTargetArrowVisible)
+			{
+				MainPlayerController->RemoveTargetArrow();
+				CombatTarget = nullptr;
+				bHasCombatTarget = false;
 			}
 		}
 	}
@@ -295,9 +343,17 @@ void AMain::Targeting() //Targeting using Tap key
 		{
 			targetIndex = 0;
 		}
+		//There is already exist targeted enemy, then targetArrow remove
+		if (MainPlayerController->bTargetArrowVisible)
+		{
+			MainPlayerController->RemoveTargetArrow();
+		}
+		bHasCombatTarget = true;
 		CombatTarget = Targets[targetIndex];
 		//UE_LOG(LogTemp, Log, TEXT("%s"), *(CombatTarget->GetName()));
 		targetIndex++;
+
+		MainPlayerController->DisplayTargetArrow(); 
 	}
 }
 

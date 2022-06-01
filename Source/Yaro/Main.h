@@ -60,11 +60,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float SP;
 
-
+	// When player attck enemy, player look at enemy
 	float InterpSpeed;
 	bool bInterpToEnemy;
 	void SetInterpToEnemy(bool Interp);
 
+	FRotator GetLookAtRotationYaw(FVector Target);
 
 	//About Combat System
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
@@ -76,10 +77,19 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	class AEnemy* CombatTarget;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	FVector CombatTargetLocation;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<AEnemy*> Targets;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bHasCombatTarget;
+
 	int targetIndex;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Controller")
+	class AMainPlayerController* MainPlayerController;
 
 protected:
 	// Called when the game starts or when spawned

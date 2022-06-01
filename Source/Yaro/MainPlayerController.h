@@ -16,7 +16,22 @@ class YARO_API AMainPlayerController : public APlayerController
 	
 public:
 
+	//Player can Targeting, then TargetArrow appear on Targeted enemy
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
+	TSubclassOf<UUserWidget> WTargetArrow;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Widgets")
+	UUserWidget* TargetArrow;
+
+
+	bool bTargetArrowVisible;
+
+	void DisplayTargetArrow();
+	void RemoveTargetArrow();
+
+	FVector EnemyLocation;
 protected:
 	virtual void BeginPlay() override;
+
+	virtual void Tick(float DeltaTime) override;
 };
