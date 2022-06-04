@@ -23,7 +23,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Widgets")
 	UUserWidget* TargetArrow;
 
-
 	bool bTargetArrowVisible;
 
 	void DisplayTargetArrow();
@@ -32,6 +31,18 @@ public:
 	FVector EnemyLocation;
 
 	int WhichKeyDown(); // Find out pressed key, this will be SkillNum
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
+	TSubclassOf<UUserWidget> WEnemyHPBar;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Widgets")
+	UUserWidget* EnemyHPBar;
+
+	bool bEnemyHPBarVisible;
+
+	void DisplayEnemyHPBar();
+	void RemoveEnemyHPBar();
 
 protected:
 	virtual void BeginPlay() override;

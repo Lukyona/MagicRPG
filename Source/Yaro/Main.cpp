@@ -32,7 +32,8 @@ AMain::AMain()
 	CameraBoom->bUsePawnControlRotation = true; // Rotate arm based on controller
 	// but npc, enemy들도 여기에 콜리전으로 해당되어 게임 플레이가 불편하므로 콜리전 테스트 끔
 	CameraBoom->bDoCollisionTest = false;
-	CameraBoom->TargetArmLength = DefaultArmLength;
+	CameraBoom->SetWorldRotation(FRotator(-30.0f, 0.f, 0.0f));
+	CameraBoom->SocketOffset.Z = 70.f;
 
 	// Create FollowCamera
 	FollowCamera = CreateAbstractDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
@@ -57,6 +58,9 @@ AMain::AMain()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.f, 0.0f); //... at this rotation rate
 	GetCharacterMovement()->JumpZVelocity = 400.f;
 	GetCharacterMovement()->AirControl = 0.2f;
+	GetCharacterMovement()->MaxStepHeight = 50.f;
+	GetCharacterMovement()->SetWalkableFloorAngle(50.f);
+	GetCharacterMovement()->MaxWalkSpeed = 350.f;
 
 	MaxHP = 100.f;
 	HP = 100.f;
@@ -78,6 +82,7 @@ AMain::AMain()
 
 	AttackArrow = CreateAbstractDefaultSubobject<UArrowComponent>(TEXT("AttackArrow"));
 	AttackArrow->SetupAttachment(GetRootComponent());
+	AttackArrow->SetRelativeLocation(FVector(160.f, 4.f, 26.f));
 }
 
 
@@ -239,6 +244,7 @@ void AMain::LMBDown() //Left Mouse Button
 		if (MainPlayerController->bTargetArrowVisible)
 		{
 			MainPlayerController->RemoveTargetArrow();
+			MainPlayerController->RemoveEnemyHPBar();
 		}
 		CombatTarget = nullptr;
 		bHasCombatTarget = false;
@@ -352,6 +358,8 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 			{
 				MainPlayerController->bTargetArrowVisible = false;
 				MainPlayerController->RemoveTargetArrow();
+				MainPlayerController->bEnemyHPBarVisible = false;
+				MainPlayerController->RemoveEnemyHPBar();
 				CombatTarget = nullptr;
 				bHasCombatTarget = false;
 			}
@@ -372,6 +380,9 @@ void AMain::Targeting() //Targeting using Tap key
 		{
 			MainPlayerController->bTargetArrowVisible = false;
 			MainPlayerController->RemoveTargetArrow();
+
+			MainPlayerController->bEnemyHPBarVisible = false;
+			MainPlayerController->RemoveEnemyHPBar();
 		}
 		bHasCombatTarget = true;
 		CombatTarget = Targets[targetIndex];
@@ -379,6 +390,7 @@ void AMain::Targeting() //Targeting using Tap key
 		targetIndex++;
 
 		MainPlayerController->DisplayTargetArrow(); 
+		MainPlayerController->DisplayEnemyHPBar();
 	}
 }
 

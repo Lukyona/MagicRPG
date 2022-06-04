@@ -33,9 +33,8 @@ AEnemy::AEnemy()
 
 	bOverlappingCombatSphere = false;
 
-	Health = 75.f;
+	Health = 100.f;
 	MaxHealth = 100.f;
-	Damage = 10.f;
 
 	EnemyMovementStatus = EEnemyMovementStatus::EMS_Idle;
 

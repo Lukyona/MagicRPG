@@ -110,9 +110,6 @@ protected:
 	float MaxZoomLength = 800.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraZoom")
-	float DefaultArmLength = 500.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraZoom")
 	float ZoomStep = 30.f;
 
 public:	

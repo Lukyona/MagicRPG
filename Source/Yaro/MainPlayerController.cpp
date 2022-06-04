@@ -26,6 +26,19 @@ void AMainPlayerController::BeginPlay()
         FVector2D Alignment(0.f, 0.f);
         TargetArrow->SetAlignmentInViewport(Alignment);
     }
+
+    if (WEnemyHPBar)
+    {
+        EnemyHPBar = CreateWidget<UUserWidget>(this, WEnemyHPBar);
+        if (EnemyHPBar)
+        {
+            EnemyHPBar->AddToViewport();
+            EnemyHPBar->SetVisibility(ESlateVisibility::Hidden);
+        }
+
+        FVector2D Alignment(0.f, 0.f);
+        EnemyHPBar->SetAlignmentInViewport(Alignment);
+    }
 }
 
 void AMainPlayerController::DisplayTargetArrow()
@@ -54,13 +67,19 @@ void AMainPlayerController::Tick(float DeltaTime)
     {
         FVector2D PositionInViewport;
         ProjectWorldLocationToScreen(EnemyLocation, PositionInViewport);
-        PositionInViewport.Y -= 250.f;
-        PositionInViewport.X -= 50.f;
 
-        //FVector2D SizeInViewport = FVector2D(10.f, 10.f);
+        PositionInViewport.Y -= 130.f;
+        PositionInViewport.X -= 100.f;
+        EnemyHPBar->SetPositionInViewport(PositionInViewport);
+
+        PositionInViewport.Y -= 120.f;
+        PositionInViewport.X += 50.f;
+
 
         TargetArrow->SetPositionInViewport(PositionInViewport);
-        //TargetArrow->SetDesiredSizeInViewport(SizeInViewport);
+
+        FVector2D SizeInViewport = FVector2D(200.f, 20.f);
+        EnemyHPBar->SetDesiredSizeInViewport(SizeInViewport);
     }
 }
 
@@ -81,4 +100,22 @@ int AMainPlayerController::WhichKeyDown()
     }
 
     return result;
+}
+
+void AMainPlayerController::DisplayEnemyHPBar()
+{
+    if (EnemyHPBar)
+    {
+        bTargetArrowVisible = true;
+        EnemyHPBar->SetVisibility(ESlateVisibility::Visible);
+    }
+}
+
+void AMainPlayerController::RemoveEnemyHPBar()
+{
+    if (EnemyHPBar)
+    {
+        bTargetArrowVisible = false;
+        EnemyHPBar->SetVisibility(ESlateVisibility::Hidden);
+    }
 }
