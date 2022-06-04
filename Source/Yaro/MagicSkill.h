@@ -18,9 +18,31 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	class USphereComponent* Sphere;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class UParticleSystemComponent* Particle;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ExplosionFX")
 	class UParticleSystem* ParticleFX;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class UProjectileMovementComponent* MovementComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	class USoundCue* ExplosionSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	class USoundCue* MagicSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Comabat")
+	float Damage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	TSubclassOf<UDamageType> DamageTypeClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	AController* MagicInstigator;
+
+	FORCEINLINE void SetInstigator(AController* Inst) { MagicInstigator = Inst; }
 
 protected:
 	// Called when the game starts or when spawned

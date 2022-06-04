@@ -91,6 +91,13 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Controller")
 	class AMainPlayerController* MainPlayerController;
 
+
+	void DecrementHealth(float Amount);
+
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	void Die();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -171,8 +178,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	class UArrowComponent* AttackArrow;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skills")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
 	TSubclassOf<class AMagicSkill> ToSpawn;
+
+	int SkillNum;
 
 	void Spawn();
 };

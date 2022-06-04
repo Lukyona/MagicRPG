@@ -30,6 +30,9 @@ public:
 	void RemoveTargetArrow();
 
 	FVector EnemyLocation;
+
+	int WhichKeyDown(); // Find out pressed key, this will be SkillNum
+
 protected:
 	virtual void BeginPlay() override;
 

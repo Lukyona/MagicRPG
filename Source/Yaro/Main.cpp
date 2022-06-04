@@ -17,6 +17,7 @@
 #include "MagicSkill.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "MainPlayerController.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 // Sets default values
 AMain::AMain()
@@ -58,11 +59,11 @@ AMain::AMain()
 	GetCharacterMovement()->AirControl = 0.2f;
 
 	MaxHP = 100.f;
-	HP = 65.f;
+	HP = 100.f;
 	MaxMP = 100.f;
-	MP = 50.f;
+	MP = 100.f;
 	MaxSP = 300.f;
-	SP = 200.f;
+	SP = 300.f;
 
 	InterpSpeed = 15.f;
 	bInterpToEnemy = false;
@@ -263,8 +264,26 @@ FRotator AMain::GetLookAtRotationYaw(FVector Target)
 
 void AMain::Attack()
 {
-	if (EquippedWeapon)
+	if (EquippedWeapon && !bAttacking)
 	{
+		SkillNum = MainPlayerController->WhichKeyDown();
+		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/WindAttack.WindAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
+		switch (SkillNum)
+		{
+			case 1:
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/WindAttack.WindAttack_C"));
+				break;
+			case 2:
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/ShockAttack.ShockAttack_C"));
+				break;
+			case 3:
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/EarthAttack.EarthAttack_C"));
+				break;
+			default:
+				break;
+		}
+		ToSpawn = Cast<UClass>(LoadedBP);
+
 		bAttacking = true;
 		SetInterpToEnemy(true);
 
@@ -363,10 +382,12 @@ void AMain::Targeting() //Targeting using Tap key
 	}
 }
 
-void AMain::Spawn()
+void AMain::Spawn() //Spawn Magic
 {
-	if (ToSpawn)
+	if (ToSpawn && MP >= 20)
 	{
+		if (!(SkillNum == 1 || (SkillNum == 2 && MP >= 30) || (SkillNum == 3 && MP >= 40))) return; //If player have not enough MP, then player can't use magic
+
 		FTimerHandle WaitHandle;
 		GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
 			{
@@ -379,11 +400,57 @@ void AMain::Spawn()
 					FRotator rotator = this->GetActorRotation();
 
 					FVector spawnLocation = AttackArrow->GetComponentTransform().GetLocation();
+					if (SkillNum != 1 && CombatTarget)
+					{
+						spawnLocation = CombatTarget->GetActorLocation();
+					}
 
 					world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);
 				}
 			}), 0.6f, false); // 0.6초 뒤 실행, 반복X
-	}
 
+		switch (SkillNum)// decrease MP
+		{
+			case 1:
+				MP -= 20.f;
+				break;
+			case 2:
+				MP -= 30.f;
+				break;
+			case 3:
+				MP -= 40.f;
+				break;
+		}
+	}
+	
 }
 
+void AMain::DecrementHealth(float Amount)
+{
+	if (HP - Amount <= 0.f)
+	{
+		HP -= Amount;
+		Die();
+	}
+	else
+	{
+		HP -= Amount;
+	}
+}
+
+float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
+{
+	DecrementHealth(DamageAmount);
+
+	return DamageAmount;
+}
+
+void AMain::Die()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && CombatMontage)
+	{
+		AnimInstance->Montage_Play(CombatMontage);
+		AnimInstance->Montage_JumpToSection(FName("Death"));
+	}
+}

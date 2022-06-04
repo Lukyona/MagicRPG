@@ -9,6 +9,7 @@ void AMainPlayerController::BeginPlay()
 {
     Super::BeginPlay();
     
+    //카메라 회전 제한
     this->PlayerCameraManager->ViewPitchMin = -50.f; // 세로회전 위
     this->PlayerCameraManager->ViewPitchMax = 10.f; //아래
 
@@ -61,4 +62,23 @@ void AMainPlayerController::Tick(float DeltaTime)
         TargetArrow->SetPositionInViewport(PositionInViewport);
         //TargetArrow->SetDesiredSizeInViewport(SizeInViewport);
     }
+}
+
+int AMainPlayerController::WhichKeyDown()
+{
+    int result;
+    if (this->WasInputKeyJustPressed(EKeys::One) || this->WasInputKeyJustPressed(EKeys::NumPadOne))
+    {
+        result = 1;
+    }
+    if (this->WasInputKeyJustPressed(EKeys::Two) || this->WasInputKeyJustPressed(EKeys::NumPadTwo))
+    {
+        result = 2;
+    }
+    if (this->WasInputKeyJustPressed(EKeys::Three) || this->WasInputKeyJustPressed(EKeys::NumPadThree))
+    {
+        result = 3;
+    }
+
+    return result;
 }
