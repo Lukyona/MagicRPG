@@ -23,22 +23,27 @@ AEnemy::AEnemy()
 
 	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
 	CombatSphere->SetupAttachment(GetRootComponent());
-	CombatSphere->InitSphereRadius(200.f);
+	CombatSphere->InitSphereRadius(170.f);
 
 	CombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision"));
 	CombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("EnemySocket_1"));
 	
+	//여기서 두번째 소켓이 있는지 확인해봤자 블루프린트에선 적용이 안 된다.
 	CombatCollision2 = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision2"));
 	CombatCollision2->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("EnemySocket_2"));
 
 	bOverlappingCombatSphere = false;
 
+	//This is the default value, each enemy has different health.
 	Health = 100.f;
 	MaxHealth = 100.f;
 
 	EnemyMovementStatus = EEnemyMovementStatus::EMS_Idle;
 
 	DeathDelay = 3.f;
+
+	bHasValidTarget = false;
+
 }
 
 // Called when the game starts or when spawned
@@ -110,6 +115,7 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 			if (AIController)
 			{
 				AIController->StopMovement();
+				bHasValidTarget = false;
 			}
 		}
 	}
@@ -122,6 +128,7 @@ void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent
 		AMain* Main = Cast<AMain>(OtherActor);
 		if (Main)
 		{
+			bHasValidTarget = true;
 			CombatTarget = Main;
 			bOverlappingCombatSphere = true;
 			Attack();
@@ -138,6 +145,10 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 		if (Main)
 		{
 			bOverlappingCombatSphere = false;
+			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+			AnimInstance->Montage_Stop(0.1f, CombatMontage);
+			AttackEnd();
+
 			if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)
 			{
 				MoveToTarget(Main);
@@ -207,7 +218,7 @@ void AEnemy::DeactivateCollision()
 
 void AEnemy::Attack()
 {
-	if (Alive())
+	if (Alive() && bHasValidTarget)
 	{
 		if (AIController)
 		{
@@ -221,7 +232,29 @@ void AEnemy::Attack()
 			if (AnimInstance)
 			{
 				AnimInstance->Montage_Play(CombatMontage);
-				AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
+
+				if (this->GetName().Contains("Grux"))
+				{
+					AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
+				}
+				else
+				{
+					int num = FMath::RandRange(1, 3);
+					switch (num)
+					{
+
+						case 1:
+							AnimInstance->Montage_JumpToSection(FName("Attack1"), CombatMontage);
+							break;
+						case 2:
+							AnimInstance->Montage_JumpToSection(FName("Attack2"), CombatMontage);
+							break;
+						case 3:
+							AnimInstance->Montage_JumpToSection(FName("Attack3"), CombatMontage);
+							break;
+					}
+
+				}
 			}
 		}
 	}
@@ -234,6 +267,7 @@ void AEnemy::AttackEnd()
 	{
 		Attack();
 	}
+	
 }
 
 float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
@@ -262,10 +296,7 @@ void AEnemy::TakeDam(float Dam)
 	{
 		Health -= Dam;
 	}
-
-
 }
-
 
 void AEnemy::Die()
 {
@@ -301,4 +332,12 @@ bool AEnemy::Alive()
 void AEnemy::Disappear()
 {
 	Destroy();
+}
+
+void AEnemy::HitGround()
+{
+	if (CombatTarget)
+	{
+		UGameplayStatics::ApplyDamage(CombatTarget, Damage, AIController, this, DamageTypeClass);
+	}
 }

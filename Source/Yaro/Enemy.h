@@ -60,6 +60,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float DeathDelay;
 
+	bool bHasValidTarget;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -132,4 +134,7 @@ public:
 	bool Alive();
 
 	void Disappear();
+
+	UFUNCTION(BlueprintCallable)
+	void HitGround(); // Golem's skill
 };

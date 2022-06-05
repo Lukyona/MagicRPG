@@ -83,6 +83,11 @@ AMain::AMain()
 	AttackArrow = CreateAbstractDefaultSubobject<UArrowComponent>(TEXT("AttackArrow"));
 	AttackArrow->SetupAttachment(GetRootComponent());
 	AttackArrow->SetRelativeLocation(FVector(160.f, 4.f, 26.f));
+
+	MovementStatus = EMovementStatus::EMS_Normal;
+
+	DeathDelay = 3.f;
+
 }
 
 
@@ -127,7 +132,7 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	check(PlayerInputComponent);
 
 	// 액션은 키를 누르거나 놓는 즉시 한번만 실행
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AMain::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAction("LMB", IE_Pressed, this, &AMain::LMBDown);
@@ -157,7 +162,7 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 // 키가 안 눌렸으면 Value는 0
 void AMain::MoveForward(float Value)
 {
-	if ((Controller != nullptr) && (Value != 0.0f) && (!bAttacking))
+	if ((Controller != nullptr) && (Value != 0.0f) && (!bAttacking) && (MovementStatus != EMovementStatus::EMS_Dead))
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation(); // 회전자 반환 함수
@@ -170,7 +175,7 @@ void AMain::MoveForward(float Value)
 
 void AMain::MoveRight(float Value)
 {
-	if ((Controller != nullptr) && (Value != 0.0f) && (!bAttacking))
+	if ((Controller != nullptr) && (Value != 0.0f) && (!bAttacking) && (MovementStatus != EMovementStatus::EMS_Dead))
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation(); // 회전자 반환 함수
@@ -270,7 +275,7 @@ FRotator AMain::GetLookAtRotationYaw(FVector Target)
 
 void AMain::Attack()
 {
-	if (EquippedWeapon && !bAttacking)
+	if (EquippedWeapon && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead)
 	{
 		SkillNum = MainPlayerController->WhichKeyDown();
 		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/WindAttack.WindAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
@@ -437,32 +442,77 @@ void AMain::Spawn() //Spawn Magic
 	
 }
 
-void AMain::DecrementHealth(float Amount)
-{
-	if (HP - Amount <= 0.f)
-	{
-		HP -= Amount;
-		Die();
-	}
-	else
-	{
-		HP -= Amount;
-	}
-}
 
 float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	DecrementHealth(DamageAmount);
+	if (HP - DamageAmount <= 0.f)
+	{
+		HP = 0.f;
+		Die();
+		if (DamageCauser)
+		{
+			AEnemy* Enemy = Cast<AEnemy>(DamageCauser);
+			if (Enemy)
+			{
+				Enemy->bHasValidTarget = false;
+				Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Idle);
+
+			}
+		}
+	}
+	else
+	{
+		HP -= DamageAmount;
+	}
 
 	return DamageAmount;
 }
 
 void AMain::Die()
 {
+	if (MovementStatus == EMovementStatus::EMS_Dead) return;
+
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && CombatMontage)
 	{
 		AnimInstance->Montage_Play(CombatMontage);
 		AnimInstance->Montage_JumpToSection(FName("Death"));
 	}
+	SetMovementStatus(EMovementStatus::EMS_Dead);
+}
+
+void AMain::DeathEnd()
+{
+	GetMesh()->bPauseAnims = true;
+	GetMesh()->bNoSkeletonUpdate = true;
+	GetWorldTimerManager().SetTimer(DeathTimer, this, &AMain::Revive, DeathDelay);
+}
+
+void AMain::Jump()
+{
+	if (MovementStatus != EMovementStatus::EMS_Dead)
+	{
+		Super::Jump();
+	}
+}
+
+void AMain::Revive() // if player is dead, spawn player at the initial location
+{
+	this->SetActorLocation(FVector(-192.f, 5257.f, 3350.f));
+	revival = true;
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && CombatMontage)
+	{
+		GetMesh()->bPauseAnims = false;
+		AnimInstance->Montage_Play(CombatMontage);
+		AnimInstance->Montage_JumpToSection(FName("Revival"));
+		GetMesh()->bNoSkeletonUpdate = false;
+		HP += 50.f;
+	}
+}
+
+void AMain::RevivalEnd()
+{
+	revival = false;
+	SetMovementStatus(EMovementStatus::EMS_Normal);
 }

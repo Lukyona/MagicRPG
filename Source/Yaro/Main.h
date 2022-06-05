@@ -6,6 +6,16 @@
 #include "GameFramework/Character.h"
 #include "Main.generated.h"
 
+
+UENUM(BlueprintType)
+enum class EMovementStatus :uint8
+{
+	EMS_Normal			UMETA(DeplayName = "Normal"),
+	EMS_Dead			UMETA(DeplayName = "Dead"),
+
+	EMS_MAX				UMETA(DeplayName = "DefaultMAX")
+};
+
 UCLASS()
 class YARO_API AMain : public ACharacter
 {
@@ -14,6 +24,7 @@ class YARO_API AMain : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AMain();
+
 
 	// CameraBoom positioning the camera behind the player, 카메라붐은 플레이어 뒤에 카메라를 위치시킴
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -92,11 +103,17 @@ public:
 	class AMainPlayerController* MainPlayerController;
 
 
-	void DecrementHealth(float Amount);
-
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	void Die();
+
+	FTimerHandle DeathTimer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float DeathDelay;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement)
+	bool revival = false;
 
 protected:
 	// Called when the game starts or when spawned
@@ -181,4 +198,19 @@ public:
 	int SkillNum;
 
 	void Spawn();
+
+	UFUNCTION(BlueprintCallable)
+	void DeathEnd();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	EMovementStatus MovementStatus;
+
+	FORCEINLINE void SetMovementStatus(EMovementStatus Status) { MovementStatus = Status; }
+
+	virtual void Jump() override;
+
+	void Revive();
+
+	UFUNCTION(BlueprintCallable)
+	void RevivalEnd();
 };
