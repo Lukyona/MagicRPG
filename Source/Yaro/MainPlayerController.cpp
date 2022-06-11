@@ -106,7 +106,7 @@ void AMainPlayerController::DisplayEnemyHPBar()
 {
     if (EnemyHPBar)
     {
-        bTargetArrowVisible = true;
+        bEnemyHPBarVisible = true;
         EnemyHPBar->SetVisibility(ESlateVisibility::Visible);
     }
 }
@@ -115,7 +115,7 @@ void AMainPlayerController::RemoveEnemyHPBar()
 {
     if (EnemyHPBar)
     {
-        bTargetArrowVisible = false;
+        bEnemyHPBarVisible = false;
         EnemyHPBar->SetVisibility(ESlateVisibility::Hidden);
     }
 }

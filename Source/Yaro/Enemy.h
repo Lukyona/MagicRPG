@@ -51,7 +51,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float Damage;
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	TSubclassOf<UDamageType> DamageTypeClass;
 
@@ -61,6 +60,18 @@ public:
 	float DeathDelay;
 
 	bool bHasValidTarget;
+
+	// When enemy attck target, enemy look at target
+	float InterpSpeed;
+	bool bInterpToTarget;
+	void SetInterpToTarget(bool Interp);
+
+	FRotator GetLookAtRotationYaw(FVector Target);
+
+	FTimerHandle AttackTimer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float AttackDelay;
 
 protected:
 	// Called when the game starts or when spawned
@@ -123,8 +134,6 @@ public:
 	void AttackEnd();
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-
-	void TakeDam(float Dam); //юс╫ц..
 
 	void Die();
 

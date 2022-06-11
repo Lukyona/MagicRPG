@@ -44,15 +44,25 @@ public:
 
 	FORCEINLINE void SetInstigator(AController* Inst) { MagicInstigator = Inst; }
 
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "MoveActor")
+	class AEnemy* Target;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// To move Target
+	FVector Direction;
+	float TotalDistance;
+	float CurrentDistance;
+	FVector StartLocation;
+
 public:	
 	// Called every frame
-	//virtual void Tick(float DeltaTime) override;
+	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION()
 	virtual void OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
+	void SetLocation(); //Move magic to the target
 };

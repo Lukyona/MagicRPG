@@ -16,6 +16,9 @@ AMagicSkill::AMagicSkill()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+    //RootScene = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+    //RootComponent = RootScene;
+
     Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
     Sphere->SetupAttachment(GetRootComponent());
 
@@ -24,12 +27,12 @@ AMagicSkill::AMagicSkill()
 
     MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("MovementComponent"));
 
-    MovementComponent->InitialSpeed = 400.f;
-    MovementComponent->MaxSpeed = 1000.f;
+    MovementComponent->InitialSpeed = 0.f;
+    MovementComponent->MaxSpeed = 500.f;
 
     MovementComponent->ProjectileGravityScale = 0.03f;
 
-
+    PrimaryActorTick.bCanEverTick = true;
 }
 
 // Called when the game starts or when spawned
@@ -37,6 +40,9 @@ void AMagicSkill::BeginPlay()
 {
 	Super::BeginPlay();
     Sphere->OnComponentBeginOverlap.AddDynamic(this, &AMagicSkill::OnComponentBeginOverlap);
+
+    AController* controller = Cast<AController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+    SetInstigator(controller);
 
     if (MagicSound)
     {
@@ -48,22 +54,58 @@ void AMagicSkill::BeginPlay()
     }
 
     FTimerHandle WaitHandle;
-    GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
+    GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]() {
+        if (this->IsValidLowLevel())
         {
-            if (this->IsValidLowLevel())
-            {
-                Destroy(true);
-            }
+            Destroy(true);
+        }
 
         }), 3.f, false);
+
+    FTimerHandle WaitHandle2;
+    GetWorld()->GetTimerManager().SetTimer(WaitHandle2, FTimerDelegate::CreateLambda([&]() {
+        if (this->GetName().Contains("Wind") || this->GetName().Contains("Storm"))
+        {
+            SetLocation();
+        }
+
+        }), 0.1f, false);
+
+
 }
 
-// Called every frame
-//void AMagicSkill::Tick(float DeltaTime)
-//{
-//	Super::Tick(DeltaTime);
-//
-//}
+void AMagicSkill::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    if (Target != nullptr)
+    {
+        if (CurrentDistance < TotalDistance)
+        {
+            FVector Location = GetActorLocation();
+
+            Location += Direction * MovementComponent->InitialSpeed * DeltaTime;
+
+            SetActorLocation(Location);
+
+            CurrentDistance = (Location - StartLocation).Size();
+
+        }
+    }
+}
+
+void AMagicSkill::SetLocation()
+{
+    if (Target != nullptr)
+    {
+        StartLocation = GetActorLocation();
+        Direction = Target->GetActorLocation() - StartLocation;
+        TotalDistance = Direction.Size();
+
+        Direction = Direction.GetSafeNormal();
+        CurrentDistance = 0.0f;
+    }
+}
 
 void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -80,8 +122,7 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
             }     
             if (DamageTypeClass)
             {
-                Enemy->TakeDam(Damage);
-                //UGameplayStatics::ApplyDamage(Enemy, Damage, MagicInstigator, this, DamageTypeClass);
+                UGameplayStatics::ApplyDamage(Enemy, Damage, MagicInstigator, this, DamageTypeClass);
             }
         }
         

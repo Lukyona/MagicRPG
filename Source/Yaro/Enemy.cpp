@@ -10,6 +10,8 @@
 #include "Animation/AnimInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/KismetMathLibrary.h"
+
 
 // Sets default values
 AEnemy::AEnemy()
@@ -43,6 +45,11 @@ AEnemy::AEnemy()
 	DeathDelay = 3.f;
 
 	bHasValidTarget = false;
+
+	InterpSpeed = 10.f; //(플레이어 바라볼 때)회전 속도
+	bInterpToTarget = false;
+
+	AttackDelay = 0.4f; // 공격 텀
 
 }
 
@@ -82,6 +89,26 @@ void AEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+	if (bInterpToTarget && bOverlappingCombatSphere)
+	{
+		FRotator LookAtYaw = GetLookAtRotationYaw(CombatTarget->GetActorLocation());
+		FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed); //smooth transition
+		SetActorRotation(InterpRotation);
+	}
+}
+
+void AEnemy::SetInterpToTarget(bool Interp)
+{
+	bInterpToTarget = Interp;
+}
+
+FRotator AEnemy::GetLookAtRotationYaw(FVector Target)
+{
+	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Target);
+	FRotator LookAtRotationYaw(0.f, LookAtRotation.Yaw, 0.f);
+	return LookAtRotationYaw;
 }
 
 // Called to bind functionality to input
@@ -106,7 +133,7 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 
 void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor)
+	if (OtherActor && Alive())
 	{
 		AMain* Main = Cast<AMain>(OtherActor);
 		if (Main)
@@ -139,7 +166,7 @@ void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent
 
 void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor)
+	if (OtherActor && Alive())
 	{
 		AMain* Main = Cast<AMain>(OtherActor);
 		if (Main)
@@ -154,6 +181,8 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 				MoveToTarget(Main);
 				CombatTarget = nullptr;
 			}
+			SetInterpToTarget(false);
+			GetWorldTimerManager().ClearTimer(AttackTimer);
 		}
 	}
 }
@@ -162,7 +191,7 @@ void AEnemy::MoveToTarget(AMain* Target)
 {
 	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_MoveToTarget);
 
-	if (AIController)
+	if (AIController && Alive())
 	{
 		FAIMoveRequest MoveRequest;
 		MoveRequest.SetGoalActor(Target);
@@ -228,6 +257,8 @@ void AEnemy::Attack()
 		if (!bAttacking)
 		{
 			bAttacking = true;
+			SetInterpToTarget(false);
+
 			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 			if (AnimInstance)
 			{
@@ -263,18 +294,19 @@ void AEnemy::Attack()
 void AEnemy::AttackEnd()
 {
 	bAttacking = false;
+	SetInterpToTarget(true);
+
 	if (bOverlappingCombatSphere)
 	{
-		Attack();
+		GetWorldTimerManager().SetTimer(AttackTimer, this, &AEnemy::Attack, AttackDelay);
 	}
-	
 }
 
 float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
 	if (Health - DamageAmount <= 0.f)
 	{
-		Health -= DamageAmount;
+		Health = 0.f;
 		Die();
 	}
 	else
@@ -285,18 +317,6 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 	return DamageAmount;
 }
 
-void AEnemy::TakeDam(float Dam)
-{
-	if (Health - Dam <= 0.f)
-	{
-		Health -= Dam;
-		Die();
-	}
-	else
-	{
-		Health -= Dam;
-	}
-}
 
 void AEnemy::Die()
 {
@@ -307,13 +327,6 @@ void AEnemy::Die()
 		AnimInstance->Montage_JumpToSection(FName("Death"), CombatMontage);
 	}
 	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
-
-	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	AgroSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CombatSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 }
 
@@ -331,6 +344,12 @@ bool AEnemy::Alive()
 
 void AEnemy::Disappear()
 {
+	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AgroSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CombatSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Destroy();
 }
 

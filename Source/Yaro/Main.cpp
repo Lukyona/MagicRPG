@@ -203,7 +203,7 @@ void AMain::Run(float Value)
 		GetCharacterMovement()->MaxWalkSpeed = 600.f; //속도 상향		
 	}
 	
-	if (bRunning && SP >= 0.f)// 달리고 있는 상태 + 스태미나가 5이상일 때 스태미나 감소
+	if (bRunning && SP >= 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
 	{
 		SP -= 1.f;
 		//UE_LOG(LogTemp, Log, TEXT("Text, %f"), SP);
@@ -304,8 +304,7 @@ void AMain::Attack()
 			AnimInstance->Montage_Play(CombatMontage);
 			AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
 
-			Spawn();
-			
+			Spawn();			
 		}
 	}
 
@@ -315,7 +314,6 @@ void AMain::AttackEnd()
 {
 	bAttacking = false;
 	SetInterpToEnemy(false);
-
 }
 
 void AMain::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -345,7 +343,6 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 		if (Enemy)
 		{
-			
 			for (int i = 0; i < Targets.Num(); i++)
 			{
 				if (Enemy == Targets[i]) //already exist
@@ -361,9 +358,7 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 
 			if (CombatTarget == Enemy)
 			{
-				MainPlayerController->bTargetArrowVisible = false;
 				MainPlayerController->RemoveTargetArrow();
-				MainPlayerController->bEnemyHPBarVisible = false;
 				MainPlayerController->RemoveEnemyHPBar();
 				CombatTarget = nullptr;
 				bHasCombatTarget = false;
@@ -383,15 +378,11 @@ void AMain::Targeting() //Targeting using Tap key
 		//There is already exist targeted enemy, then targetArrow remove
 		if (MainPlayerController->bTargetArrowVisible)
 		{
-			MainPlayerController->bTargetArrowVisible = false;
 			MainPlayerController->RemoveTargetArrow();
-
-			MainPlayerController->bEnemyHPBarVisible = false;
 			MainPlayerController->RemoveEnemyHPBar();
 		}
 		bHasCombatTarget = true;
 		CombatTarget = Targets[targetIndex];
-		//UE_LOG(LogTemp, Log, TEXT("%s"), *(CombatTarget->GetName()));
 		targetIndex++;
 
 		MainPlayerController->DisplayTargetArrow(); 
@@ -421,8 +412,9 @@ void AMain::Spawn() //Spawn Magic
 					{
 						spawnLocation = CombatTarget->GetActorLocation();
 					}
-
-					world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);
+				
+					MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);
+					if (CombatTarget) MagicAttack->Target = CombatTarget;
 				}
 			}), 0.6f, false); // 0.6초 뒤 실행, 반복X
 
@@ -499,7 +491,6 @@ void AMain::Jump()
 void AMain::Revive() // if player is dead, spawn player at the initial location
 {
 	this->SetActorLocation(FVector(-192.f, 5257.f, 3350.f));
-	revival = true;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && CombatMontage)
 	{
@@ -513,6 +504,5 @@ void AMain::Revive() // if player is dead, spawn player at the initial location
 
 void AMain::RevivalEnd()
 {
-	revival = false;
 	SetMovementStatus(EMovementStatus::EMS_Normal);
 }

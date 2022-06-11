@@ -103,17 +103,15 @@ public:
 	class AMainPlayerController* MainPlayerController;
 
 
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-
-	void Die();
-
 	FTimerHandle DeathTimer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float DeathDelay;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement)
-	bool revival = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	EMovementStatus MovementStatus;
+
+	FORCEINLINE void SetMovementStatus(EMovementStatus Status) { MovementStatus = Status; }
 
 protected:
 	// Called when the game starts or when spawned
@@ -195,17 +193,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
 	TSubclassOf<class AMagicSkill> ToSpawn;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
+	class AMagicSkill* MagicAttack;
+
 	int SkillNum;
 
 	void Spawn();
 
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	void Die();
+
 	UFUNCTION(BlueprintCallable)
 	void DeathEnd();
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
-	EMovementStatus MovementStatus;
-
-	FORCEINLINE void SetMovementStatus(EMovementStatus Status) { MovementStatus = Status; }
 
 	virtual void Jump() override;
 
