@@ -73,6 +73,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float AttackDelay;
 
+	UPROPERTY(VisibleAnywhere)
+	class AMagicSkill* MagicAttack;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	class AMain* Main;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TArray<ACharacter*> Targets;
+
+	UPROPERTY(VisibleAnywhere)
+	FVector InitialLocation;
+
+	FRotator InitialRotation;
+
+	void MoveToLocation();
+
+	FTimerHandle CheckHandle;
+	void CheckLocation();
+	int Count = 0;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -96,13 +116,13 @@ public:
 	virtual void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	UFUNCTION(BlueprintCallable)
-	void MoveToTarget(class AMain* Target);
+	void MoveToTarget(class ACharacter* Target);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "AI")
 	bool bOverlappingCombatSphere;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "AI")
-	AMain* CombatTarget;
+	ACharacter* CombatTarget;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	class UBoxComponent* CombatCollision;
@@ -146,4 +166,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void HitGround(); // Golem's skill
+
+	UFUNCTION(BlueprintCallable)
+	void HitEnd();
 };

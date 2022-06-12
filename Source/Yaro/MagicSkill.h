@@ -33,7 +33,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
 	class USoundCue* MagicSound;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Comabat")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float Damage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
@@ -46,6 +46,12 @@ public:
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "MoveActor")
 	class AEnemy* Target;
+
+	UPROPERTY(EditDefaultsOnly)
+	int index;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Combat")
+	class ACharacter* Caster; // who cast this spell(magic)
 
 protected:
 	// Called when the game starts or when spawned

@@ -54,11 +54,12 @@ public:
 	FVector CombatTargetLocation;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bHasCombatTarget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<AEnemy*> Targets;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	bool bHasCombatTarget;
-
 	int targetIndex;
 
 	FTimerHandle AttackTimer;

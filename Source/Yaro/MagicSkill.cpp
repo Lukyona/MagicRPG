@@ -9,6 +9,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Sound/SoundCue.h"
 #include "GameFramework/Controller.h"
+#include "Main.h"
 
 // Sets default values
 AMagicSkill::AMagicSkill()
@@ -16,11 +17,8 @@ AMagicSkill::AMagicSkill()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-    //RootScene = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-    //RootComponent = RootScene;
-
     Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
-    Sphere->SetupAttachment(GetRootComponent());
+    RootComponent = Sphere;
 
     Particle = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Particle"));
     Particle->SetupAttachment(Sphere);
@@ -33,6 +31,7 @@ AMagicSkill::AMagicSkill()
     MovementComponent->ProjectileGravityScale = 0.03f;
 
     PrimaryActorTick.bCanEverTick = true;
+
 }
 
 // Called when the game starts or when spawned
@@ -40,9 +39,6 @@ void AMagicSkill::BeginPlay()
 {
 	Super::BeginPlay();
     Sphere->OnComponentBeginOverlap.AddDynamic(this, &AMagicSkill::OnComponentBeginOverlap);
-
-    AController* controller = Cast<AController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
-    SetInstigator(controller);
 
     if (MagicSound)
     {
@@ -60,16 +56,15 @@ void AMagicSkill::BeginPlay()
             Destroy(true);
         }
 
-        }), 3.f, false);
+    }), 3.f, false);
 
     FTimerHandle WaitHandle2;
     GetWorld()->GetTimerManager().SetTimer(WaitHandle2, FTimerDelegate::CreateLambda([&]() {
-        if (this->GetName().Contains("Wind") || this->GetName().Contains("Storm"))
+        if (this->GetName().Contains("Wind") || this->GetName().Contains("Storm") || this->GetName().Contains("ball"))
         {
             SetLocation();
         }
-
-        }), 0.1f, false);
+    }), 0.1f, false);
 
 
 }
@@ -115,7 +110,7 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
         if (Enemy)
         {
             UGameplayStatics::PlaySound2D(this, ExplosionSound);
-            if (this->GetName().Contains("Wind"))
+            if (this->GetName().Contains("Wind") || this->GetName().Contains("ball"))
             {
                 UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleFX, GetActorLocation());
                 Destroy(true);

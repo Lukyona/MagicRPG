@@ -30,8 +30,10 @@ AMain::AMain()
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->TargetArmLength = 500.f; //Camera follows at this distance
 	CameraBoom->bUsePawnControlRotation = true; // Rotate arm based on controller
+	
 	// but npc, enemy들도 여기에 콜리전으로 해당되어 게임 플레이가 불편하므로 콜리전 테스트 끔
-	CameraBoom->bDoCollisionTest = false;
+	//CameraBoom->bDoCollisionTest = false;
+	
 	CameraBoom->SetWorldRotation(FRotator(-30.0f, 0.f, 0.0f));
 	CameraBoom->SocketOffset.Z = 70.f;
 
@@ -66,8 +68,8 @@ AMain::AMain()
 	HP = 100.f;
 	MaxMP = 100.f;
 	MP = 100.f;
-	MaxSP = 300.f;
-	SP = 300.f;
+	MaxSP = 500.f;
+	SP = 500.f;
 
 	InterpSpeed = 15.f;
 	bInterpToEnemy = false;
@@ -188,13 +190,14 @@ void AMain::MoveRight(float Value)
 
 void AMain::Run(float Value)
 {
-	if (!Value || SP <= 0.f) //쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
+	if (!Value || SP < 0.f) //쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
 	{
 		bRunning = false;
 		GetCharacterMovement()->MaxWalkSpeed = 350.f; //속도 하향
+
 		if (SP < MaxSP)
 		{
-			SP += 0.1f;
+			SP += 1.f;
 		}
 	}
 	else if(!bRunning && SP >= 1.f) //쉬프트키가 눌려있고 달리는 상태가 아니면
@@ -413,8 +416,8 @@ void AMain::Spawn() //Spawn Magic
 						spawnLocation = CombatTarget->GetActorLocation();
 					}
 				
-					MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);
-					if (CombatTarget) MagicAttack->Target = CombatTarget;
+					MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);	
+					if (MagicAttack && SkillNum == 1 && CombatTarget) MagicAttack->Target = CombatTarget;
 				}
 			}), 0.6f, false); // 0.6초 뒤 실행, 반복X
 

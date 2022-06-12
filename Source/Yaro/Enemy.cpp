@@ -11,7 +11,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-
+#include "MagicSkill.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AEnemy::AEnemy()
@@ -82,6 +84,14 @@ void AEnemy::BeginPlay()
 	CombatCollision2->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	CombatCollision2->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	CombatCollision2->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+
+	Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
+
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+
+	InitialLocation = GetActorLocation(); // Set initial enemy location
+	InitialRotation = GetActorRotation();
 }
 
 // Called every frame
@@ -121,42 +131,95 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && Alive())
+	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
+
+	if (OtherActor && Alive()) //전투타겟이 없을 때 NPC에게도 유효, 전투타겟이 있어도 플레이어에게 반응
 	{
-		AMain* Main = Cast<AMain>(OtherActor);
-		if (Main)
+		if (OtherActor == Main)
 		{
 			MoveToTarget(Main);
+			Targets.Add(Main); // Add to target list
 		}
+		else if(!CombatTarget)
+		{
+			ACharacter* target = Cast<ACharacter>(OtherActor); // Npc's in agroshpere
+			if (target)
+			{
+				MoveToTarget(target);
+				for (int i = 0; i < Targets.Num(); i++)
+				{
+					if (target == Targets[i]) return;
+				}
+				Targets.Add(target); // Add to target list
+			}
+		}
+		
 	}
 }
 
 void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
+
 	if (OtherActor && Alive())
 	{
-		AMain* Main = Cast<AMain>(OtherActor);
-		if (Main)
+		ACharacter* target;
+		if (OtherActor == Main)
 		{
-			SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Idle);
-			if (AIController)
+			target = Main;
+		}
+		else
+		{
+			target = Cast<ACharacter>(OtherActor);
+		}
+		
+		if (target)
+		{
+			for (int i = 0; i < Targets.Num(); i++) // Remove target in the target list
 			{
-				AIController->StopMovement();
-				bHasValidTarget = false;
+				if (target == Targets[i])
+				{
+					Targets.Remove(target);
+				}
 			}
+			
+			if (Targets.Num() == 0) // no one's in agrosphere
+			{
+				/*SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Idle);
+				if (AIController)
+				{
+					AIController->StopMovement();
+					bHasValidTarget = false;
+				}*/
+
+				MoveToLocation();
+			}		
 		}
 	}
 }
 
 void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && Alive())
+	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
+
+	if (OtherActor&& Alive()) //전투타겟이 없을 때 NPC에게도 유효, 전투타겟이 있어도 플레이어에게 반응
 	{
-		AMain* Main = Cast<AMain>(OtherActor);
-		if (Main)
+		ACharacter* target;
+		if (OtherActor == Main)
+		{
+			target = Main;
+
+		}
+		else
+		{
+			if (CombatTarget) return;
+			target = Cast<ACharacter>(OtherActor);
+		}
+
+		if (target)
 		{
 			bHasValidTarget = true;
-			CombatTarget = Main;
+			CombatTarget = target;
 			bOverlappingCombatSphere = true;
 			Attack();
 		}
@@ -166,10 +229,20 @@ void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent
 
 void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
+
 	if (OtherActor && Alive())
 	{
-		AMain* Main = Cast<AMain>(OtherActor);
-		if (Main)
+		ACharacter* target;
+		if (OtherActor == Main)
+		{
+			target = Main;
+		}
+		else
+		{
+			target = Cast<ACharacter>(OtherActor);
+		}
+		if (target)
 		{
 			bOverlappingCombatSphere = false;
 			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -178,7 +251,7 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 
 			if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)
 			{
-				MoveToTarget(Main);
+				MoveToTarget(target);
 				CombatTarget = nullptr;
 			}
 			SetInterpToTarget(false);
@@ -187,12 +260,14 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 	}
 }
 
-void AEnemy::MoveToTarget(AMain* Target)
+void AEnemy::MoveToTarget(ACharacter* Target)
 {
 	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_MoveToTarget);
 
 	if (AIController && Alive())
 	{
+		GetWorldTimerManager().ClearTimer(CheckHandle);
+
 		FAIMoveRequest MoveRequest;
 		MoveRequest.SetGoalActor(Target);
 		MoveRequest.SetAcceptanceRadius(15.0f);
@@ -214,23 +289,31 @@ void AEnemy::MoveToTarget(AMain* Target)
 
 void AEnemy::CombatOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
+
 	if (OtherActor)
 	{
-		AMain* Main = Cast<AMain>(OtherActor);
-		if (Main)
+		ACharacter* target;
+		if (OtherActor == Main)
+		{
+			target = Main;
+		}
+		else
+		{
+			target = Cast<ACharacter>(OtherActor);
+		}
+		if (target)
 		{
 			if (DamageTypeClass)
 			{
-				UGameplayStatics::ApplyDamage(Main, Damage, AIController, this, DamageTypeClass);
+				UGameplayStatics::ApplyDamage(target, Damage, AIController, this, DamageTypeClass);
 			}
-		}
-		
+		}	
 	}
 }
 
 void AEnemy::CombatOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-
 }
 
 void AEnemy::ActivateCollision()
@@ -304,15 +387,24 @@ void AEnemy::AttackEnd()
 
 float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	if (Health - DamageAmount <= 0.f)
+	if (Health - DamageAmount <= 0.f) // Decrease Health
 	{
 		Health = 0.f;
 		Die();
 	}
 	else
 	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance)
+		{
+			AnimInstance->Montage_Play(CombatMontage);
+			AnimInstance->Montage_JumpToSection(FName("Hit"), CombatMontage);
+		}
 		Health -= DamageAmount;
 	}
+
+	MagicAttack = Cast<AMagicSkill>(DamageCauser);
+
 
 	return DamageAmount;
 }
@@ -320,14 +412,17 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 
 void AEnemy::Die()
 {
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance)
+	if (EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead)
 	{
-		AnimInstance->Montage_Play(CombatMontage);
-		AnimInstance->Montage_JumpToSection(FName("Death"), CombatMontage);
-	}
-	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance)
+		{
+			AnimInstance->Montage_Play(CombatMontage);
+			AnimInstance->Montage_JumpToSection(FName("Death"), CombatMontage);
+		}
+		SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
 
+	}
 }
 
 void AEnemy::DeathEnd()
@@ -353,10 +448,99 @@ void AEnemy::Disappear()
 	Destroy();
 }
 
-void AEnemy::HitGround()
+void AEnemy::HitGround() //Golem's third skill
 {
 	if (CombatTarget)
 	{
 		UGameplayStatics::ApplyDamage(CombatTarget, Damage, AIController, this, DamageTypeClass);
+	}
+}
+
+void AEnemy::HitEnd()
+{
+	int index = MagicAttack->index;
+	// When enemy doesn't have any combat target, Ai attacks enemy
+	if (!CombatTarget && index != 0)
+	{
+		ACharacter* npc = MagicAttack->Caster;
+		
+		MoveToTarget(npc);
+	}
+
+	/* When enemy doesn't have combat target, player attacks enemy
+	or when enemy's combat target is not player and player attacks enemy.
+	At this time, enemy must sets player as a combat target.
+	*/
+	if ((!CombatTarget || CombatTarget != Main) && index == 0)
+	{
+		if (CombatTarget)
+		{
+			if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)
+			{
+				UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+				AnimInstance->Montage_Stop(0.1f, CombatMontage);
+				AttackEnd();
+
+				SetInterpToTarget(false);
+				GetWorldTimerManager().ClearTimer(AttackTimer);
+			}
+		}
+		MoveToTarget(Main);
+	}
+
+	if (CombatTarget == Main)
+	{		
+		if (bOverlappingCombatSphere)
+		{
+			AttackEnd();
+		}
+	}
+}
+
+// 이동 후 범위 내에 아무도 없을 때 다시 초기 위치로 이동
+void AEnemy::MoveToLocation()
+{
+	if (AIController && Alive())
+	{
+		GetWorldTimerManager().SetTimer(CheckHandle, this, &AEnemy::CheckLocation, 0.5f);
+
+		SetEnemyMovementStatus(EEnemyMovementStatus::EMS_MoveToTarget);
+		AIController->MoveToLocation(InitialLocation);
+	}
+	
+}
+
+void AEnemy::CheckLocation()
+{
+	if (Alive())
+	{	
+		Count += 1;
+		if (Count >= 20) SetActorLocation(InitialLocation);
+		float distance = (GetActorLocation() - InitialLocation).Size();
+		//UE_LOG(LogTemp, Log, TEXT("%f"), distance);
+
+		if (distance <= 70.f)
+		{
+			if (AIController)
+			{
+				AIController->StopMovement();
+				SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Idle);
+				Count = 0;
+				bHasValidTarget = false;
+				//UE_LOG(LogTemp, Log, TEXT("clear"));
+				SetActorRotation(InitialRotation);
+				GetWorldTimerManager().ClearTimer(CheckHandle);
+
+			}
+		}
+		else
+		{
+			GetWorldTimerManager().SetTimer(CheckHandle, this, &AEnemy::CheckLocation, 0.5f);
+		}
+	}
+	else
+	{
+		AIController->StopMovement();
+		GetWorldTimerManager().ClearTimer(CheckHandle);
 	}
 }
