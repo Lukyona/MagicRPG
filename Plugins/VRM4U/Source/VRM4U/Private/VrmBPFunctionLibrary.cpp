@@ -23,9 +23,16 @@
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "Rendering/SkeletalMeshModel.h"
 
-//#include "ILiveLinkClient.h"
-//#include "Roles/LiveLinkBasicRole.h"
-//#include "Features/IModularFeatures.h"
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
+#include "IKRigDefinition.h"
+#include "IKRigSolver.h"
+#include "Retargeter/IKRetargeter.h"
+#if WITH_EDITOR
+#include "RigEditor/IKRigController.h"
+#include "RetargetEditor/IKRetargeterController.h"
+#endif
+#endif
 
 #include "Animation/AnimInstance.h"
 #include "VrmAnimInstanceCopy.h"
@@ -294,16 +301,17 @@ void UVrmBPFunctionLibrary::VRMUpdateRefPose(USkeletalMeshComponent* target, boo
 						if (SoftVert->InfluenceWeights[j] > 0)
 						{
 							if (j == 0) {
-								SoftVert->Position = FVector::ZeroVector;
 #if	UE_VERSION_OLDER_THAN(5,0,0)
+								SoftVert->Position = FVector::ZeroVector;
 								SoftVert->TangentZ = FVector::ZeroVector;
 #else
+								SoftVert->Position = FVector4f::Zero();
 								SoftVert->TangentZ = FVector4f::Zero();
 #endif
 							}
 							int32 BoneIndex = Section.BoneMap[SoftVert->InfluenceBones[j]];
 
-							FVector p = origGlobalTransformInv[BoneIndex].TransformPosition(SoftVertOrg->Position);
+							FVector p = origGlobalTransformInv[BoneIndex].TransformPosition(FVector(SoftVertOrg->Position));
 							p = destGlobalTransform[BoneIndex].TransformPosition(p);
 
 
@@ -311,19 +319,21 @@ void UVrmBPFunctionLibrary::VRMUpdateRefPose(USkeletalMeshComponent* target, boo
 #if	UE_VERSION_OLDER_THAN(5,0,0)
 							FVector n = origGlobalTransformInv[BoneIndex].TransformVector(SoftVertOrg->TangentZ);
 #else
-							FVector n = origGlobalTransformInv[BoneIndex].TransformVector(FVector3f(SoftVertOrg->TangentZ));
+							FVector n = origGlobalTransformInv[BoneIndex].TransformVector(FVector3d(SoftVertOrg->TangentZ));
 #endif
 							n = destGlobalTransform[BoneIndex].TransformVector(n);
 
-							SoftVert->Position += p * (float)SoftVert->InfluenceWeights[j] / 255.f;
 #if	UE_VERSION_OLDER_THAN(4,20,0)
+							SoftVert->Position += p * (float)SoftVert->InfluenceWeights[j] / 255.f;
 							SoftVert->TangentZ.Vector.X += n.X * (float)SoftVert->InfluenceWeights[j] / 255.f;
 							SoftVert->TangentZ.Vector.Y += n.Y * (float)SoftVert->InfluenceWeights[j] / 255.f;
 							SoftVert->TangentZ.Vector.Z += n.Z * (float)SoftVert->InfluenceWeights[j] / 255.f;
 #elif	UE_VERSION_OLDER_THAN(5, 0, 0)
+							SoftVert->Position += p * (float)SoftVert->InfluenceWeights[j] / 255.f;
 							SoftVert->TangentZ += n * (float)SoftVert->InfluenceWeights[j] / 255.f;
 #else
-							SoftVert->TangentZ += FVector4f(n * (float)SoftVert->InfluenceWeights[j] / 255.f, 1.f);
+							SoftVert->Position += FVector3f(p * (float)SoftVert->InfluenceWeights[j] / 255.f);
+							SoftVert->TangentZ += FVector4f(FVector3f(n * (float)SoftVert->InfluenceWeights[j] / 255.f), 1.f);
 #endif
 						}
 					}
@@ -1142,6 +1152,17 @@ bool UVrmBPFunctionLibrary::VRMSetPostProcessSettingFromCineCamera(FPostProcessS
 	return true;
 }
 
+void UVrmBPFunctionLibrary::VRMSetPostProcessToneCurveAmount(FPostProcessSettings& OutSettings, const FPostProcessSettings& InSettings, bool bOverride, float Amount) {
+	OutSettings = InSettings;
+
+#if	UE_VERSION_OLDER_THAN(4,26,0)
+
+#else
+	OutSettings.ToneCurveAmount = Amount;
+	OutSettings.bOverride_ToneCurveAmount = bOverride;
+#endif
+}
+
 
 void UVrmBPFunctionLibrary::VRMMakeCameraTrackingFocusSettings(AActor *ActorToTrack, FVector RelativeOffset, bool bDrawDebugTrackingFocusPoint, FCameraTrackingFocusSettings &Settings){
 #if	UE_VERSION_OLDER_THAN(4,20,0)
@@ -1563,7 +1584,12 @@ bool UVrmBPFunctionLibrary::VRMBakeAnim(const USkeletalMeshComponent* skc, const
 
 		{
 			const auto refPose = VRMGetRefSkeleton(sk).GetRawRefBonePose()[i];
+#if	UE_VERSION_OLDER_THAN(5,0,0)
 			RawTrack.PosKeys.Add(refPose.GetLocation());
+#else
+			RawTrack.PosKeys.Add(FVector3f(refPose.GetLocation()));
+#endif
+
 		}
 
 		const auto srcTrans = skc->GetBoneTransform(i);
@@ -1585,21 +1611,29 @@ bool UVrmBPFunctionLibrary::VRMBakeAnim(const USkeletalMeshComponent* skc, const
 
 		//FVector s = srcTrans.GetScale3D();
 		FVector s(1, 1, 1);
+#if	UE_VERSION_OLDER_THAN(5,0,0)
 		RawTrack.ScaleKeys.Add(s);
-
 		if (RawTrack.PosKeys.Num() == 0) {
 			RawTrack.PosKeys.Add(FVector::ZeroVector);
 		}
 		if (RawTrack.RotKeys.Num() == 0) {
-#if	UE_VERSION_OLDER_THAN(5,0,0)
 			RawTrack.RotKeys.Add(FQuat::Identity);
-#else
-			RawTrack.RotKeys.Add(FQuat4f::Identity);
-#endif
 		}
 		if (RawTrack.ScaleKeys.Num() == 0) {
 			RawTrack.ScaleKeys.Add(FVector::OneVector);
 		}
+#else
+		RawTrack.ScaleKeys.Add(FVector3f(s));
+		if (RawTrack.PosKeys.Num() == 0) {
+			RawTrack.PosKeys.Add(FVector3f::ZeroVector);
+		}
+		if (RawTrack.RotKeys.Num() == 0) {
+			RawTrack.RotKeys.Add(FQuat4f::Identity);
+		}
+		if (RawTrack.ScaleKeys.Num() == 0) {
+			RawTrack.ScaleKeys.Add(FVector3f::OneVector);
+		}
+#endif
 
 #if	UE_VERSION_OLDER_THAN(5,0,0)
 		ase->AddNewRawTrack(BoneName, &RawTrack);
@@ -1685,4 +1719,26 @@ void UVrmBPFunctionLibrary::VRMSetPerBoneMotionBlur(USkinnedMeshComponent* Skinn
 	if (SkinnedMesh == nullptr) return;
 
 	SkinnedMesh->bPerBoneMotionBlur = bUsePerBoneMotionBlur;
+}
+
+
+//void UVrmBPFunctionLibrary::GetIKRigDefinition(UIKRetargeter, UIKRigDefinition*& src, UIKRigDefinition*& target) {
+void UVrmBPFunctionLibrary::VRMGetIKRigDefinition(UObject *retargeter, UObject * &src, UObject * &target) {
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
+	UIKRetargeter* r = Cast<UIKRetargeter>(retargeter);
+	if (r) {
+		src = Cast<UIKRigDefinition>(r->GetSourceIKRigWriteable());
+		target = Cast <UIKRigDefinition>(r->GetTargetIKRigWriteable());
+	}
+#endif
+}
+
+void UVrmBPFunctionLibrary::VRMGetPreviewMesh(UObject* target, USkeletalMesh*& mesh){
+	if (target == nullptr) return;
+
+	IInterface_PreviewMeshProvider *p = Cast<IInterface_PreviewMeshProvider>(target);
+	if (p == nullptr) return;
+
+	mesh = p->GetPreviewMesh();
 }

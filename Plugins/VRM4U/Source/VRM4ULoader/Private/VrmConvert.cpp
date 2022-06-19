@@ -192,20 +192,16 @@ VRMConverter::Options& VRMConverter::Options::Get(){
 }
 
 USkeleton *VRMConverter::Options::GetSkeleton() {
-#if WITH_EDITOR
-	if (Window == nullptr) return nullptr;
+	if (ImportOption == nullptr) return nullptr;
 
-	return Window->Skeleton;
-#else
-	return nullptr;
-#endif
+	return ImportOption->Skeleton;
 }
 
 bool VRMConverter::Options::IsSkipNoMeshBone() const {
 #if WITH_EDITOR
-	if (Window == nullptr) return false;
+	if (ImportOption == nullptr) return false;
 
-	return Window->bSkipNoMeshBone;
+	return ImportOption->bSkipNoMeshBone;
 #else
 	return false;
 #endif
@@ -213,9 +209,9 @@ bool VRMConverter::Options::IsSkipNoMeshBone() const {
 
 bool VRMConverter::Options::IsSkipMorphTarget() const {
 #if WITH_EDITOR
-	if (Window == nullptr) return false;
+	if (ImportOption == nullptr) return false;
 
-	return Window->bSkipMorphTarget;
+	return ImportOption->bSkipMorphTarget;
 #else
 	return false;
 #endif
@@ -223,9 +219,9 @@ bool VRMConverter::Options::IsSkipMorphTarget() const {
 
 bool VRMConverter::Options::IsEnableMorphTargetNormal() const {
 #if WITH_EDITOR
-	if (Window == nullptr) return false;
+	if (ImportOption == nullptr) return false;
 
-	return Window->bEnableMorphTargetNormal;
+	return ImportOption->bEnableMorphTargetNormal;
 #else
 	return false;
 #endif
@@ -233,29 +229,28 @@ bool VRMConverter::Options::IsEnableMorphTargetNormal() const {
 
 bool VRMConverter::Options::IsStrictMorphTargetNameMode() const {
 #if WITH_EDITOR
-	if (Window == nullptr) return false;
+	if (ImportOption == nullptr) return false;
 
-	return Window->bStrictMorphTargetNameMode;
+	return ImportOption->bStrictMorphTargetNameMode;
 #else
 	return false;
 #endif
 }
 
 bool VRMConverter::Options::IsGenerateHumanoidRenamedMesh() const {
-#if WITH_EDITOR
-	if (Window == nullptr) return false;
-
-	return Window->bGenerateHumanoidRenamedMesh;
-#else
-	return false;
-#endif
+	if (ImportOption == nullptr) return false;
+	return ImportOption->bGenerateHumanoidRenamedMesh;
 }
 
 bool VRMConverter::Options::IsGenerateIKBone() const {
+	if (ImportOption == nullptr) return false;
+	return ImportOption->bGenerateIKBone;
+}
+bool VRMConverter::Options::IsGenerateRigIK() const {
 #if WITH_EDITOR
-	if (Window == nullptr) return false;
+	if (ImportOption == nullptr) return false;
 
-	return Window->bGenerateIKBone;
+	return ImportOption->bGenerateRigIK;
 #else
 	return false;
 #endif
@@ -270,9 +265,9 @@ bool VRMConverter::Options::IsMobileBone() const {
 
 
 #if WITH_EDITOR
-	if (Window == nullptr) return ret;
+	if (ImportOption == nullptr) return ret;
 
-	return Window->bMobileBone;
+	return ImportOption->bMobileBone;
 #else
 	return ret;
 #endif
@@ -282,9 +277,9 @@ int VRMConverter::Options::GetBoneWeightInfluenceNum() const {
 	int ret = 8;
 
 #if WITH_EDITOR
-	if (Window == nullptr) return ret;
+	if (ImportOption == nullptr) return ret;
 
-	return FMath::Clamp(Window->BoneWeightInfluenceNum, 1, 8);
+	return FMath::Clamp(ImportOption->BoneWeightInfluenceNum, 1, 8);
 #else
 	return ret;
 #endif
@@ -294,9 +289,9 @@ int VRMConverter::Options::GetBoneWeightInfluenceNum() const {
 bool VRMConverter::Options::IsDebugOneBone() const {
 	bool ret = false;
 #if WITH_EDITOR
-	if (Window == nullptr) return ret;
+	if (ImportOption == nullptr) return ret;
 
-	return Window->bDebugOneBone;
+	return ImportOption->bDebugOneBone;
 #else
 	return ret;
 #endif
@@ -305,9 +300,9 @@ bool VRMConverter::Options::IsDebugOneBone() const {
 bool VRMConverter::Options::IsSimpleRootBone() const {
 	bool ret = true;
 #if WITH_EDITOR
-	if (Window == nullptr) return ret;
+	if (ImportOption == nullptr) return ret;
 
-	return Window->bSimpleRoot;
+	return ImportOption->bSimpleRoot;
 #else
 	return ret;
 #endif
@@ -320,75 +315,51 @@ bool VRMConverter::Options::IsSkipPhysics() const {
 		return true;
 	}
 #if WITH_EDITOR
-	if (Window == nullptr) return ret;
+	if (ImportOption == nullptr) return ret;
 
-	return Window->bSkipPhysics;
+	return ImportOption->bSkipPhysics;
 #else
 	return ret;
 #endif
 }
 
 bool VRMConverter::Options::IsForceOpaque() const {
-	bool ret = false;
-#if WITH_EDITOR
-	if (Window == nullptr) return ret;
-
-	return Window->bForceOpaque;
-#else
-	return ret;
-#endif
+	if (ImportOption == nullptr) return false;
+	return ImportOption->bForceOpaque;
 }
 
 bool VRMConverter::Options::IsForceTwoSided() const {
-	bool ret = false;
-#if WITH_EDITOR
-	if (Window == nullptr) return ret;
-
-	return Window->bForceTwoSided;
-#else
-	return ret;
-#endif
+	if (ImportOption == nullptr) return false;
+	return ImportOption->bForceTwoSided;
 }
 
 bool VRMConverter::Options::IsSingleUAssetFile() const {
-	bool ret = true;
-#if WITH_EDITOR
-	if (Window == nullptr) return ret;
-
-	return Window->bSingleUAssetFile;
-#else
-	return ret;
-#endif
+	if (ImportOption == nullptr) return true;
+	return ImportOption->bSingleUAssetFile;
 }
 
 bool VRMConverter::Options::IsDefaultGridTextureMode() const {
 	bool ret = false;
 #if WITH_EDITOR
-	if (Window == nullptr) return ret;
+	if (ImportOption == nullptr) return ret;
 
-	return Window->bDefaultGridTextureMode;
+	return ImportOption->bDefaultGridTextureMode;
 #else
 	return ret;
 #endif
 }
 
 bool VRMConverter::Options::IsBC7Mode() const {
-	bool ret = false;
-#if WITH_EDITOR
-	if (Window == nullptr) return ret;
-
-	return Window->bBC7Mode;
-#else
-	return ret;
-#endif
+	if (ImportOption == nullptr) return true;
+	return ImportOption->bBC7Mode;
 }
 
 bool VRMConverter::Options::IsMipmapGenerateMode() const {
 	bool ret = true;
 #if WITH_EDITOR
-	if (Window == nullptr) return ret;
+	if (ImportOption == nullptr) return ret;
 
-	return Window->bMipmapGenerateMode;
+	return ImportOption->bMipmapGenerateMode;
 #else
 	return ret;
 #endif
@@ -397,35 +368,18 @@ bool VRMConverter::Options::IsMipmapGenerateMode() const {
 
 bool VRMConverter::Options::IsMergeMaterial() const {
 	bool ret = true;
-#if WITH_EDITOR
-	if (Window == nullptr) return ret;
-
-	return Window->bMergeMaterial;
-#else
-	return ret;
-#endif
+	if (ImportOption == nullptr) return true;
+	return ImportOption->bMergeMaterial;
 }
 
 bool VRMConverter::Options::IsMergePrimitive() const {
-	bool ret = true;
-#if WITH_EDITOR
-	if (Window == nullptr) return ret;
-
-	return Window->bMergePrimitive;
-#else
-	return ret;
-#endif
+	if (ImportOption == nullptr) return true;
+	return ImportOption->bMergePrimitive;
 }
 
 bool VRMConverter::Options::IsOptimizeVertex() const {
-	bool ret = true;
-#if WITH_EDITOR
-	if (Window == nullptr) return ret;
-
-	return Window->bOptimizeVertex;
-#else
-	return ret;
-#endif
+	if (ImportOption == nullptr) return true;
+	return ImportOption->bOptimizeVertex;
 }
 
 static bool bbVRM0 = false;
@@ -448,9 +402,9 @@ bool VRMConverter::Options::IsVRM10Model() const {
 bool VRMConverter::Options::IsVRM10Normalize() const {
 	bool ret = true;
 #if WITH_EDITOR
-	if (Window == nullptr) return ret;
+	if (ImportOption == nullptr) return ret;
 
-	return Window->bVrm10Normalize;
+	return ImportOption->bVrm10Normalize;
 #else
 	return ret;
 #endif
@@ -488,22 +442,17 @@ void VRMConverter::Options::ClearModelType() {
 bool VRMConverter::Options::IsForceOverride() const {
 	bool ret = true;
 #if WITH_EDITOR
-	if (Window == nullptr) return ret;
+	if (ImportOption == nullptr) return ret;
 
-	return Window->bForceOverride;
+	return ImportOption->bForceOverride;
 #else
 	return ret;
 #endif
 }
 
 float VRMConverter::Options::GetModelScale() const {
-#if WITH_EDITOR
-	if (Window == nullptr) return 1.f;
-
-	return Window->ModelScale;
-#else
-	return 1.f;
-#endif
+	if (ImportOption == nullptr) return 1.f;
+	return ImportOption->ModelScale;
 }
 
 bool VRMConverter::Options::IsAPoseRetarget() const {
@@ -511,9 +460,9 @@ bool VRMConverter::Options::IsAPoseRetarget() const {
 		return false;
 	}
 #if WITH_EDITOR
-	if (Window == nullptr) return false;
+	if (ImportOption == nullptr) return false;
 
-	return Window->bAPoseRetarget;
+	return ImportOption->bAPoseRetarget;
 #else
 	return false;
 #endif
@@ -525,8 +474,8 @@ void VRMConverter::Options::SetMaterialType(EVRMImportMaterialType t) {
 	mType = t;
 }
 EVRMImportMaterialType VRMConverter::Options::GetMaterialType() const {
-	if (Window == nullptr) return mType;
-	return Window->MaterialType;
+	if (ImportOption == nullptr) return mType;
+	return ImportOption->MaterialType;
 }
 
 ////

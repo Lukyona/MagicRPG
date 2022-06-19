@@ -141,16 +141,54 @@ void FAnimNode_VrmRetargetFromMannequin::EvaluateSkeletalControl_AnyThread(FComp
 
 	const TArray<FString>* SrcBoneList = &VRMUtil::vrm_humanoid_bone_list;
 
+	// is ue5 mannequin remap
+	enum class RemapType {
+		E_None,
+		E_UpperChest,
+		E_Chest,
+	};
+	RemapType remapType = RemapType::E_None;
+
+	{
+		bool bUE5Mannequin = false;
+		for (int i = 1; i <= 5; ++i) {
+			int index = srcAsSkinnedMeshComp->GetBoneIndex(*(FString(TEXT("spine_0"))+FString::FromInt(i)));
+			if (index == INDEX_NONE) {
+				break;
+			}
+			if (i == 5) {
+				bUE5Mannequin = true;
+			}
+		}
+
+		if (bUE5Mannequin) {
+			TArray<FString>table = { TEXT("spine"), TEXT("chest"), TEXT("upperChest") };
+			bool b[3] = {false, false, false};
+			for (int i = 0; i < 3; ++i) {
+				auto* a = dstMeta->humanoidBoneTable.Find(*table[i]);
+				if (a && (*a) != "") {
+					b[i] = true;
+				}
+			}
+			if (b[0] && b[1] && b[2]) {
+				remapType = RemapType::E_UpperChest;
+			}
+			if (b[0] && b[1] && b[2]==false) {
+				remapType = RemapType::E_Chest;
+			}
+		}
+	}
+
 
 	int BoneCount = 0;
-	for (const auto& t : VRMUtil::vrm_humanoid_bone_list) {
+	for (const auto& humanoidName : VRMUtil::vrm_humanoid_bone_list) {
 		FName srcName, dstName;
 		srcName = dstName = NAME_None;
 
 		++BoneCount;
 		{
 			for (auto& bonemap : VRMUtil::table_ue4_vrm) {
-				if (bonemap.BoneVRM == t) {
+				if (bonemap.BoneVRM == humanoidName) {
 					srcName = *bonemap.BoneUE4;
 
 					// replace src bone name by srcMeta object
@@ -168,8 +206,32 @@ void FAnimNode_VrmRetargetFromMannequin::EvaluateSkeletalControl_AnyThread(FComp
 			continue;
 		}
 
+		switch (remapType) {
+		case RemapType::E_UpperChest:
+			if (humanoidName == TEXT("upperChest")) {
+				srcName = TEXT("spine_05");
+			}
+			if (humanoidName == TEXT("chest")) {
+				srcName = TEXT("spine_03");
+				//3,4
+			}
+			if (humanoidName == TEXT("spine")) {
+				srcName = TEXT("spine_01");
+				//1,2
+			}
+			break;
+		case RemapType::E_Chest:
+			if (humanoidName == TEXT("chest")) {
+				srcName = TEXT("spine_05");
+			}
+			if (humanoidName == TEXT("spine")) {
+				srcName = TEXT("spine_01");
+			}
+			break;
+		}
+
 		{
-			auto a = dstMeta->humanoidBoneTable.Find(t);
+			auto a = dstMeta->humanoidBoneTable.Find(humanoidName);
 			if (a) {
 				dstName = **a;
 			}
@@ -186,6 +248,7 @@ void FAnimNode_VrmRetargetFromMannequin::EvaluateSkeletalControl_AnyThread(FComp
 		if (srcIndex < 0) {
 			continue;
 		}
+
 		FCompactPoseBoneIndex srcPoseBoneIndex(srcIndex);
 		FCompactPoseBoneIndex dstPoseBoneIndex(dstIndex);
 
@@ -203,6 +266,7 @@ void FAnimNode_VrmRetargetFromMannequin::EvaluateSkeletalControl_AnyThread(FComp
 					modelBone.SetLocation(dd.GetLocation());
 
 					if (BoneCount == 1) {
+						// RootBone transform
 						float s = dd.GetLocation().Z / FMath::Max(1.0f, srcRefSkeletonCompTransform[srcIndex].GetLocation().Z);
 #if	UE_VERSION_OLDER_THAN(4,24,0)
 						FVector ComponentScale = Output.AnimInstanceProxy->GetSkelMeshComponent()->RelativeScale3D;
@@ -227,7 +291,7 @@ void FAnimNode_VrmRetargetFromMannequin::EvaluateSkeletalControl_AnyThread(FComp
 							/ ComponentScale	// inv model scale
 							+ CenterLocationOffset
 						);
-					}
+					} // RootBone transform
 				}
 			}
 

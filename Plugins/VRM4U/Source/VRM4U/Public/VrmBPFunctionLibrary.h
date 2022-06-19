@@ -163,6 +163,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "VRM4U", meta = (WorldContext = "WorldContextObject"))
 	static bool VRMSetPostProcessSettingFromCineCamera(FPostProcessSettings &OutSettings, const FPostProcessSettings &InSettings, const UCineCameraComponent *CineCamera);
 
+	UFUNCTION(BlueprintCallable, Category = "VRM4U", meta = (WorldContext = "WorldContextObject"))
+	static void VRMSetPostProcessToneCurveAmount(FPostProcessSettings& OutSettings, const FPostProcessSettings& InSettings, bool bOverride, float Amount);
+
 	UFUNCTION(BlueprintPure, Category = "VRM4U", meta = (DynamicOutputParam = "Settings"))
 	static void VRMMakeCameraTrackingFocusSettings(AActor *ActorToTrack, FVector RelativeOffset, bool bDrawDebugTrackingFocusPoint, FCameraTrackingFocusSettings &Settings);
 
@@ -214,4 +217,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "VRM4U")
 	static void VRMSetPerBoneMotionBlur(USkinnedMeshComponent* SkinnedMesh, bool bUsePerBoneMotionBlur);
+	
+	UFUNCTION(BlueprintCallable, Category = "VRM4U")
+	static void VRMGetIKRigDefinition(UObject *retargeter, UObject *& src, UObject *& target);
+	//static void GetIKRigDefinition(UIKRetargeter, UIKRigDefinition * &src, UIKRigDefinition * &target)
+
+	UFUNCTION(BlueprintPure, Category = "VRM4U")
+	static void VRMGetPreviewMesh(UObject* target, USkeletalMesh*& mesh);
 };
+
+

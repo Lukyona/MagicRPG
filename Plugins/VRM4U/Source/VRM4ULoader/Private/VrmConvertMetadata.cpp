@@ -210,7 +210,7 @@ bool VRMConverter::ConvertVrmMeta(UVrmAssetListObject *vrmAssetList, const aiSce
 	}
 
 	// tmp shape...
-	if (pData) {
+	if (pData && vrmAssetList) {
 		if (VRMConverter::Options::Get().IsVRM10Model()) {
 		} else {
 			TMap<FString, FString> ParamTable;
@@ -233,7 +233,11 @@ bool VRMConverter::ConvertVrmMeta(UVrmAssetListObject *vrmAssetList, const aiSce
 					mlist.materialName = mat["materialName"].GetString();
 					mlist.propertyName = mat["propertyName"].GetString();
 
-					mlist.materialName = vrmAssetList->MaterialNameOrigToAsset[mlist.materialName];
+					FString *tmp = vrmAssetList->MaterialNameOrigToAsset.Find(NormalizeFileName(mlist.materialName));
+					if (tmp == nullptr) {
+						continue;
+					}
+					mlist.materialName = *tmp;
 					if (ParamTable.Find(mlist.propertyName)) {
 						mlist.propertyName = ParamTable[mlist.propertyName];
 					}
@@ -365,12 +369,16 @@ bool VRMConverter::ConvertVrmMeta(UVrmAssetListObject *vrmAssetList, const aiSce
 				// texture skip
 			{TEXT("title"),			lic->title},
 			{TEXT("allowedUserName"),	lic->allowedUserName},
-			{TEXT("violentUssageName"),	lic->violentUssageName},
-			{TEXT("sexualUssageName"),	lic->sexualUssageName},
-			{TEXT("commercialUssageName"),	lic->commercialUssageName},
+			{TEXT("violentUsageName"),	lic->violentUsageName},
+			{TEXT("sexualUsageName"),	lic->sexualUsageName},
+			{TEXT("commercialUsageName"),	lic->commercialUsageName},
 			{TEXT("otherPermissionUrl"),		lic->otherPermissionUrl},
 			{TEXT("licenseName"),			lic->licenseName},
 			{TEXT("otherLicenseUrl"),		lic->otherLicenseUrl},
+
+			{TEXT("violentUssageName"),	lic->violentUsageName},
+			{TEXT("sexualUssageName"),	lic->sexualUsageName},
+			{TEXT("commercialUssageName"),	lic->commercialUsageName},
 		};
 		for (int i = 0; i < meta->license.licensePairNum; ++i) {
 

@@ -22,6 +22,7 @@
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 
+#include "Internationalization/Internationalization.h"
 
 #include "Animation/AnimSequence.h"
 
@@ -34,6 +35,7 @@
 #include <assimp/GltfMaterial.h>
 #include <assimp/vrm/vrmmeta.h>
 
+#define LOCTEXT_NAMESPACE "VRM4U"
 
 #if WITH_EDITOR
 typedef FSoftSkinVertex FSoftSkinVertexLocal;
@@ -42,6 +44,7 @@ typedef FSoftSkinVertex FSoftSkinVertexLocal;
 namespace {
 	struct FSoftSkinVertexLocal
 	{
+#if	UE_VERSION_OLDER_THAN(5,0,0)
 		FVector			Position;
 
 		// Tangent, U-direction
@@ -49,9 +52,11 @@ namespace {
 		// Binormal, V-direction
 		FVector			TangentY;
 		// Normal
-#if	UE_VERSION_OLDER_THAN(5,0,0)
 		FVector4		TangentZ;
 #else
+		FVector3f			Position;
+		FVector3f			TangentX;
+		FVector3f			TangentY;
 		FVector4f		TangentZ;
 #endif
 
@@ -956,8 +961,11 @@ bool VRMConverter::ConvertModel(UVrmAssetListObject *vrmAssetList) {
 					softSkinVertexLocalZero.Position = FVector::ZeroVector;
 					softSkinVertexLocalZero.TangentX = softSkinVertexLocalZero.TangentY = softSkinVertexLocalZero.TangentZ = n;
 				}
-#else
+#elif	UE_VERSION_OLDER_THAN(5,0,0)
 				softSkinVertexLocalZero.Position = softSkinVertexLocalZero.TangentX = softSkinVertexLocalZero.TangentY = FVector::ZeroVector;
+				softSkinVertexLocalZero.TangentZ.Set(0, 0, 0, 1);
+#else
+				softSkinVertexLocalZero.Position = softSkinVertexLocalZero.TangentX = softSkinVertexLocalZero.TangentY = FVector3f::Zero();
 				softSkinVertexLocalZero.TangentZ.Set(0, 0, 0, 1);
 #endif
 				softSkinVertexLocalZero.Color = FColor::White;
@@ -1040,12 +1048,14 @@ bool VRMConverter::ConvertModel(UVrmAssetListObject *vrmAssetList) {
 						t_tmp.Normalize();
 						n_tmp.Normalize();
 
+#if	UE_VERSION_OLDER_THAN(5,0,0)
 						meshS->TangentX = t_tmp;
 						meshS->TangentY = n_tmp ^ t_tmp;
-#if	UE_VERSION_OLDER_THAN(5,0,0)
 						meshS->TangentZ = n_tmp;
 #else
-						meshS->TangentZ = FVector4f(n_tmp, 1);
+						meshS->TangentX = FVector3f(t_tmp);
+						meshS->TangentY = FVector3f(n_tmp ^ t_tmp);
+						meshS->TangentZ = FVector4f(FVector3f(n_tmp), 1);
 #endif
 
 						v.StaticMeshVertexBuffer.SetVertexTangents(currentVertex + i, meshS->TangentX, meshS->TangentY, meshS->TangentZ);
@@ -1841,14 +1851,36 @@ bool VRMConverter::ConvertModel(UVrmAssetListObject *vrmAssetList) {
 	if (aiData->mNumAnimations > 0){
 		UAnimSequence *ase;
 		ase = VRM4U_NewObject<UAnimSequence>(vrmAssetList->Package, *(TEXT("A_") + vrmAssetList->BaseFileName), EObjectFlags::RF_Public | EObjectFlags::RF_Standalone);
+		ase->SetSkeleton(k);
 
 #if	UE_VERSION_OLDER_THAN(5,0,0)
 		ase->CleanAnimSequenceForImport();
 #else
-		ase->GetController().ResetModel();
+
+		auto &Controller = ase->GetController();
+		Controller.ResetModel();
+
+		int FrameNum = 0;
+		for (uint32_t animNo = 0; animNo < aiData->mNumAnimations; animNo++) {
+			aiAnimation* aiA = aiData->mAnimations[animNo];
+
+			for (uint32_t chanNo = 0; chanNo < aiA->mNumChannels; chanNo++) {
+				aiNodeAnim* aiNA = aiA->mChannels[chanNo];
+
+				FrameNum = FMath::Max(FrameNum, (int)aiNA->mNumPositionKeys);
+				FrameNum = FMath::Max(FrameNum, (int)aiNA->mNumRotationKeys);
+			}
+		}
+		Controller.SetPlayLength(FrameNum-1, false);
+		Controller.SetFrameRate(FFrameRate(1, 1));
+		Controller.UpdateCurveNamesFromSkeleton(k, ERawCurveTrackTypes::RCT_Float);
+
+		Controller.OpenBracket(LOCTEXT("VRM4U", "Importing BVH"), false);
+
+		ase->RateScale = 120.f;
 #endif
 
-		ase->SetSkeleton(k);
+
 
 		float totalTime = 0.f;
 		int totalFrameNum = 0;
@@ -1874,7 +1906,11 @@ bool VRMConverter::ConvertModel(UVrmAssetListObject *vrmAssetList) {
 								pos.X *= -1.f;
 								pos.Y *= -1.f;
 							}
+#if UE_VERSION_OLDER_THAN(5,0,0)
 							RawTrack.PosKeys.Add(pos);
+#else
+							RawTrack.PosKeys.Add(FVector3f(pos));
+#endif
 
 							totalTime = FMath::Max((float)aiNA->mPositionKeys[i].mTime, totalTime);
 						}
@@ -1906,7 +1942,7 @@ bool VRMConverter::ConvertModel(UVrmAssetListObject *vrmAssetList) {
 #else
 								q = FQuat4f(-v.x, v.y, v.z, -v.w);
 								{
-									auto d = FQuat4f(FVector(1, 0, 0), -PI / 2.f);
+									auto d = FQuat4f(FVector3f(1, 0, 0), -PI / 2.f);
 									q = d * q * d.Inverse();
 								}
 #endif
@@ -1926,7 +1962,11 @@ bool VRMConverter::ConvertModel(UVrmAssetListObject *vrmAssetList) {
 						for (uint32_t i = 0; i < aiNA->mNumScalingKeys; ++i) {
 							const auto &v = aiNA->mScalingKeys[i].mValue;
 							FVector s(v.x, v.y, v.z);
+#if UE_VERSION_OLDER_THAN(5,0,0)
 							RawTrack.ScaleKeys.Add(s);
+#else
+							RawTrack.ScaleKeys.Add(FVector3f(s));
+#endif
 
 							totalTime = FMath::Max((float)aiNA->mScalingKeys[i].mTime, totalTime);
 						}
@@ -1934,78 +1974,73 @@ bool VRMConverter::ConvertModel(UVrmAssetListObject *vrmAssetList) {
 
 					if (RawTrack.RotKeys.Num() || RawTrack.PosKeys.Num() || RawTrack.ScaleKeys.Num()) {
 
+
+#if UE_VERSION_OLDER_THAN(5,0,0)
 						if (RawTrack.PosKeys.Num() == 0) {
 							RawTrack.PosKeys.Add(FVector::ZeroVector);
 						}
 						if (RawTrack.RotKeys.Num() == 0) {
-#if UE_VERSION_OLDER_THAN(5,0,0)
 							RawTrack.RotKeys.Add(FQuat::Identity);
-#else
-							RawTrack.RotKeys.Add(FQuat4f::Identity);
-#endif
 						}
 						if (RawTrack.ScaleKeys.Num() == 0) {
 							RawTrack.ScaleKeys.Add(FVector::OneVector);
 						}
+#else
+						while (RawTrack.PosKeys.Num() < FrameNum) {
+							RawTrack.PosKeys.Add(FVector3f::ZeroVector);
+						}
+						while (RawTrack.RotKeys.Num() < FrameNum) {
+							RawTrack.RotKeys.Add(FQuat4f::Identity);
+						}
+						while (RawTrack.ScaleKeys.Num() < FrameNum) {
+							RawTrack.ScaleKeys.Add(FVector3f::OneVector);
+						}
+#endif
 
+#if	UE_VERSION_OLDER_THAN(5,0,0)
 						int32 NewTrackIdx = ase->AddNewRawTrack(UTF8_TO_TCHAR(aiNA->mNodeName.C_Str()), &RawTrack);
+#else
+						if (Controller.AddBoneTrack(UTF8_TO_TCHAR(aiNA->mNodeName.C_Str())) != INDEX_NONE) {
+							Controller.SetBoneTrackKeys(UTF8_TO_TCHAR(aiNA->mNodeName.C_Str()), RawTrack.PosKeys, RawTrack.RotKeys, RawTrack.ScaleKeys);
+						}
+#endif
+
+
 					}
 
 					totalFrameNum = FMath::Max(totalFrameNum, RawTrack.RotKeys.Num());
 					totalFrameNum = FMath::Max(totalFrameNum, RawTrack.PosKeys.Num());
-
 					totalTime = totalFrameNum / aiA->mTicksPerSecond;
 
 #if	UE_VERSION_OLDER_THAN(4,22,0)
 					ase->NumFrames = totalFrameNum;
-#else
+#elif UE_VERSION_OLDER_THAN(5,0,0)
 					ase->SetRawNumberOfFrame(totalFrameNum);
+#else
 #endif
 				}
 			}
 		}
 
 		{
-			//TArray<struct FRawAnimSequenceTrack>& RawAnimationData = ase->RawAnimationData;
-
-			FRawAnimSequenceTrack RawTrack;
-			RawTrack.PosKeys.Empty();
-			RawTrack.RotKeys.Empty();
-			RawTrack.ScaleKeys.Empty();
-
-			RawTrack.PosKeys.Add(FVector(10, 10, 10));
-			RawTrack.PosKeys.Add(FVector(20, 200, 200));
-
-#if UE_VERSION_OLDER_THAN(5,0,0)
-			const auto tmpInit = FQuat::Identity;
-#else
-			const auto tmpInit = FQuat4f::Identity;
-#endif
-
-			RawTrack.RotKeys.Add(tmpInit);
-			RawTrack.RotKeys.Add(tmpInit);
-
-			RawTrack.ScaleKeys.Add(FVector(1, 1, 1));
-			RawTrack.ScaleKeys.Add(FVector(1, 1, 1));
-
 #if UE_VERSION_OLDER_THAN(5,0,0)
 			ase->SequenceLength = totalTime;
+			const bool bSourceDataExists = ase->HasSourceRawData();
+			if (bSourceDataExists)
+			{
+				ase->BakeTrackCurvesToRawAnimation();
+			} else {
+				ase->PostProcessSequence();
+			}
 #else
-			ase->GetController().SetPlayLength(totalTime);
+			Controller.NotifyPopulated();
+			Controller.CloseBracket(true);
 #endif
-
 			ase->MarkRawDataAsModified();
 		}
-
-		const bool bSourceDataExists = ase->HasSourceRawData();
-		if (bSourceDataExists)
-		{
-			ase->BakeTrackCurvesToRawAnimation();
-		} else {
-			ase->PostProcessSequence();
-		}
-		//AnimationTransformDebug::OutputAnimationTransformDebugData(TransformDebugData, TotalNumKeys, RefSkeleton);
+		ase->PostEditChange();
 	}
+
 #endif
 
 	return true;

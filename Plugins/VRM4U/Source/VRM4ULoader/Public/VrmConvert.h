@@ -75,9 +75,9 @@ public:
 	public:
 		static Options & Get();
 
-		const FImportOptionData *Window = nullptr;
+		const FImportOptionData *ImportOption = nullptr;
 		void SetVrmOption(const FImportOptionData *p) {
-			Window = p;
+			ImportOption = p;
 		}
 
 		class USkeleton *GetSkeleton();
@@ -97,6 +97,7 @@ public:
 		bool IsGenerateHumanoidRenamedMesh() const;
 
 		bool IsGenerateIKBone() const;
+		bool IsGenerateRigIK() const;
 
 		bool IsDebugOneBone() const;
 

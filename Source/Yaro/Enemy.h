@@ -27,6 +27,12 @@ public:
 	// Sets default values for this character's properties
 	AEnemy();
 
+	/*UPROPERTY(EditAnywhere, Category = "SavedData")
+	FString Name;
+
+	UPROPERTY(EditAnywhere, Category = "SavedData")
+		int Index = 0;*/
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	EEnemyMovementStatus EnemyMovementStatus;
 
@@ -82,9 +88,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<ACharacter*> Targets;
 
-	UPROPERTY(VisibleAnywhere)
+	// Enemy's back to their initial location
 	FVector InitialLocation;
-
 	FRotator InitialRotation;
 
 	void MoveToLocation();
@@ -92,6 +97,16 @@ public:
 	FTimerHandle CheckHandle;
 	void CheckLocation();
 	int Count = 0;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	class USoundCue* AgroSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	class USoundCue* DeathSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	class USoundCue* SkillSound;
 
 protected:
 	// Called when the game starts or when spawned

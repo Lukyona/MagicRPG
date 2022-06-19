@@ -21,6 +21,7 @@
 #include "Animation/Skeleton.h"
 #include "Animation/MorphTarget.h"
 #include "Animation/NodeMappingContainer.h"
+#include "Animation/PoseAsset.h"
 
 //#include ".h"
 
@@ -50,7 +51,12 @@
 #include "IKRigDefinition.h"
 #include "IKRigSolver.h"
 #if WITH_EDITOR
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 #include "RigEditor/IKRigController.h"
+#include "RetargetEditor/IKRetargeterController.h"
+#include "Retargeter/IKRetargeter.h"
+#include "Solvers/IKRig_PBIKSolver.h"
 #endif
 #endif
 
@@ -721,11 +727,27 @@ bool ULoaderBPFunctionLibrary::LoadVRMFileFromMemory(const UVrmAssetListObject *
 		LogAndUpdate(TEXT("Save"));
 	}
 
-	if (VRMConverter::IsImportMode() == false){
-		//FString fullpath = FPaths::GameUserDeveloperDir() + TEXT("VRM/");
-		//FString basepath = FPackageName::FilenameToLongPackageName(fullpath);
-		//FPackageName::RegisterMountPoint("/VRMImportData/", fullpath);
-		//ULevel::LevelDirtiedEvent.Broadcast();
+	if (VRMConverter::IsImportMode()){
+#if WITH_EDITOR
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
+
+		// refresh content browser
+		FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+		{
+			TArray<UObject*> a = { OutVrmAsset };
+			//ContentBrowserModule.Get().SyncBrowserToAssets(a);
+		}
+		{
+			auto path = FPaths::GetPath(OutVrmAsset->GetPathName());
+			const TArray<FString> b = { path };
+			ContentBrowserModule.Get().SyncBrowserToFolders(b);
+			ContentBrowserModule.Get().SetSelectedPaths(b, true);
+		}
+
+#endif
+#endif
+
 	}
 	UpdateProgress(100);
 	return true;
@@ -1160,29 +1182,281 @@ bool ULoaderBPFunctionLibrary::CreateTailBone(USkeletalMesh *skeletalMesh, const
 	return true;
 }
 
+#if WITH_EDITOR
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
 
-UObject* ULoaderBPFunctionLibrary::VRMGenerateEpicSkeletonToHumanoidIKRig(USkeletalMesh* sk){
+static void LocalEpicSkeletonSetup(UIKRigController *rigcon) {
+	if (rigcon == nullptr) return;
+
+	rigcon->SetRetargetRoot(TEXT("Pelvis"));
+	while (rigcon->GetRetargetChains().Num()) {
+		rigcon->RemoveRetargetChain(rigcon->GetRetargetChains()[0].ChainName);
+	}
+	rigcon->AddRetargetChain(TEXT("root"), TEXT("root"), TEXT("root"));
+
+
+	int sol_index = 0;
+	auto* sol = rigcon->GetSolver(sol_index);
+	if (sol == nullptr) {
+		sol_index = rigcon->AddSolver(UIKRigPBIKSolver::StaticClass());
+		sol = rigcon->GetSolver(sol_index);
+	}
+	if (sol == nullptr) return;
+	sol->SetRootBone(TEXT("root"));
+
+	{
+		TArray<FString> a = {
+			TEXT("Hand_L"),
+			TEXT("Hand_R"),
+			TEXT("ball_l"),
+			TEXT("ball_r"),
+		};
+		for (int i = 0; i < a.Num(); ++i) {
+			auto* goal = rigcon->AddNewGoal(*(a[i] + TEXT("_Goal")), *a[i]);
+			if (goal) {
+				rigcon->ConnectGoalToSolver(*goal, sol_index);
+			}
+		}
+	}
+}
+#endif
+#endif
+
+//void ULoaderBPFunctionLibrary::VRMGenerateEpicSkeletonToHumanoidIKRig(USkeletalMesh *skeletalMesh, UObject*& rig_o, UObject*& ikr_o){
+void ULoaderBPFunctionLibrary::VRMGenerateEpicSkeletonToHumanoidIKRig(USkeletalMesh * srcSkeletalMesh, UObject * &outRigIK, UObject * &outIKRetargeter, UObject * targetRigIK){
 
 #if WITH_EDITOR
 #if	UE_VERSION_OLDER_THAN(5,0,0)
 #else
+	USkeletalMesh* sk = srcSkeletalMesh;
+	if (sk == nullptr) {
+		return;
+	}
 	{
+		const FString PkgPath = sk->GetPathName();// GetPackage().pathn
+		const FString SavePackagePath = FPaths::GetPath(PkgPath);
 
 		UIKRigDefinition* rig = nullptr;
-		FString name = FString(TEXT("RIGIK_tmp"));// +vrmAssetList->BaseFileName;
-		rig = VRM4U_NewObject<UIKRigDefinition>(sk->GetPackage(), *name, RF_Public | RF_Standalone);
-		//rig->SetPreviewMesh(sk);
+		{
+			FString name = FString(TEXT("IK_")) + sk->GetName() + TEXT("_VrmHumanoid");
+			UPackage* pkg = CreatePackage(*(SavePackagePath +"/"+ name));
 
-		UIKRigController* rigcon = UIKRigController::GetIKRigController(rig);
-		rigcon->SetSkeletalMesh(sk);
+			{
+				auto* a = FindObject<UIKRigDefinition>(NULL, *(SavePackagePath + "/" + name + TEXT(".") + name));
+				if (a != nullptr) {
+					rig = a;
+				}
+			}
+			if (rig == nullptr) {
+				rig = VRM4U_NewObject<UIKRigDefinition>(pkg, *name, RF_Public | RF_Standalone);
+			}
 
-		for (auto& modelName : VRMUtil::table_ue4_vrm) {
+			UIKRigController* rigcon = UIKRigController::GetIKRigController(rig);
+			rigcon->SetSkeletalMesh(sk);
+			LocalEpicSkeletonSetup(rigcon);
 
-			rigcon->AddRetargetChain(*modelName.BoneVRM, *modelName.BoneUE4, *modelName.BoneUE4);
+			// bone chain
+			for (auto& modelName : VRMUtil::table_ue4_vrm) {
+				if (modelName.BoneVRM == "") continue;
+				//if (modelName.BoneUE4 == "") continue; // commentout add as none
+
+				// spine
+				int type = 0;
+				if (modelName.BoneVRM == TEXT("spine")) {
+					type = 1;
+				}
+				if (modelName.BoneVRM == TEXT("chest") || modelName.BoneVRM == TEXT("upperChest")) {
+					type = 2;
+				}
+
+				switch (type) {
+				case 0:
+					rigcon->AddRetargetChain(*modelName.BoneVRM, *modelName.BoneUE4, *modelName.BoneUE4);
+						break;
+				case 1:
+					if (sk->GetRefSkeleton().FindBoneIndex(TEXT("spine_05")) != INDEX_NONE) {
+						rigcon->AddRetargetChain(TEXT("spine"), TEXT("spine_01"), TEXT("spine_05"));
+					} else {
+						rigcon->AddRetargetChain(TEXT("spine"), TEXT("spine_01"), TEXT("spine_03"));
+					}
+					break;
+				default:
+					break;
+				}
+			}
+			rigcon->AddRetargetChain(TEXT("leftEye"), TEXT(""), TEXT(""));
+			rigcon->AddRetargetChain(TEXT("rightEye"), TEXT(""), TEXT(""));
 		}
-		return rig;
+
+		{
+			// sub epic bone
+			UIKRigDefinition* rig_epic = nullptr;
+			FString name = FString(TEXT("IK_")) + sk->GetName() + TEXT("_MannequinBone");
+			UPackage* pkg = CreatePackage(*(SavePackagePath + "/" + name));
+
+			{
+				auto* a = FindObject<UIKRigDefinition>(NULL, *(SavePackagePath + "/" + name + TEXT(".") + name));
+				if (a != nullptr) {
+					rig_epic = a;
+				}
+			}
+			if (rig_epic == nullptr) {
+				rig_epic = VRM4U_NewObject<UIKRigDefinition>(pkg, *name, RF_Public | RF_Standalone);
+			}
+
+			UIKRigController* rigcon = UIKRigController::GetIKRigController(rig_epic);
+			rigcon->SetSkeletalMesh(sk);
+			LocalEpicSkeletonSetup(rigcon);
+
+			// bone chain
+			for (auto& modelName : VRMUtil::table_ue4_vrm) {
+				if (modelName.BoneVRM == "") continue;
+				if (modelName.BoneUE4 == "") continue;
+				rigcon->AddRetargetChain(*modelName.BoneUE4, *modelName.BoneUE4, *modelName.BoneUE4);
+			}
+		}
+
+		/*
+		{ // sub ik
+			UIKRigDefinition* ik = nullptr;
+			{
+				FString name = FString(TEXT("IK_")) + sk->GetName() + TEXT("_EpicSkeleton_IK");
+				UPackage* pkg = CreatePackage(*(SavePackagePath + "/" + name));
+
+				{
+					auto* a = FindObject<UIKRigDefinition>(NULL, *(SavePackagePath + "/" + name + TEXT(".") + name));
+					if (a != nullptr) {
+						ik = a;
+					}
+				}
+				if (ik == nullptr) {
+					ik = VRM4U_NewObject<UIKRigDefinition>(pkg, *name, RF_Public | RF_Standalone);
+				}
+
+				UIKRigController* rigcon = UIKRigController::GetIKRigController(ik);
+				rigcon->SetSkeletalMesh(sk);
+				LocalEpicSkeletonSetup(rigcon);
+
+				struct TT {
+					FString s1;
+					FString s2;
+					FString s3;
+				};
+				TArray<TT> table = {
+					{TEXT("pelvis"),		TEXT("spine_03"),	TEXT(""),},
+					{TEXT("neck_01"),		TEXT("head"),		TEXT(""),},
+					{TEXT("clavicle_l"),	TEXT("hand_l"),		TEXT("hand_l_Goal"),},
+					{TEXT("clavicle_r"),	TEXT("hand_r"),		TEXT("hand_r_Goal"),},
+					{TEXT("thigh_l"),		TEXT("ball_l"),		TEXT("ball_l_Goal"),},
+					{TEXT("thigh_r"),		TEXT("ball_r"),		TEXT("ball_r_Goal"),},
+
+					{TEXT("thumb_01_l"),	TEXT("thumb_03_l"),		TEXT(""),},
+					{TEXT("index_01_l"),	TEXT("index_03_l"),		TEXT(""),},
+					{TEXT("middle_01_l"),	TEXT("middle_03_l"),	TEXT(""),},
+					{TEXT("ring_01_l"),		TEXT("ring_03_l"),		TEXT(""),},
+					{TEXT("pinky_01_l"),	TEXT("pinky_03_l"),		TEXT(""),},
+
+					{TEXT("thumb_01_r"),	TEXT("thumb_03_r"),		TEXT(""),},
+					{TEXT("index_01_r"),	TEXT("index_03_r"),		TEXT(""),},
+					{TEXT("middle_01_r"),	TEXT("middle_03_r"),	TEXT(""),},
+					{TEXT("ring_01_r"),		TEXT("ring_03_r"),		TEXT(""),},
+					{TEXT("pinky_01_r"),	TEXT("pinky_03_r"),		TEXT(""),},
+				};
+
+
+				for (auto& a : table) {
+					rigcon->AddRetargetChain(*a.s1, *a.s1, *a.s2);
+					if (a.s3 != "") {
+						rigcon->SetRetargetChainGoal(*a.s1, *a.s3);
+					}
+				}
+			}
+		}
+		*/
+
+		UIKRetargeter* ikr = nullptr;
+		{
+			FString name = FString(TEXT("RTG_")) + sk->GetName();
+			UPackage* pkg = CreatePackage(*(SavePackagePath +"/"+ name));
+
+			{
+				auto* a = FindObject<UIKRetargeter>(NULL, *(SavePackagePath + "/" + name + TEXT(".") + name));
+				if (a != nullptr) {
+					ikr = a;
+				}
+			}
+			if (ikr == nullptr) {
+				ikr = VRM4U_NewObject<UIKRetargeter>(pkg, *name, RF_Public | RF_Standalone);
+			}
+			UIKRetargeterController* c = UIKRetargeterController::GetController(ikr);
+			c->SetSourceIKRig(rig);
+		}
+
+		rig->PostEditChange();
+		ikr->PostEditChange();
+
+		outRigIK = rig;
+		outIKRetargeter = ikr;
 	}
 #endif
 #endif // editor
-	return nullptr;
+	return;
+}
+
+
+void ULoaderBPFunctionLibrary::VRMGenerateIKRetargeterPose(UObject* IKRetargeter, UObject* targetRigIK, UPoseAsset* targetPose) {
+#if WITH_EDITOR
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
+
+	if (targetPose == nullptr) return;
+
+	UIKRetargeter* ikr = Cast<UIKRetargeter>(IKRetargeter);
+	if (ikr == nullptr) return;
+
+	UIKRetargeterController* c = UIKRetargeterController::GetController(ikr);
+	if (c == nullptr) return;
+
+	// setup A-Pose
+	if (targetRigIK) {
+		c->SetTargetIKRig(Cast<UIKRigDefinition>(targetRigIK));
+	}
+
+	if (c->GetAsset()->GetTargetIKRig() && targetPose) {
+		//UIKRigDefinition* d = Cast<UIKRigDefinition>(targetRigIK);
+		USkeletalMesh* targetSK = targetPose->GetPreviewMesh();
+
+		UPoseAsset* pose = targetPose;
+		for (int poseNum = 0; poseNum < 10; ++poseNum) {
+			auto poseName = pose->GetPoseNameByIndex(poseNum);
+			if (poseName == NAME_None) break;
+
+			// add pose
+			if (poseName == c->MakePoseNameUnique(poseName)) {
+				c->AddRetargetPose(poseName);
+			}
+			c->SetCurrentRetargetPose(poseName);
+			c->ResetRetargetPose(poseName);
+
+			// A-pose
+			TArray<FTransform> outTrans;
+			pose->GetFullPose(poseNum, outTrans);
+
+			auto& rsk = targetSK->GetRefSkeleton();
+			for (int i = 0; i < rsk.GetRawBoneNum(); ++i) {
+				if (outTrans.IsValidIndex(i) == false) {
+					continue;
+				}
+				auto q = outTrans[i].GetRotation();
+				c->SetRotationOffsetForRetargetPoseBone(targetSK->GetRefSkeleton().GetBoneName(i), q);
+			}
+		}
+		// set A-pose as current pose
+		FName poseName_A = pose->GetPoseNameByIndex(1);
+		c->SetCurrentRetargetPose(poseName_A);
+	}
+#endif
+#endif // editor
+
 }

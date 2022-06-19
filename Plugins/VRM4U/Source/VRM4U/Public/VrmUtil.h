@@ -272,9 +272,13 @@ public:
 
 	bool bVrm10Normalize = true;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bGenerateHumanoidRenamedMesh = false;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bGenerateIKBone = false;
+
+	bool bGenerateRigIK = false;
 
 	bool bSkipPhysics = false;
 
@@ -284,22 +288,28 @@ public:
 	
 	bool bStrictMorphTargetNameMode = false;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bForceOpaque= false;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bForceTwoSided = false;
 
 	bool bSingleUAssetFile = true;
 
 	bool bDefaultGridTextureMode = false;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bBC7Mode = false;
 
 	bool bMipmapGenerateMode = false;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bMergeMaterial = true;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bMergePrimitive = true;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bOptimizeVertex = true;
 
 	bool bSimpleRoot = true;

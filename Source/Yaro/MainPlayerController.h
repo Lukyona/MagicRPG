@@ -44,6 +44,18 @@ public:
 	void DisplayEnemyHPBar();
 	void RemoveEnemyHPBar();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
+	TSubclassOf<UUserWidget> WPauseMenu;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Widgets")
+	UUserWidget* PauseMenu;
+
+	bool bPauseMenuVisible;
+
+	void DisplayPauseMenu();
+	void RemovePauseMenu();
+	void TogglePauseMenu();
+
 protected:
 	virtual void BeginPlay() override;
 

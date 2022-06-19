@@ -206,9 +206,9 @@ UObject* UVRM4UImporterFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 				ImportUI->TitleAuthor = TEXT("\"") + p->title + TEXT("\"") + TEXT(" / ") + TEXT("\"") + p->author + TEXT("\"");
 				ImportUI->Thumbnail = p->thumbnail;
 				ImportUI->allowedUserName = p->allowedUserName;
-				ImportUI->violentUssageName = p->violentUssageName;
-				ImportUI->sexualUssageName = p->sexualUssageName;
-				ImportUI->commercialUssageName = p->commercialUssageName;
+				ImportUI->violentUsageName = p->violentUsageName;
+				ImportUI->sexualUsageName = p->sexualUsageName;
+				ImportUI->commercialUsageName = p->commercialUsageName;
 				ImportUI->otherPermissionUrl = p->otherPermissionUrl;
 				ImportUI->licenseName = p->licenseName;
 				ImportUI->otherLicenseUrl = p->otherLicenseUrl;
@@ -228,8 +228,13 @@ UObject* UVRM4UImporterFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 #if	UE_VERSION_OLDER_THAN(5,0,0)
 #else
 			// for thumbnail update
-			//GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(ImportUI->Thumbnail);
-			//GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->CloseAllEditorsForAsset(ImportUI->Thumbnail);
+			{
+				auto* s = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+				if (s && ImportUI->Thumbnail) {
+					s->OpenEditorForAsset(ImportUI->Thumbnail);
+					s->CloseAllEditorsForAsset(ImportUI->Thumbnail);
+				}
+			}
 #endif
 		}
 
@@ -283,6 +288,7 @@ UObject* UVRM4UImporterFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 
 		if (VrmOptionWindow->ShouldImport() == false) {
 			bOutOperationCanceled = true;
+
 			return nullptr;
 		}
 

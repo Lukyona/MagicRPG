@@ -118,8 +118,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "VRM4U")
 	static bool CreateTailBone(USkeletalMesh *skeletalMesh, const TArray<FString> &boneName);
 
-	UFUNCTION(BlueprintCallable, Category = "VRM4U")
-	static UObject* VRMGenerateEpicSkeletonToHumanoidIKRig(USkeletalMesh* skeletalMesh);
+	UFUNCTION(BlueprintCallable, Category = "VRM4U", meta = (DynamicOutputParam = "RigIK"))
+	static void VRMGenerateEpicSkeletonToHumanoidIKRig(USkeletalMesh* srcSkeletalMesh, UObject*& outRigIK, UObject*& outIKRetargeter, UObject* targetRigIK);
+
+	UFUNCTION(BlueprintCallable, Category = "VRM4U", meta = (DynamicOutputParam = "RigIK"))
+	static void VRMGenerateIKRetargeterPose(UObject * IKRetargeter, UObject* targetRigIK, UPoseAsset* targetPose);
 
 	static class UVrmLicenseObject *GetVRMMeta(FString filepath);
 

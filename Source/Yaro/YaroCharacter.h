@@ -72,6 +72,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
 	class AMagicSkill* MagicAttack;
 
+	UPROPERTY(EditAnywhere)
+	TArray<FVector> Pos;
+
+	UFUNCTION(BlueprintCallable)
+	void MoveToLocation();
+
+	int index = 0;
+
+	bool canGo = false;
+
+	FTimerHandle TeamMoveTimer;
 
 protected:
 

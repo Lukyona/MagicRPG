@@ -11,7 +11,7 @@ void AMainPlayerController::BeginPlay()
     
     //카메라 회전 제한
     this->PlayerCameraManager->ViewPitchMin = -50.f; // 세로회전 위
-    this->PlayerCameraManager->ViewPitchMax = 10.f; //아래
+    this->PlayerCameraManager->ViewPitchMax = 5.f; //아래
 
     
     if (WTargetArrow)
@@ -38,6 +38,17 @@ void AMainPlayerController::BeginPlay()
 
         FVector2D Alignment(0.f, 0.f);
         EnemyHPBar->SetAlignmentInViewport(Alignment);
+    }
+
+    if (WPauseMenu)
+    {
+        PauseMenu = CreateWidget<UUserWidget>(this, WPauseMenu);
+        if (PauseMenu)
+        {
+            PauseMenu->AddToViewport();
+            PauseMenu->SetVisibility(ESlateVisibility::Hidden);
+        }
+
     }
 }
 
@@ -68,17 +79,17 @@ void AMainPlayerController::Tick(float DeltaTime)
         FVector2D PositionInViewport;
         ProjectWorldLocationToScreen(EnemyLocation, PositionInViewport);
 
-        PositionInViewport.Y -= 130.f;
-        PositionInViewport.X -= 100.f;
+        PositionInViewport.Y -= 140.f;
+        PositionInViewport.X -= 130.f;
         EnemyHPBar->SetPositionInViewport(PositionInViewport);
 
         PositionInViewport.Y -= 120.f;
-        PositionInViewport.X += 50.f;
+        PositionInViewport.X += 60.f;
 
 
         TargetArrow->SetPositionInViewport(PositionInViewport);
 
-        FVector2D SizeInViewport = FVector2D(200.f, 20.f);
+        FVector2D SizeInViewport = FVector2D(150.f, 15.f);
         EnemyHPBar->SetDesiredSizeInViewport(SizeInViewport);
     }
 }
@@ -86,15 +97,15 @@ void AMainPlayerController::Tick(float DeltaTime)
 int AMainPlayerController::WhichKeyDown()
 {
     int result;
-    if (this->WasInputKeyJustPressed(EKeys::One) || this->WasInputKeyJustPressed(EKeys::NumPadOne))
+    if (WasInputKeyJustPressed(EKeys::One) || WasInputKeyJustPressed(EKeys::NumPadOne))
     {
         result = 1;
     }
-    if (this->WasInputKeyJustPressed(EKeys::Two) || this->WasInputKeyJustPressed(EKeys::NumPadTwo))
+    if (WasInputKeyJustPressed(EKeys::Two) || WasInputKeyJustPressed(EKeys::NumPadTwo))
     {
         result = 2;
     }
-    if (this->WasInputKeyJustPressed(EKeys::Three) || this->WasInputKeyJustPressed(EKeys::NumPadThree))
+    if (WasInputKeyJustPressed(EKeys::Three) || WasInputKeyJustPressed(EKeys::NumPadThree))
     {
         result = 3;
     }
@@ -117,5 +128,44 @@ void AMainPlayerController::RemoveEnemyHPBar()
     {
         bEnemyHPBarVisible = false;
         EnemyHPBar->SetVisibility(ESlateVisibility::Hidden);
+    }
+}
+
+void AMainPlayerController::DisplayPauseMenu()
+{
+    if (PauseMenu)
+    {
+        bPauseMenuVisible = true;
+        PauseMenu->SetVisibility(ESlateVisibility::Visible);
+
+        FInputModeGameAndUI InputMode;
+        SetInputMode(InputMode);
+        bShowMouseCursor = true;
+    }
+}
+
+void AMainPlayerController::RemovePauseMenu()
+{
+    if (PauseMenu)
+    {
+        
+        bPauseMenuVisible = false;
+        PauseMenu->SetVisibility(ESlateVisibility::Hidden);
+
+        FInputModeGameOnly InputModeGameOnly;
+        SetInputMode(InputModeGameOnly);
+        bShowMouseCursor = false;
+    }
+}
+
+void AMainPlayerController::TogglePauseMenu()
+{
+    if (bPauseMenuVisible)
+    {
+        RemovePauseMenu();
+    }
+    else
+    {
+        DisplayPauseMenu();
     }
 }

@@ -30,8 +30,13 @@
 #include "IKRigSolver.h"
 #if WITH_EDITOR
 #include "RigEditor/IKRigController.h"
+#include "RetargetEditor/IKRetargeterController.h"
+#include "Retargeter/IKRetargeter.h"
+#include "Solvers/IKRig_PBIKSolver.h"
 #endif
 #endif
+
+
 
 #if WITH_EDITOR
 #include "IPersonaToolkit.h"
@@ -85,6 +90,151 @@ namespace {
 		}
 		return false;
 	}
+
+#if WITH_EDITOR
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
+
+	static void LocalSolverSetup(UIKRigController* rigcon, UVrmAssetListObject *assetList) {
+		if (rigcon == nullptr) return;
+
+		//rigcon->SetRetargetRoot(TEXT("Pelvis"));
+
+		int sol_index = 0;
+		auto* sol = rigcon->GetSolver(sol_index);
+		if (sol == nullptr) {
+			sol_index = rigcon->AddSolver(UIKRigPBIKSolver::StaticClass());
+			sol = rigcon->GetSolver(sol_index);
+		}
+		if (sol == nullptr) return;
+
+		sol->SetEnabled(false);
+
+		// hip
+		for (auto& modelName : assetList->VrmMetaObject->humanoidBoneTable) {
+			if (modelName.Key == "" || modelName.Value == "") {
+				continue;
+			}
+			if (modelName.Key == TEXT("hips")) {
+				sol->SetRootBone(*modelName.Value);
+			}
+		}
+
+		{
+			TArray<FString> a = {
+				TEXT("leftHand"),
+				TEXT("rightHand"),
+				TEXT("leftToes"),
+				TEXT("rightToes"),
+			};
+			for (int i = 0; i < a.Num(); ++i) {
+				for (auto& t : assetList->VrmMetaObject->humanoidBoneTable) {
+					if (t.Key.ToLower() == a[i].ToLower()) {
+						auto* goal = rigcon->AddNewGoal(*(a[i] + TEXT("_Goal")), *t.Value);
+						if (goal) {
+							rigcon->ConnectGoalToSolver(*goal, sol_index);
+
+							// arm chain
+							if (i == 0 || i == 1) {
+								UIKRig_FBIKEffector* e = Cast<UIKRig_FBIKEffector>(sol->GetGoalSettings(goal->GoalName));
+								if (e) {
+									e->PullChainAlpha = 0.f;
+								}
+							}
+
+							const auto &chain = rigcon->GetRetargetChains();
+							for (auto& c : chain) {
+								if (c.EndBone.BoneName == *t.Value) {
+									rigcon->SetRetargetChainGoal(c.ChainName, goal->GoalName);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		{
+			TArray<FString> a = {
+				TEXT("leftShoulder"),
+				TEXT("rightShoulder"),
+				TEXT("leftLowerArm"),
+				TEXT("rightLowerArm"),
+
+				TEXT("leftUpperLeg"),
+				TEXT("rightUpperLeg"),
+				TEXT("leftLowerLeg"),
+				TEXT("rightLowerLeg"),
+
+				TEXT("hips"),
+				TEXT("spine"),
+				TEXT("chest"),
+				TEXT("upperChest"),
+			};
+			for (int i = 0; i < a.Num(); ++i) {
+				for (auto& t : assetList->VrmMetaObject->humanoidBoneTable) {
+					if (t.Key.ToLower() == a[i].ToLower()) {
+
+						if (t.Value == "") continue;
+
+						// shoulder
+						if (i == 0 || i == 1) {
+							sol->AddBoneSetting(*t.Value);
+							UIKRig_PBIKBoneSettings* s = Cast<UIKRig_PBIKBoneSettings>(sol->GetBoneSetting(*t.Value));
+							if (s == nullptr) continue;
+
+							s->RotationStiffness = 1.f;
+						}
+
+						// arm
+						if (i == 2 || i == 3) {
+							sol->AddBoneSetting(*t.Value);
+							UIKRig_PBIKBoneSettings* s = Cast<UIKRig_PBIKBoneSettings>(sol->GetBoneSetting(*t.Value));
+							if (s == nullptr) continue;
+
+							s->bUsePreferredAngles = true;
+							if (i == 2) {
+								s->PreferredAngles.Set(0, 0, 90);
+							} else {
+								s->PreferredAngles.Set(0, 0, -90);
+							}
+						}
+
+						// upperleg
+						if (i == 4 || i == 5 || i == 6 || i == 7) {
+							sol->AddBoneSetting(*t.Value);
+							UIKRig_PBIKBoneSettings* s = Cast<UIKRig_PBIKBoneSettings>(sol->GetBoneSetting(*t.Value));
+							if (s == nullptr) continue;
+
+							s->bUsePreferredAngles = true;
+							if (i == 4 || i == 5) {
+								s->PreferredAngles.Set(-180, 0, 0);
+							} else {
+								s->PreferredAngles.Set(180, 0, 0);
+								s->Y = EPBIKLimitType::Locked;
+								s->Z = EPBIKLimitType::Locked;
+							}
+						}
+
+						// shoulder
+						if (i >= 8) {
+							sol->AddBoneSetting(*t.Value);
+							UIKRig_PBIKBoneSettings* s = Cast<UIKRig_PBIKBoneSettings>(sol->GetBoneSetting(*t.Value));
+							if (s == nullptr) continue;
+
+							if (i == 8) {
+								s->RotationStiffness = 1.f;
+							} else {
+								s->RotationStiffness = 0.9f;
+							}
+						}
+
+					}
+				}
+			}
+		}
+	}
+#endif
+#endif
 }
 
 
@@ -613,9 +763,9 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 
 	// dummy Collision
 	if (vrmAssetList) {
-		const VRM::VRMMetadata *meta = reinterpret_cast<VRM::VRMMetadata*>(aiData->mVRMMeta);
-		USkeletalMesh *sk = vrmAssetList->SkeletalMesh;
-		UPhysicsAsset *pa = VRMGetPhysicsAsset(sk);
+		const VRM::VRMMetadata* meta = reinterpret_cast<VRM::VRMMetadata*>(aiData->mVRMMeta);
+		USkeletalMesh* sk = vrmAssetList->SkeletalMesh;
+		UPhysicsAsset* pa = VRMGetPhysicsAsset(sk);
 		const FString dummy_target[] = {
 			TEXT("hips"),
 			TEXT("head"),
@@ -639,11 +789,11 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 			TEXT("leftLowerLeg"),
 		};
 		if (meta && pa) {
-			for (const auto &a : meta->humanoidBone) {
+			for (const auto& a : meta->humanoidBone) {
 
 				{
 					bool bFound = false;
-					for (auto &d : dummy_target) {
+					for (auto& d : dummy_target) {
 						if (d.Compare(a.humanBoneName.C_Str()) == 0) {
 							bFound = true;
 						}
@@ -655,7 +805,7 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 
 				{
 					bool b = false;
-					for (const auto &bs : pa->SkeletalBodySetups) {
+					for (const auto& bs : pa->SkeletalBodySetups) {
 						FString s = bs->BoneName.ToString();
 						if (s.Compare(a.nodeName.C_Str(), ESearchCase::IgnoreCase) == 0) {
 							b = true;
@@ -672,10 +822,10 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 					break;
 				}
 
-				USkeletalBodySetup *bs = nullptr;
+				USkeletalBodySetup* bs = nullptr;
 				int BodyIndex1 = -1;
 
-				bs = NewObject<USkeletalBodySetup>(pa, *(FString(TEXT("dummy_for_clip"))+ a.humanBoneName.C_Str()), RF_Transactional);
+				bs = NewObject<USkeletalBodySetup>(pa, *(FString(TEXT("dummy_for_clip")) + a.humanBoneName.C_Str()), RF_Transactional);
 
 				FKAggregateGeom agg;
 				FKSphereElem SphereElem;
@@ -716,36 +866,224 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 			}
 #endif
 		}
+	}// collistion
 
+	if (vrmAssetList && VRMConverter::Options::Get().IsGenerateRigIK()) {
 		// ikrig
 #if WITH_EDITOR
 #if	UE_VERSION_OLDER_THAN(5,0,0)
 #else
+		const VRM::VRMMetadata* meta = reinterpret_cast<VRM::VRMMetadata*>(aiData->mVRMMeta);
+		USkeletalMesh* sk = vrmAssetList->SkeletalMesh;
+
+		UIKRigDefinition* rig = nullptr;
 		{
-			UIKRigDefinition* rig = nullptr;
-			FString name = FString(TEXT("RIGIK_")) + vrmAssetList->BaseFileName;
+			FString name = FString(TEXT("IK_")) + vrmAssetList->BaseFileName + TEXT("_VrmHumanoid");
 			rig = VRM4U_NewObject<UIKRigDefinition>(vrmAssetList->Package, *name, RF_Public | RF_Standalone);
-			//rig->SetPreviewMesh(sk);
 
-			UIKRigController *rigcon =  UIKRigController::GetIKRigController(rig);
+			UIKRigController* rigcon = UIKRigController::GetIKRigController(rig);
 			rigcon->SetSkeletalMesh(sk);
-			//rigcon->SetRootBone(const FName& RootBoneName, int32 SolverIndex) const;
 
-			//UIKRigSolver
+			if (vrmAssetList->VrmMetaObject->humanoidBoneTable.Num() == 0) {
+				// immediate generate bone table
+				if (mc) {
+					for (auto& boneMap : VRMUtil::table_ue4_vrm) {
+						FString s;
+						for (auto& table : mc->GetNodeMappingTable()) {
+							if (table.Key.ToString().ToLower() == boneMap.BoneUE4.ToLower()) {
+								s = table.Value.ToString();
+							}
+						}
 
-			//rigcon->AddSolver(TSubclassOf<UIKRigSolver> InSolverClass) const;
+						if (s != "" && boneMap.BoneVRM != "") {
+							vrmAssetList->VrmMetaObject->humanoidBoneTable.Add(boneMap.BoneVRM, s);
+						}
+					}
+				}
+			}
+			{
+				auto s = VRMGetRefSkeleton(sk).GetBoneName(0);
+				rigcon->AddRetargetChain(TEXT("root"), s, s);
+			}
+			for (auto& modelName : vrmAssetList->VrmMetaObject->humanoidBoneTable) {
+				if (modelName.Key == "" || modelName.Value == "") {
+					continue;
+				}
+
+				// spine
+				int type = 0;
+				if (modelName.Key == TEXT("spine")) {
+					type = 1;
+				}
+				if (modelName.Key == TEXT("chest") || modelName.Key == TEXT("upperChest")) {
+					type = 2;
+				}
+
+				switch (type) {
+				case 0:
+					rigcon->AddRetargetChain(*modelName.Key, *modelName.Value, *modelName.Value);
+					break;
+				case 1:
+				{
+					auto *s = vrmAssetList->VrmMetaObject->humanoidBoneTable.Find(TEXT("upperChest"));
+					if (s == nullptr) {
+						s = vrmAssetList->VrmMetaObject->humanoidBoneTable.Find(TEXT("chest"));
+					}
+
+					if (s) {
+						// spine chain
+						rigcon->AddRetargetChain(*modelName.Key, *modelName.Value, **s);
+					}
+				}
+					break;
+				default:
+					break;
+				}
+
+
+				if (modelName.Key == TEXT("hips")) {
+					rigcon->SetRetargetRoot(*modelName.Value);
+				}
+			}
+		}
+
+		{
+			UIKRigDefinition* rig_epic = nullptr;
+
+			FString name = FString(TEXT("IK_")) + vrmAssetList->BaseFileName + TEXT("_MannequinBone");
+			rig_epic = VRM4U_NewObject<UIKRigDefinition>(vrmAssetList->Package, *name, RF_Public | RF_Standalone);
+
+			UIKRigController* rigcon = UIKRigController::GetIKRigController(rig_epic);
+			rigcon->SetSkeletalMesh(sk);
+
+			{
+				auto s = VRMGetRefSkeleton(sk).GetBoneName(0);
+				rigcon->AddRetargetChain(TEXT("root"), s, s);
+			}
+			for (auto& modelName : vrmAssetList->VrmMetaObject->humanoidBoneTable) {
+				if (modelName.Key == "" || modelName.Value == "") {
+					continue;
+				}
+				for (auto& a : VRMUtil::table_ue4_vrm) {
+					if (a.BoneUE4 == "" || a.BoneVRM == "") {
+						continue;
+					}
+					if (a.BoneVRM.ToLower() == modelName.Key.ToLower()) {
+						rigcon->AddRetargetChain(*a.BoneUE4, *modelName.Value, *modelName.Value);
+						if (modelName.Key == TEXT("hips")) {
+							rigcon->SetRetargetRoot(*modelName.Value);
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		{
+			UIKRigDefinition* rig_ik = nullptr;
+
+			FString name = FString(TEXT("IK_")) + vrmAssetList->BaseFileName + TEXT("_Mannequin");
+			rig_ik = VRM4U_NewObject<UIKRigDefinition>(vrmAssetList->Package, *name, RF_Public | RF_Standalone);
+
+			UIKRigController* rigcon = UIKRigController::GetIKRigController(rig_ik);
+			rigcon->SetSkeletalMesh(sk);
+
+			{
+				auto s = VRMGetRefSkeleton(sk).GetBoneName(0);
+				rigcon->AddRetargetChain(TEXT("Root"), s, s);
+			}
+			struct TT {
+				FString chain;
+				FString s1;
+				FString s2;
+			};
+			TArray<TT> table = {
+				{TEXT("Spine"),		TEXT("spine"),				TEXT("chest"),},
+				{TEXT("Head"),		TEXT("neck"),				TEXT("head"),},
+				{TEXT("RightArm"),	TEXT("rightUpperArm"),		TEXT("rightHand"),},
+				{TEXT("LeftArm"),	TEXT("leftUpperArm"),		TEXT("leftHand"),},
+				{TEXT("RightLeg"),	TEXT("rightUpperLeg"),		TEXT("rightToes"),},
+				{TEXT("LeftLeg"),	TEXT("leftUpperLeg"),		TEXT("leftToes"),},
+
+				{TEXT("LeftThumb"),		TEXT("leftThumbProximal"),		TEXT("leftThumbDistal"),},
+				{TEXT("LeftIndex"),		TEXT("leftIndexProximal"),		TEXT("leftIndexDistal"),},
+				{TEXT("LeftMiddle"),	TEXT("leftMiddleProximal"),	TEXT("leftMiddleDistal"),},
+				{TEXT("LeftRing"),		TEXT("leftRingProximal"),		TEXT("leftRingDistal"),},
+				{TEXT("LeftPinky"),		TEXT("leftLittleProximal"),	TEXT("leftLittleDistal"),},
+
+				{TEXT("RightThumb"),	TEXT("rightThumbProximal"),	TEXT("rightThumbDistal"),},
+				{TEXT("RightIndex"),	TEXT("rightIndexProximal"),	TEXT("rightIndexDistal"),},
+				{TEXT("RightMiddle"),	TEXT("rightMiddleProximal"),	TEXT("rightMiddleDistal"),},
+				{TEXT("RightRing"),		TEXT("rightRingProximal"),		TEXT("rightRingDistal"),},
+				{TEXT("RightPinky"),	TEXT("rightLittleProximal"),	TEXT("rightLittleDistal"),},
+
+				{TEXT("LeftClavicle"),		TEXT("leftShoulder"),	TEXT("leftShoulder"),},
+				{TEXT("RightClavicle"),		TEXT("rightShoulder"),	TEXT("rightShoulder"),},
+			};
+
+			for (auto& t : table) {
+				TT conv;
+				for (auto& modelName : vrmAssetList->VrmMetaObject->humanoidBoneTable) {
+					if (modelName.Key == "" || modelName.Value == "") {
+						continue;
+					}
+					if (t.s1.ToLower() == modelName.Key.ToLower()) {
+						conv.s1 = modelName.Value;
+					}
+					if (t.s2.ToLower() == modelName.Key.ToLower()) {
+						conv.s2 = modelName.Value;
+					}
+				}
+
+				FString baseBone;
+				for (auto& a : VRMUtil::table_ue4_vrm) {
+					if (a.BoneUE4 == "" || a.BoneVRM == "") {
+						continue;
+					}
+					if (a.BoneVRM.ToLower() == t.s1.ToLower()) {
+						baseBone = a.BoneUE4;
+					}
+				}
+				if (baseBone != "" && conv.s1 != "" && conv.s2 != "") {
+					FString s2 = conv.s2;
+					if (t.chain == TEXT("Spine")) {
+						// neck parent
+						for (auto& modelName : vrmAssetList->VrmMetaObject->humanoidBoneTable) {
+							if (modelName.Key == "neck") {
+								auto& ref = VRMGetRefSkeleton(sk);
+									auto index = ref.FindRawBoneIndex(*modelName.Value);
+									auto tmp = ref.GetBoneName(ref.GetParentIndex(index));
+									s2 = tmp.ToString();
+							}
+						}
+					}
+					rigcon->AddRetargetChain(*t.chain, *conv.s1, *s2);
+				}
+			}
+			LocalSolverSetup(rigcon, vrmAssetList);
 
 			for (auto& modelName : vrmAssetList->VrmMetaObject->humanoidBoneTable) {
-
-				rigcon->AddRetargetChain(*modelName.Key, *modelName.Value, *modelName.Value);
+				if (modelName.Key == "" || modelName.Value == "") {
+					continue;
+				}
+				if (modelName.Key == TEXT("hips")) {
+					rigcon->SetRetargetRoot(*modelName.Value);
+				}
 			}
+		} // skeleton ik
 
 
+		UIKRetargeter* ikr = nullptr;
+		{
+			FString name = FString(TEXT("RTG_")) + vrmAssetList->BaseFileName;
+			ikr = VRM4U_NewObject<UIKRetargeter>(vrmAssetList->Package, *name, RF_Public | RF_Standalone);
 
+			UIKRetargeterController* c = UIKRetargeterController::GetController(ikr);
+			c->SetSourceIKRig(rig);
 		}
 #endif
 #endif // editor
-	}
+	} // ikrig
 
 	return true;
 

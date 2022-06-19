@@ -33,6 +33,30 @@
 
 //#include "Engine/.h"
 
+#if WITH_EDITOR
+
+namespace {
+	TSharedRef<IPersonaToolkit> LocalCreatePersonaToolkit(USkeletalMesh* sk) {
+
+		FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
+
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
+		bool b = GIsGameThreadIdInitialized;
+		//GIsGameThreadIdInitialized = false;
+#endif
+		auto PersonaToolkit = PersonaModule.CreatePersonaToolkit(sk);
+
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
+		//GIsGameThreadIdInitialized = b;
+#endif
+		return PersonaToolkit;
+	}
+}
+
+#endif
+
 namespace {
 // utility function 
 #if WITH_EDITOR
@@ -165,12 +189,12 @@ namespace {
 		}
 
 		{
-			FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-			auto PersonaToolkit = PersonaModule.CreatePersonaToolkit(sk);
+			auto PersonaToolkit = LocalCreatePersonaToolkit(sk);
 			UDebugSkelMeshComponent* PreviewComponent = PersonaToolkit->GetPreviewMeshComponent();
 
 			auto* kk = Cast<USkeletalMeshComponent>(PreviewComponent);
 			kk->SetComponentSpaceTransformsDoubleBuffering(false);
+
 		}
 
 		TArray < FSmartName > SmartNamePoseList;
@@ -516,7 +540,8 @@ namespace {
 		ase->PostEditChange();
 	} // AnimSequence
 #endif
-}
+}// namespace
+
 
 bool VRMConverter::ConvertPose(UVrmAssetListObject *vrmAssetList) {
 
@@ -545,7 +570,7 @@ bool VRMConverter::ConvertPose(UVrmAssetListObject *vrmAssetList) {
 		USkeletalMesh *sk = vrmAssetList->SkeletalMesh;
 		USkeleton* k = VRMGetSkeleton(sk);
 
-		FString name = FString(TEXT("POSE_")) + vrmAssetList->BaseFileName;
+		FString name = FString(TEXT("POSE_retarget_")) + vrmAssetList->BaseFileName;
 		
 		UPoseAsset *pose = nullptr;
 
@@ -607,8 +632,7 @@ bool VRMConverter::ConvertPose(UVrmAssetListObject *vrmAssetList) {
 					break;
 				}
 
-				FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-				auto PersonaToolkit = PersonaModule.CreatePersonaToolkit(sk);
+				auto PersonaToolkit = LocalCreatePersonaToolkit(sk);
 
 				UDebugSkelMeshComponent* PreviewComponent = PersonaToolkit->GetPreviewMeshComponent();
 
@@ -630,13 +654,21 @@ bool VRMConverter::ConvertPose(UVrmAssetListObject *vrmAssetList) {
 							{
 								RetargetParts t;
 								t.BoneUE4 = TEXT("UpperArm_R");
-								t.rot = FRotator(40, 0, 0);
+								t.rot = FRotator(50, 0, 0);
+								retargetTable.Push(t);
+
+								t.BoneUE4 = TEXT("UpperArm_L");
+								t.rot = FRotator(-50, 0, 0);
 								retargetTable.Push(t);
 							}
 							{
 								RetargetParts t;
 								t.BoneUE4 = TEXT("lowerarm_r");
-								t.rot = FRotator(0, -30, 0);
+								t.rot = FRotator(-10, -30, 0);
+								retargetTable.Push(t);
+
+								t.BoneUE4 = TEXT("lowerarm_l");
+								t.rot = FRotator(10, 30, 0);
 								retargetTable.Push(t);
 							}
 							{
@@ -644,24 +676,99 @@ bool VRMConverter::ConvertPose(UVrmAssetListObject *vrmAssetList) {
 								t.BoneUE4 = TEXT("Hand_R");
 								t.rot = FRotator(10, 0, 0);
 								retargetTable.Push(t);
-							}
-							{
-								RetargetParts t;
-								t.BoneUE4 = TEXT("UpperArm_L");
-								t.rot = FRotator(-40, 0, 0);
-								retargetTable.Push(t);
-							}
-							{
-								RetargetParts t;
-								t.BoneUE4 = TEXT("lowerarm_l");
-								t.rot = FRotator(-0, 30, 0);
-								retargetTable.Push(t);
-							}
-							{
-								RetargetParts t;
+
 								t.BoneUE4 = TEXT("Hand_L");
 								t.rot = FRotator(-10, 0, 0);
 								retargetTable.Push(t);
+							}
+
+							{
+								RetargetParts t;
+								t.BoneUE4 = TEXT("pinky_01_r");
+								t.rot = FRotator(10, 12, 0);
+								retargetTable.Push(t);
+
+								t.BoneUE4 = TEXT("pinky_01_l");
+								t.rot = FRotator(-10, -12, 0);
+								retargetTable.Push(t);
+
+								t.BoneUE4 = TEXT("ring_01_r");
+								t.rot = FRotator(10, 6, 0);
+								retargetTable.Push(t);
+
+								t.BoneUE4 = TEXT("ring_01_l");
+								t.rot = FRotator(-10, -6, 0);
+								retargetTable.Push(t);
+
+								t.BoneUE4 = TEXT("index_01_r");
+								t.rot = FRotator(10, -6, 0);
+								retargetTable.Push(t);
+
+								t.BoneUE4 = TEXT("index_01_l");
+								t.rot = FRotator(-10, 6, 0);
+								retargetTable.Push(t);
+
+								t.BoneUE4 = TEXT("middle_01_r");
+								t.rot = FRotator(10, 0, 0);
+								retargetTable.Push(t);
+
+								t.BoneUE4 = TEXT("middle_01_l");
+								t.rot = FRotator(-10, 0, 0);
+								retargetTable.Push(t);
+								
+
+								t.BoneUE4 = TEXT("thumb_01_r");
+								t.rot = FRotator(10, 0, 0);
+								retargetTable.Push(t);
+
+								t.BoneUE4 = TEXT("thumb_01_l");
+								t.rot = FRotator(-10, 0, 0);
+								retargetTable.Push(t);
+
+								{
+									FString tmpTable[] = {
+										//"index_01_r",
+										"index_02_r",
+										"index_03_r",
+										//"middle_01_r",
+										"middle_02_r",
+										"middle_03_r",
+										//"pinky_01_r",
+										"pinky_02_r",
+										"pinky_03_r",
+										//"ring_01_r",
+										"ring_02_r",
+										"ring_03_r",
+										//"thumb_01_r",
+										//"thumb_02_r",
+										//"thumb_03_r",
+									};
+									for (auto& a : tmpTable) {
+										t.BoneUE4 = a;
+										t.rot = FRotator(10, 0, 0);
+										retargetTable.Push(t);
+
+										t.BoneUE4 = a.Replace(TEXT("_r"), TEXT("_l"));
+										t.rot = FRotator(-10, 0, 0);
+										retargetTable.Push(t);
+									}
+								}
+								{
+									FString tmpTable[] = {
+										//"thumb_01_r",
+										"thumb_02_r",
+										"thumb_03_r",
+									};
+									for (auto& a : tmpTable) {
+										t.BoneUE4 = a;
+										t.rot = FRotator(0, 10, 0);
+										retargetTable.Push(t);
+
+										t.BoneUE4 = a.Replace(TEXT("_r"), TEXT("_l"));
+										t.rot = FRotator(0, -10, 0);
+										retargetTable.Push(t);
+									}
+								}
 							}
 						}
 					}
@@ -725,13 +832,27 @@ bool VRMConverter::ConvertPose(UVrmAssetListObject *vrmAssetList) {
 						{
 							RetargetParts t;
 							t.BoneUE4 = TEXT("Thigh_R");
-							t.rot = FRotator(-7, 0, 0);
+							t.rot = FRotator(-5, 0, 0);
 							retargetTable.Push(t);
-						}
-						{
-							RetargetParts t;
+
 							t.BoneUE4 = TEXT("Thigh_L");
-							t.rot = FRotator(7, 0, 0);
+							t.rot = FRotator(5, 0, 0);
+							retargetTable.Push(t);
+
+							t.BoneUE4 = TEXT("calf_r");
+							t.rot = FRotator(0, 0, 5);
+							retargetTable.Push(t);
+
+							t.BoneUE4 = TEXT("calf_l");
+							t.rot = FRotator(0, 0, 5);
+							retargetTable.Push(t);
+
+							t.BoneUE4 = TEXT("Foot_R");
+							t.rot = FRotator(5, 0, -5);
+							retargetTable.Push(t);
+
+							t.BoneUE4 = TEXT("Foot_L");
+							t.rot = FRotator(-5, 0, -5);
 							retargetTable.Push(t);
 						}
 					}
@@ -889,17 +1010,17 @@ bool VRMConverter::ConvertPose(UVrmAssetListObject *vrmAssetList) {
 					FSmartName PoseName;
 					switch(poseCount) {
 					case 0:
-						PoseName = GetUniquePoseName(VRMGetSkeleton(kk->SkeletalMesh), TEXT("POSE_T"));
+						PoseName = GetUniquePoseName(VRMGetSkeleton(sk), TEXT("POSE_T"));
 						break;
 					case 1:
-						PoseName = GetUniquePoseName(VRMGetSkeleton(kk->SkeletalMesh), TEXT("POSE_A"));
+						PoseName = GetUniquePoseName(VRMGetSkeleton(sk), TEXT("POSE_A"));
 						break;
 					case 2:
-						PoseName = GetUniquePoseName(VRMGetSkeleton(kk->SkeletalMesh), TEXT("POSE_T(foot_A)"));
+						PoseName = GetUniquePoseName(VRMGetSkeleton(sk), TEXT("POSE_T(foot_A)"));
 						break;
 					case 3:
 					default:
-						PoseName = GetUniquePoseName(VRMGetSkeleton(kk->SkeletalMesh), TEXT("POSE_A(foot_T)"));
+						PoseName = GetUniquePoseName(VRMGetSkeleton(sk), TEXT("POSE_A(foot_T)"));
 						break;
 					}
 					//pose->AddOrUpdatePose(PoseName, Cast<USkeletalMeshComponent>(PreviewComponent));

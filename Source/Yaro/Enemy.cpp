@@ -14,6 +14,7 @@
 #include "MagicSkill.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Components/CapsuleComponent.h"
+#include "Sound/SoundCue.h"
 
 // Sets default values
 AEnemy::AEnemy()
@@ -52,7 +53,6 @@ AEnemy::AEnemy()
 	bInterpToTarget = false;
 
 	AttackDelay = 0.4f; // 공격 텀
-
 }
 
 // Called when the game starts or when spawned
@@ -61,7 +61,7 @@ void AEnemy::BeginPlay()
 	Super::BeginPlay();
 
 	AIController = Cast<AAIController>(GetController());
-	
+
 	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapBegin);
 	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapEnd);
 
@@ -92,6 +92,11 @@ void AEnemy::BeginPlay()
 
 	InitialLocation = GetActorLocation(); // Set initial enemy location
 	InitialRotation = GetActorRotation();
+
+
+	//Main->CurrentEnemyNum += 1;
+	//Main->Enemies.Add(this);
+
 }
 
 // Called every frame
@@ -135,6 +140,8 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 
 	if (OtherActor && Alive()) //전투타겟이 없을 때 NPC에게도 유효, 전투타겟이 있어도 플레이어에게 반응
 	{
+		if (AgroSound && Targets.Num() == 0) UGameplayStatics::PlaySound2D(this, AgroSound);
+
 		if (OtherActor == Main)
 		{
 			MoveToTarget(Main);
@@ -152,8 +159,7 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 				}
 				Targets.Add(target); // Add to target list
 			}
-		}
-		
+		}		
 	}
 }
 
@@ -185,13 +191,6 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 			
 			if (Targets.Num() == 0) // no one's in agrosphere
 			{
-				/*SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Idle);
-				if (AIController)
-				{
-					AIController->StopMovement();
-					bHasValidTarget = false;
-				}*/
-
 				MoveToLocation();
 			}		
 		}
@@ -414,6 +413,12 @@ void AEnemy::Die()
 {
 	if (EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead)
 	{
+		//Main->CurrentEnemyNum -= 1;
+		//Main->Enemies.Remove(this);
+		SetInterpToTarget(false);
+
+		if (DeathSound) UGameplayStatics::PlaySound2D(this, DeathSound);
+
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance)
 		{
@@ -450,6 +455,8 @@ void AEnemy::Disappear()
 
 void AEnemy::HitGround() //Golem's third skill
 {
+	if(SkillSound) UGameplayStatics::PlaySound2D(this, SkillSound);
+
 	if (CombatTarget)
 	{
 		UGameplayStatics::ApplyDamage(CombatTarget, Damage, AIController, this, DamageTypeClass);
@@ -462,8 +469,9 @@ void AEnemy::HitEnd()
 	// When enemy doesn't have any combat target, Ai attacks enemy
 	if (!CombatTarget && index != 0)
 	{
-		ACharacter* npc = MagicAttack->Caster;
-		
+		if (AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
+
+		ACharacter* npc = MagicAttack->Caster;		
 		MoveToTarget(npc);
 	}
 
@@ -473,6 +481,8 @@ void AEnemy::HitEnd()
 	*/
 	if ((!CombatTarget || CombatTarget != Main) && index == 0)
 	{
+		if (AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
+
 		if (CombatTarget)
 		{
 			if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)

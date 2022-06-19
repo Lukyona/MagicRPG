@@ -18,6 +18,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "MainPlayerController.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "YaroSaveGame.h"
+#include "ItemStorage.h"
 
 // Sets default values
 AMain::AMain()
@@ -71,6 +73,10 @@ AMain::AMain()
 	MaxSP = 500.f;
 	SP = 500.f;
 
+	HPDelay = 3.f;
+	MPDelay = 2.f;
+	SPDelay = 0.5f;
+
 	InterpSpeed = 15.f;
 	bInterpToEnemy = false;
 
@@ -90,6 +96,9 @@ AMain::AMain()
 
 	DeathDelay = 3.f;
 
+	bESCDown = false;
+
+
 }
 
 
@@ -101,7 +110,12 @@ void AMain::BeginPlay()
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapBegin);
 	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapEnd);
 
-	MainPlayerController = Cast<AMainPlayerController>(GetController());
+
+	if (this->GetName().Contains("Boy")) Gender = 1;
+	if (this->GetName().Contains("Girl")) Gender = 2;
+
+	Storage = GetWorld()->SpawnActor<AItemStorage>(ObjectStorage);
+
 }
 
 // Called every frame
@@ -143,6 +157,9 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AMain::Attack);
 
 	PlayerInputComponent->BindAction("Targeting", IE_Pressed, this, &AMain::Targeting);
+
+	PlayerInputComponent->BindAction("ESC", IE_Pressed, this, &AMain::ESCDown);
+	PlayerInputComponent->BindAction("ESC", IE_Released, this, &AMain::ESCUp);
 
 
 	// Axis는 매 프레임마다 호출
@@ -195,9 +212,10 @@ void AMain::Run(float Value)
 		bRunning = false;
 		GetCharacterMovement()->MaxWalkSpeed = 350.f; //속도 하향
 
-		if (SP < MaxSP)
+		if (SP < MaxSP && !recoverySP)
 		{
-			SP += 1.f;
+			recoverySP = true;
+			GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
 		}
 	}
 	else if(!bRunning && SP >= 1.f) //쉬프트키가 눌려있고 달리는 상태가 아니면
@@ -209,7 +227,6 @@ void AMain::Run(float Value)
 	if (bRunning && SP >= 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
 	{
 		SP -= 1.f;
-		//UE_LOG(LogTemp, Log, TEXT("Text, %f"), SP);
 	}
 	
 }
@@ -243,6 +260,9 @@ void AMain::LMBDown() //Left Mouse Button
 		{
 			Weapon->Equip(this);
 			SetActiveOverlappingItem(nullptr);
+			if (!MainPlayerController)
+				MainPlayerController = Cast<AMainPlayerController>(GetController());
+
 		}
 	}
 
@@ -278,6 +298,7 @@ FRotator AMain::GetLookAtRotationYaw(FVector Target)
 
 void AMain::Attack()
 {
+	
 	if (EquippedWeapon && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead)
 	{
 		SkillNum = MainPlayerController->WhichKeyDown();
@@ -433,6 +454,9 @@ void AMain::Spawn() //Spawn Magic
 				MP -= 40.f;
 				break;
 		}
+
+		GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
+
 	}
 	
 }
@@ -458,6 +482,8 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 	else
 	{
 		HP -= DamageAmount;
+	
+		GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);	
 	}
 
 	return DamageAmount;
@@ -467,6 +493,10 @@ void AMain::Die()
 {
 	if (MovementStatus == EMovementStatus::EMS_Dead) return;
 
+	GetWorldTimerManager().ClearTimer(HPTimer);
+	GetWorldTimerManager().ClearTimer(MPTimer);
+	GetWorldTimerManager().ClearTimer(SPTimer);
+
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && CombatMontage)
 	{
@@ -474,6 +504,7 @@ void AMain::Die()
 		AnimInstance->Montage_JumpToSection(FName("Death"));
 	}
 	SetMovementStatus(EMovementStatus::EMS_Dead);
+
 }
 
 void AMain::DeathEnd()
@@ -508,4 +539,145 @@ void AMain::Revive() // if player is dead, spawn player at the initial location
 void AMain::RevivalEnd()
 {
 	SetMovementStatus(EMovementStatus::EMS_Normal);
+	GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);
+	GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
+	GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
+
+}
+
+void AMain::SaveGame()
+{
+	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
+
+	SaveGameInstance->PlayerGender = Gender;
+	SaveGameInstance->CharacterStats.HP = HP;
+	SaveGameInstance->CharacterStats.MaxHP = MaxHP;
+	SaveGameInstance->CharacterStats.MP = MP;
+	SaveGameInstance->CharacterStats.MaxMP = MaxMP;
+	SaveGameInstance->CharacterStats.SP = SP;
+	SaveGameInstance->CharacterStats.MaxSP = MaxSP;
+
+	SaveGameInstance->CharacterStats.Location = GetActorLocation();
+	SaveGameInstance->CharacterStats.Rotation = GetActorRotation();
+
+	if (EquippedWeapon) SaveGameInstance->CharacterStats.WeaponName = EquippedWeapon->Name;
+
+	//Storage->EnemyMap.Empty();
+
+	//if (Enemies.Num() != 0)
+	//{
+	//	for (int i = 0; i < Enemies.Num(); i++)
+	//	{
+	//		SaveGameInstance->EnemyInfo.EnemyIndex = Cast<AEnemy>(Enemies[i])->Index;
+	//		SaveGameInstance->EnemyInfo.Location = Cast<AEnemy>(Enemies[i])->GetActorLocation();
+	//		SaveGameInstance->EnemyInfo.Rotation = Cast<AEnemy>(Enemies[i])->GetActorRotation();
+
+
+	//		SaveGameInstance->EnemyInfoArray.Add(SaveGameInstance->EnemyInfo);
+	//		
+	//		TSubclassOf<class AEnemy> instance = Enemies[i]->GetClass();
+
+	//	
+	//		Storage->EnemyMap.Add(Enemies[i]->Index, instance);
+	//	}
+	//	UE_LOG(LogTemp, Log, TEXT("%d, arraynum"), SaveGameInstance->EnemyInfoArray.Num());
+
+	//}
+
+	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
+
+}
+
+void AMain::LoadGame()
+{
+	UYaroSaveGame* LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
+
+	LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot(LoadGameInstance->SaveName, LoadGameInstance->UserIndex));
+
+	MainPlayerController = Cast<AMainPlayerController>(GetController());
+
+
+	HP = LoadGameInstance->CharacterStats.HP;
+	MaxHP = LoadGameInstance->CharacterStats.MaxHP;
+	MP = LoadGameInstance->CharacterStats.MP;
+	MaxMP = LoadGameInstance->CharacterStats.MaxMP;
+	SP = LoadGameInstance->CharacterStats.SP;
+	MaxSP = LoadGameInstance->CharacterStats.MaxSP;
+
+	SetActorLocation(LoadGameInstance->CharacterStats.Location);
+	SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
+
+	if (ObjectStorage)
+	{
+		if (Storage)
+		{
+			FString WeaponName = LoadGameInstance->CharacterStats.WeaponName;
+
+			if (Storage->WeaponMap.Contains(WeaponName))
+			{
+				AWeapon* WeaponToEquip = GetWorld()->SpawnActor<AWeapon>(Storage->WeaponMap[WeaponName]);
+				WeaponToEquip->Equip(this);
+			}
+
+
+			//for (int i = 0; i < LoadGameInstance->EnemyInfoArray.Num(); i++)
+			//{
+			//	//FString EnemyName = LoadGameInstance->EnemyInfoArray[i].EnemyName;
+			//	int index = LoadGameInstance->EnemyInfoArray[i].EnemyIndex;
+			//	if (Storage->EnemyMap.Contains(index))
+			//	{
+			//		AEnemy* Enemy = GetWorld()->SpawnActor<AEnemy>(Storage->EnemyMap[index]);
+			//		Enemy->SetActorLocation(LoadGameInstance->EnemyInfoArray[i].Location);
+			//		Enemy->SetActorRotation(LoadGameInstance->EnemyInfoArray[i].Rotation);
+
+			//	}
+			//}
+		}
+	}
+}
+
+void AMain::RecoveryHP()
+{
+	HP += 5.f;
+	if (HP >= MaxHP)
+	{
+		HP = MaxHP;
+		GetWorldTimerManager().ClearTimer(HPTimer);
+	}
+}
+
+void AMain::RecoveryMP()
+{
+	MP += 5.f;
+	if (MP >= MaxMP)
+	{
+		MP = MaxMP;
+		GetWorldTimerManager().ClearTimer(MPTimer);
+	}
+}
+
+void AMain::RecoverySP()
+{
+	SP += 1.f;
+	if (SP >= MaxSP)
+	{
+		SP = MaxSP;
+		GetWorldTimerManager().ClearTimer(SPTimer);
+		recoverySP = false;
+	}
+}
+
+void AMain::ESCDown()
+{
+	bESCDown = true;
+
+	if (MainPlayerController)
+	{
+		MainPlayerController->TogglePauseMenu();
+	}
+}
+
+void AMain::ESCUp()
+{
+	bESCDown = false;
 }

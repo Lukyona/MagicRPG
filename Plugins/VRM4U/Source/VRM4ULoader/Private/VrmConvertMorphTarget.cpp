@@ -198,8 +198,13 @@ namespace {
 					//Sections[0].BaseVertexIndex
 					//const uint32 BaseVertexBufferIndex = (uint32)(Sections[SectionIdx].GetVertexBufferIndex());
 					//const uint32 LastVertexBufferIndex = (uint32)(BaseVertexBufferIndex + Sections[SectionIdx].GetNumVertices());
+#if	UE_VERSION_OLDER_THAN(5,0,0)
 					const uint32 BaseVertexBufferIndex = (uint32)(Sections[SectionIdx].BaseVertexIndex);
 					const uint32 LastVertexBufferIndex = (uint32)(BaseVertexBufferIndex + Sections[SectionIdx].NumVertices);
+#else
+					const uint32 BaseVertexBufferIndex = (uint32)(Sections[SectionIdx].GetVertexBufferIndex());
+					const uint32 LastVertexBufferIndex = (uint32)(BaseVertexBufferIndex + Sections[SectionIdx].GetNumVertices());
+#endif
 					if (BaseVertexBufferIndex <= Delta.SourceIdx && Delta.SourceIdx < LastVertexBufferIndex)
 					{
 						MorphModel.SectionIndices.AddUnique(SectionIdx);
@@ -225,7 +230,11 @@ namespace {
 
 		// remove array slack
 		MorphModel.Vertices.Shrink();
-	}
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
+		MorphModel.NumVertices = MorphModel.Vertices.Num();
+#endif
+}
 #endif
 
 }
@@ -236,9 +245,15 @@ static bool readMorph2(TArray<FMorphTargetDelta> &MorphDeltas, aiString targetNa
 	uint32_t currentVertex = 0;
 
 	FMorphTargetDelta morphinit;
+#if	UE_VERSION_OLDER_THAN(5,0,0)
 	morphinit.PositionDelta = FVector::ZeroVector;
 	morphinit.SourceIdx = 0;
 	morphinit.TangentZDelta = FVector::ZeroVector;
+#else
+	morphinit.PositionDelta = FVector3f::ZeroVector;
+	morphinit.SourceIdx = 0;
+	morphinit.TangentZDelta = FVector3f::ZeroVector;
+#endif
 
 	for (uint32_t m = 0; m < aiData->mNumMeshes; ++m) {
 		const auto &mesh = assetList->MeshReturnedData->meshInfo[m];
@@ -270,7 +285,11 @@ static bool readMorph2(TArray<FMorphTargetDelta> &MorphDeltas, aiString targetNa
 					}
 				}
 
+#if	UE_VERSION_OLDER_THAN(5,0,0)
 				FMorphTargetDelta v = { FVector::ZeroVector, FVector::ZeroVector, 0 };
+#else
+				FMorphTargetDelta v = { FVector3f::ZeroVector, FVector3f::ZeroVector, 0 };
+#endif
 				v.SourceIdx = VertexCount + currentVertex;
 				++VertexCount;
 
@@ -288,7 +307,11 @@ static bool readMorph2(TArray<FMorphTargetDelta> &MorphDeltas, aiString targetNa
 				}
 
 				if (bIncludeNormal) {
+#if	UE_VERSION_OLDER_THAN(5,0,0)
 					const FVector n(
+#else
+					const FVector3f n(
+#endif
 						-aiA.mNormals[i][0],
 						aiA.mNormals[i][2],
 						aiA.mNormals[i][1]);
@@ -441,7 +464,7 @@ bool VRMConverter::ConvertMorphTarget(UVrmAssetListObject *vrmAssetList) {
 	sk->SetLODImportedDataVersions(0, ESkeletalMeshGeoImportVersions::Before_Versionning, ESkeletalMeshSkinningImportVersions::Before_Versionning);
 
 #endif
-
+#endif // editor
 #if	UE_VERSION_OLDER_THAN(5,0,0)
 #else
 	{
@@ -451,8 +474,6 @@ bool VRMConverter::ConvertMorphTarget(UVrmAssetListObject *vrmAssetList) {
 		}
 	}
 #endif
-
-#endif // editor
 
 	for (int i=0; i<MorphTargetList.Num(); ++i){
 		auto *mt = MorphTargetList[i];

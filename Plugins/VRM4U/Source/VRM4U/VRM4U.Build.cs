@@ -79,6 +79,20 @@ public class VRM4U : ModuleRules
             }
             );
 
+		BuildVersion Version;
+		if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
+		{
+			//if (Version.MajorVersion == X && Version.MinorVersion == Y)
+			if (Version.MajorVersion == 5)
+			{
+				PrivateDependencyModuleNames.Add("IKRig");
+				if (Target.bBuildEditor)
+				{
+					PrivateDependencyModuleNames.Add("IKRigEditor");
+				}
+			}
+		}
+
 		//(Target.Version.MinorVersion >= 25)
 		// warning: crash without OculusVR Plugin
 		bool bUseQuestTracking = false; 

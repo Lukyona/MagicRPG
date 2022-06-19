@@ -31,6 +31,8 @@ const FImportOptionData* UVrmImportUI::GenerateOptionData() {
 
 	c(bGenerateIKBone);
 
+	c(bGenerateRigIK);
+
 	c(bSkipPhysics);
 
 	c(bSkipMorphTarget);

@@ -16,6 +16,7 @@ enum class EMovementStatus :uint8
 	EMS_MAX				UMETA(DeplayName = "DefaultMAX")
 };
 
+
 UCLASS()
 class YARO_API AMain : public ACharacter
 {
@@ -25,6 +26,10 @@ public:
 	// Sets default values for this character's properties
 	AMain();
 
+	UPROPERTY(EditDefaultsOnly, Category = "SavedData")
+	TSubclassOf<class AItemStorage> ObjectStorage;
+
+	class AItemStorage* Storage;
 
 	// CameraBoom positioning the camera behind the player, 카메라붐은 플레이어 뒤에 카메라를 위치시킴
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -40,8 +45,8 @@ public:
 	float BaseLookUpRate;
 
 	//플레이어 성별
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerInfo")
-	int gender;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerInfo")
+	int Gender;
 
 	//달리는 상태인지 확인
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
@@ -99,7 +104,7 @@ public:
 
 	int targetIndex;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Controller")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Controller")
 	class AMainPlayerController* MainPlayerController;
 
 
@@ -112,6 +117,39 @@ public:
 	EMovementStatus MovementStatus;
 
 	FORCEINLINE void SetMovementStatus(EMovementStatus Status) { MovementStatus = Status; }
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool NpcGo = false;
+
+
+	FTimerHandle HPTimer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	float HPDelay;
+
+	void RecoveryHP();
+
+	FTimerHandle MPTimer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	float MPDelay;
+
+	void RecoveryMP();
+
+	FTimerHandle SPTimer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	float SPDelay;
+
+	bool recoverySP = false;
+
+	void RecoverySP();
+
+	UPROPERTY(VisibleAnyWhere)
+	int CurrentEnemyNum = 0;
+
+	UPROPERTY(VisibleAnyWhere)
+	TArray<AEnemy*> Enemies;
 
 protected:
 	// Called when the game starts or when spawned
@@ -213,4 +251,14 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void RevivalEnd();
+
+	UFUNCTION(BlueprintCallable)
+	void SaveGame();
+
+	UFUNCTION(BlueprintCallable)
+	void LoadGame();
+
+	bool bESCDown;
+	void ESCDown();
+	void ESCUp();
 };

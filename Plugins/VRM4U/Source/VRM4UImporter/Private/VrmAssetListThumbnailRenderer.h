@@ -17,7 +17,7 @@ class FAssetTypeActions_VrmBase : public FAssetTypeActions_Base {
 
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Misc; }
 	virtual TSharedPtr<SWidget> GetThumbnailOverlay(const FAssetData& AssetData) const override;
-	virtual FColor GetTypeColor() const override { return FColor(255, 200, 255); }
+	virtual FColor GetTypeColor() const override { return FColor(255, 223, 255); }
 };
 
 
