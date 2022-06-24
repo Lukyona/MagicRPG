@@ -49,9 +49,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Equip(class AMain* Char);
 
-	UFUNCTION(BlueprintCallable)
-	void Equip_NPC(class AYaroCharacter* Char);
-
 	FORCEINLINE void SetWeaponState(EWeaponState State) { WeaponState = State; }
 	FORCEINLINE EWeaponState GetWeaponState() { return WeaponState; }
 

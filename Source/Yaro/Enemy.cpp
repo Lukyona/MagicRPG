@@ -25,10 +25,18 @@ AEnemy::AEnemy()
 	AgroSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AgroSphere"));
 	AgroSphere->SetupAttachment(GetRootComponent());
 	AgroSphere->InitSphereRadius(500.f);
+	AgroSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	AgroSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	AgroSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
+
 
 	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
 	CombatSphere->SetupAttachment(GetRootComponent());
 	CombatSphere->InitSphereRadius(170.f);
+	CombatSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	CombatSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
+	CombatSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+
 
 	CombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision"));
 	CombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("EnemySocket_1"));
@@ -106,7 +114,7 @@ void AEnemy::Tick(float DeltaTime)
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
-	if (bInterpToTarget && bOverlappingCombatSphere)
+	if (bInterpToTarget && bOverlappingCombatSphere && CombatTarget)
 	{
 		FRotator LookAtYaw = GetLookAtRotationYaw(CombatTarget->GetActorLocation());
 		FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed); //smooth transition
@@ -140,32 +148,54 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 
 	if (OtherActor && Alive()) //전투타겟이 없을 때 NPC에게도 유효, 전투타겟이 있어도 플레이어에게 반응
 	{
-		if (AgroSound && Targets.Num() == 0) UGameplayStatics::PlaySound2D(this, AgroSound);
+		if (AgroSound && AgroTargets.Num() == 0) UGameplayStatics::PlaySound2D(this, AgroSound);
+
+		if (AIController) AIController->StopMovement();
 
 		if (OtherActor == Main)
 		{
+			AgroTarget = Main;
+
+			bOverlappingCombatSphere = false;
+			if (bAttacking) AttackEnd();
 			MoveToTarget(Main);
-			Targets.Add(Main); // Add to target list
+			CombatTarget = nullptr;
+
+			UE_LOG(LogTemp, Log, TEXT("move to main"));
+			for (int i = 0; i < AgroTargets.Num(); i++)
+			{
+				if (Main == AgroTargets[i]) return;
+			}
+			AgroTargets.Add(Main); // Add to target list
 		}
-		else if(!CombatTarget)
+		else
 		{
 			ACharacter* target = Cast<ACharacter>(OtherActor); // Npc's in agroshpere
 			if (target)
 			{
-				MoveToTarget(target);
-				for (int i = 0; i < Targets.Num(); i++)
+				if (!CombatTarget && AgroTarget != Main)
 				{
-					if (target == Targets[i]) return;
+					AgroTarget = target;
+					MoveToTarget(target);
+					UE_LOG(LogTemp, Log, TEXT("move to npc"));
+
 				}
-				Targets.Add(target); // Add to target list
+				
+				for (int i = 0; i < AgroTargets.Num(); i++)
+				{
+					if (target == AgroTargets[i]) return;
+				}
+				AgroTargets.Add(target); // Add to target list
 			}
-		}		
+		}	
+
 	}
 }
 
 void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
+
 
 	if (OtherActor && Alive())
 	{
@@ -181,18 +211,56 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 		
 		if (target)
 		{
-			for (int i = 0; i < Targets.Num(); i++) // Remove target in the target list
+			
+			if (CombatTarget == target) CombatTarget = nullptr;
+			for (int i = 0; i < AgroTargets.Num(); i++) // Remove target in the target list
 			{
-				if (target == Targets[i])
+				if (target == AgroTargets[i])
 				{
-					Targets.Remove(target);
+					AgroTargets.Remove(target);
 				}
 			}
-			
-			if (Targets.Num() == 0) // no one's in agrosphere
+			if (AgroTarget != Main)
+			{
+				AgroTarget = nullptr;
+				if (CombatTargets.Num() != 0)
+				{
+					bOverlappingCombatSphere = true;
+					bHasValidTarget = true;
+					CombatTarget = CombatTargets[0];
+
+					AttackEnd();
+	
+					UE_LOG(LogTemp, Log, TEXT("set combattarget"));
+
+				}
+				else
+				{
+					if (AgroTargets.Num() != 0)
+					{
+						AgroTarget = AgroTargets[0];
+						MoveToTarget(AgroTargets[0]);
+						UE_LOG(LogTemp, Log, TEXT("movet to1"));
+					}
+
+
+				}
+
+			}
+			else
+			{
+				if(target == Main) AgroTarget = nullptr;
+			}
+
+			if (AgroTargets.Num() == 0) // no one's in agrosphere
 			{
 				MoveToLocation();
-			}		
+			}
+			else
+			{
+				
+
+			}
 		}
 	}
 }
@@ -211,16 +279,54 @@ void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent
 		}
 		else
 		{
-			if (CombatTarget) return;
 			target = Cast<ACharacter>(OtherActor);
+			//UE_LOG(LogTemp, Log, TEXT("%s, in combatsphere"), *(OtherActor->GetName()));
+
 		}
 
 		if (target)
-		{
-			bHasValidTarget = true;
-			CombatTarget = target;
-			bOverlappingCombatSphere = true;
-			Attack();
+		{		
+			for (int i = 0; i < CombatTargets.Num(); i++)
+			{
+				if (target == CombatTargets[i]) return;
+			}
+			CombatTargets.Add(target); // Add to target list
+			
+			if (CombatTarget && target != Main)
+			{
+				UE_LOG(LogTemp, Log, TEXT("aaaaaaaaaaaaaaaaa??"));
+
+				return;
+
+			}
+
+			UE_LOG(LogTemp, Log, TEXT("set combattarget"));
+
+			if (AgroTarget == Main)
+			{
+				if (target == Main)
+				{
+					AgroTarget = nullptr;
+					bHasValidTarget = true;
+					CombatTarget = target;
+					bOverlappingCombatSphere = true;
+					Attack();
+				}
+
+			}
+			else
+			{
+				AgroTarget = nullptr;
+				bHasValidTarget = true;
+				CombatTarget = target;
+				bOverlappingCombatSphere = true;
+				Attack();
+			}
+
+
+			
+			//UE_LOG(LogTemp, Log, TEXT("set combattarget, %s"), *(CombatTarget->GetName()));
+
 		}
 	}
 	
@@ -241,20 +347,97 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 		{
 			target = Cast<ACharacter>(OtherActor);
 		}
+		 
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		AnimInstance->Montage_Stop(0.1f, CombatMontage);
+
+		SetInterpToTarget(false);
+		GetWorldTimerManager().ClearTimer(AttackTimer);
+
 		if (target)
 		{
-			bOverlappingCombatSphere = false;
-			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-			AnimInstance->Montage_Stop(0.1f, CombatMontage);
+			//UE_LOG(LogTemp, Log, TEXT("end combatsphere, %s"), *(CombatTarget->GetName()));
+
+			if (target)
+			{
+				for (int i = 0; i < CombatTargets.Num(); i++) // Remove target in the target list
+				{
+					if (target == CombatTargets[i])
+					{
+						CombatTargets.Remove(target);
+					}
+				}
+
+				if (!CombatTarget && CombatTargets.Num() == 0) // no one's in Combatsphere
+				{
+					bOverlappingCombatSphere = false;
+					UE_LOG(LogTemp, Log, TEXT("overlap false"));
+
+					if (target == Main)
+					{
+						//CombatTarget = nullptr;
+						UE_LOG(LogTemp, Log, TEXT("main out combatsphere"));
+
+						AgroTarget = Main;
+						MoveToTarget(Main);
+					}
+
+					if(AgroTarget != Main)
+					{
+						CombatTarget = nullptr;
+						bHasValidTarget = false;
+						UE_LOG(LogTemp, Log, TEXT("this"));
+
+						if (AgroTargets.Num() != 0)
+						{
+							AgroTarget = AgroTargets[0];
+							MoveToTarget(AgroTargets[0]);
+							UE_LOG(LogTemp, Log, TEXT("this2"));
+
+						}
+
+					}
+					else
+					{
+						UE_LOG(LogTemp, Log, TEXT("this4"));
+						MoveToTarget(Main);
+					}
+			
+				}
+				else
+				{
+					if (target == Main) AgroTarget = Main;
+
+					if (AgroTarget != Main && CombatTargets.Num() != 0)
+					{
+
+						CombatTarget = CombatTargets[0];
+						bOverlappingCombatSphere = true;
+
+						UE_LOG(LogTemp, Log, TEXT("agrotarget no main, %s"), *(CombatTarget->GetName()));
+
+					}
+					else if(AgroTarget == Main)
+					{
+						
+						CombatTarget = Main;
+						bOverlappingCombatSphere = false;
+						MoveToTarget(Main);
+						UE_LOG(LogTemp, Log, TEXT("overlap false2"));
+
+						//bHasValidTarget = false;
+						UE_LOG(LogTemp, Log, TEXT("this3"));
+
+					}
+					
+				}
+			}
+
+
+			
+
 			AttackEnd();
 
-			if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)
-			{
-				MoveToTarget(target);
-				CombatTarget = nullptr;
-			}
-			SetInterpToTarget(false);
-			GetWorldTimerManager().ClearTimer(AttackTimer);
 		}
 	}
 }
@@ -266,6 +449,7 @@ void AEnemy::MoveToTarget(ACharacter* Target)
 	if (AIController && Alive())
 	{
 		GetWorldTimerManager().ClearTimer(CheckHandle);
+		UE_LOG(LogTemp, Log, TEXT("move to target, %s"), *(Target->GetName()));
 
 		FAIMoveRequest MoveRequest;
 		MoveRequest.SetGoalActor(Target);
@@ -331,13 +515,15 @@ void AEnemy::Attack()
 {
 	if (Alive() && bHasValidTarget)
 	{
-		if (AIController)
-		{
-			AIController->StopMovement();
-			SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attacking);
-		}
+		
 		if (!bAttacking)
 		{
+			if (AIController)
+			{
+				AIController->StopMovement();
+				SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attacking);
+			}
+
 			bAttacking = true;
 			SetInterpToTarget(false);
 
@@ -366,7 +552,6 @@ void AEnemy::Attack()
 							AnimInstance->Montage_JumpToSection(FName("Attack3"), CombatMontage);
 							break;
 					}
-
 				}
 			}
 		}
@@ -377,7 +562,7 @@ void AEnemy::AttackEnd()
 {
 	bAttacking = false;
 	SetInterpToTarget(true);
-
+	//UE_LOG(LogTemp, Log, TEXT("attackend"));
 	if (bOverlappingCombatSphere)
 	{
 		GetWorldTimerManager().SetTimer(AttackTimer, this, &AEnemy::Attack, AttackDelay);
@@ -415,6 +600,8 @@ void AEnemy::Die()
 	{
 		//Main->CurrentEnemyNum -= 1;
 		//Main->Enemies.Remove(this);
+
+		if (AIController) AIController->StopMovement();
 		SetInterpToTarget(false);
 
 		if (DeathSound) UGameplayStatics::PlaySound2D(this, DeathSound);
@@ -461,25 +648,38 @@ void AEnemy::HitGround() //Golem's third skill
 	{
 		UGameplayStatics::ApplyDamage(CombatTarget, Damage, AIController, this, DamageTypeClass);
 	}
+
 }
 
 void AEnemy::HitEnd()
 {
+	if(!Main) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
 	int index = MagicAttack->index;
 	// When enemy doesn't have any combat target, Ai attacks enemy
-	if (!CombatTarget && index != 0)
+	if (!CombatTarget && AgroTarget != Main && index != 0 && Alive())
 	{
 		if (AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
 
-		ACharacter* npc = MagicAttack->Caster;		
-		MoveToTarget(npc);
+		ACharacter* npc = MagicAttack->Caster;
+		if (CombatTargets.Contains(npc))
+		{
+			CombatTarget = npc;
+			bOverlappingCombatSphere = true;
+
+		}
+		else
+		{
+			MoveToTarget(npc);
+
+		}
+		UE_LOG(LogTemp, Log, TEXT(" npc attack, no combattarget"));
 	}
 
 	/* When enemy doesn't have combat target, player attacks enemy
 	or when enemy's combat target is not player and player attacks enemy.
 	At this time, enemy must sets player as a combat target.
 	*/
-	if ((!CombatTarget || CombatTarget != Main) && index == 0)
+	if ((!CombatTarget || CombatTarget != Main) && index == 0 && Alive())
 	{
 		if (AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
 
@@ -498,12 +698,10 @@ void AEnemy::HitEnd()
 		MoveToTarget(Main);
 	}
 
-	if (CombatTarget == Main)
+	if (Alive() && bOverlappingCombatSphere)
 	{		
-		if (bOverlappingCombatSphere)
-		{
-			AttackEnd();
-		}
+		AttackEnd();
+		
 	}
 }
 
@@ -546,11 +744,19 @@ void AEnemy::CheckLocation()
 		else
 		{
 			GetWorldTimerManager().SetTimer(CheckHandle, this, &AEnemy::CheckLocation, 0.5f);
+			if (AgroTargets.Num() == 0)
+			{
+				AIController->StopMovement();
+				GetWorldTimerManager().ClearTimer(CheckHandle);
+			}
 		}
 	}
 	else
 	{
-		AIController->StopMovement();
-		GetWorldTimerManager().ClearTimer(CheckHandle);
+		
+			AIController->StopMovement();
+			GetWorldTimerManager().ClearTimer(CheckHandle);
+		
+
 	}
 }

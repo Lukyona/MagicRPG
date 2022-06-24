@@ -34,6 +34,9 @@ AYaroCharacter::AYaroCharacter()
 	CombatSphere->SetupAttachment(GetRootComponent());
 	CombatSphere->InitSphereRadius(500.f);
 	CombatSphere->SetRelativeLocation(FVector(260.f, 0.f, 0.f));
+	CombatSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	CombatSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
+	CombatSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 
 	bOverlappingCombatSphere = false;
 	bHasCombatTarget = false;
@@ -91,7 +94,7 @@ void AYaroCharacter::Tick(float DeltaTime)
 		if (!canGo && Player && Player->NpcGo)
 		{
 			canGo = true;
-			MoveToLocation();
+			//MoveToLocation();
 		}
 	}
 }
@@ -99,7 +102,6 @@ void AYaroCharacter::Tick(float DeltaTime)
 
 void AYaroCharacter::MoveToPlayer()
 {
-	
 	FTimerHandle WaitHandle;
 	float WaitTime = 1.5f; // 딜레이 타임 설정
 	GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
@@ -110,13 +112,12 @@ void AYaroCharacter::MoveToPlayer()
 				Player = Cast<AMain>(p);
 			}
 
-			if (Player && Player->NpcGo && !CombatTarget && !bAttacking && !bOverlappingCombatSphere || (Player->NpcGo && Player->MovementStatus == EMovementStatus::EMS_Dead))
+			if (Player && Player->NpcGo && !CombatTarget && !bAttacking && !bOverlappingCombatSphere)
 			{
 				float distance = GetDistanceTo(Player);
 
 				if (distance >= 500.f) //일정 거리 이상 떨어져있다면 속도 높여 달리기
 				{
-					//UE_LOG(LogTemp, Log, TEXT("%s"), *(this->GetName()));
 					if ((this->GetName()).Contains("Momo"))
 					{
 						GetCharacterMovement()->MaxWalkSpeed = 600.f;
@@ -176,7 +177,7 @@ void AYaroCharacter::MoveToTarget(AEnemy* Target)
 	{
 		FAIMoveRequest MoveRequest;
 		MoveRequest.SetGoalActor(Target);
-		MoveRequest.SetAcceptanceRadius(400.0f);
+		MoveRequest.SetAcceptanceRadius(300.0f);
 
 		FNavPathSharedPtr NavPath;
 
@@ -286,7 +287,7 @@ void AYaroCharacter::Attack()
 					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/RedStormAttack.RedStormAttack_C"));
 					break;
 				case 2:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/FireballAttack.FireballAttack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Fireball_Hit_Attack.Fireball_Hit_Attack_C"));
 					break;
 				case 3:
 					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/FireAttack.FireAttack_C"));
@@ -303,7 +304,7 @@ void AYaroCharacter::Attack()
 				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/YellowStormAttack.YellowStormAttack_C"));
 				break;
 			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/WaterballAttack.WaterballAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Waterball_Hit_Attack.Waterball_Hit_Attack_C"));
 				break;
 			case 3:
 				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/AquaAttack.AquaAttack_C"));
@@ -320,10 +321,10 @@ void AYaroCharacter::Attack()
 				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/BlueStormAttack.BlueStormAttack_C"));
 				break;
 			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/IceAttack.IceAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Ice_Hit_Attack.Ice_Hit_Attack_C"));
 				break;
 			case 3:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/IceAttack2.IceAttack2_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/IceAttack.IceAttack_C"));
 				break;
 			default:
 				break;
@@ -337,7 +338,7 @@ void AYaroCharacter::Attack()
 				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/PurpleStormAttack.PurpleStormAttack_C"));
 				break;
 			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/ThunderballAttack.ThunderballAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Thunderball_Hit_Attack.Thunderball_Hit_Attack_C"));
 				break;
 			case 3:
 				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/LightningAttack.LightningAttack_C"));
@@ -467,13 +468,7 @@ void AYaroCharacter::Spawn()
 }
 
 void AYaroCharacter::MoveToLocation()
-{
-	if (Player->MovementStatus == EMovementStatus::EMS_Dead)
-	{
-		canGo = false;
-		GetWorldTimerManager().ClearTimer(TeamMoveTimer);
-	}
-	
+{	
 	if (AIController)
 	{
 		AIController->MoveToLocation(Pos[index]);

@@ -66,12 +66,12 @@ AMain::AMain()
 	GetCharacterMovement()->SetWalkableFloorAngle(50.f);
 	GetCharacterMovement()->MaxWalkSpeed = 350.f;
 
-	MaxHP = 100.f;
-	HP = 100.f;
-	MaxMP = 100.f;
-	MP = 100.f;
-	MaxSP = 500.f;
-	SP = 500.f;
+	MaxHP = 200.f;
+	HP = 200.f;
+	MaxMP = 150.f;
+	MP = 150.f;
+	MaxSP = 300.f;
+	SP = 300.f;
 
 	HPDelay = 3.f;
 	MPDelay = 2.f;
@@ -83,6 +83,7 @@ AMain::AMain()
 	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
 	CombatSphere->SetupAttachment(GetRootComponent());
 	CombatSphere->InitSphereRadius(600.f);
+	CombatSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 
 	bOverlappingCombatSphere = false;
 	bHasCombatTarget = false;
@@ -189,7 +190,14 @@ void AMain::MoveForward(float Value)
 
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 		AddMovementInput(Direction, Value);
+
+
+		if (bRunning && SP >= 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
+		{
+			SP -= 1.f;
+		}
 	}
+
 }
 
 void AMain::MoveRight(float Value)
@@ -202,6 +210,11 @@ void AMain::MoveRight(float Value)
 
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		AddMovementInput(Direction, Value);
+
+		if (bRunning && SP >= 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
+		{
+			SP -= 1.f;
+		}
 	}
 }
 
@@ -223,12 +236,6 @@ void AMain::Run(float Value)
 		bRunning = true;
 		GetCharacterMovement()->MaxWalkSpeed = 600.f; //속도 상향		
 	}
-	
-	if (bRunning && SP >= 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
-	{
-		SP -= 1.f;
-	}
-	
 }
 
 void AMain::TurnAtRate(float Rate)
@@ -306,7 +313,7 @@ void AMain::Attack()
 		switch (SkillNum)
 		{
 			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/WindAttack.WindAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Wind_Hit_Attack.Wind_Hit_Attack_C"));
 				break;
 			case 2:
 				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/ShockAttack.ShockAttack_C"));

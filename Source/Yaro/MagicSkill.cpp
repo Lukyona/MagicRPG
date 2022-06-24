@@ -20,6 +20,9 @@ AMagicSkill::AMagicSkill()
     Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
     RootComponent = Sphere;
 
+    Sphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+    Sphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
+
     Particle = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Particle"));
     Particle->SetupAttachment(Sphere);
 
@@ -60,7 +63,7 @@ void AMagicSkill::BeginPlay()
 
     FTimerHandle WaitHandle2;
     GetWorld()->GetTimerManager().SetTimer(WaitHandle2, FTimerDelegate::CreateLambda([&]() {
-        if (this->GetName().Contains("Wind") || this->GetName().Contains("Storm") || this->GetName().Contains("ball"))
+        if (this->GetName().Contains("Hit") || this->GetName().Contains("Storm"))
         {
             SetLocation();
         }
@@ -110,7 +113,7 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
         if (Enemy)
         {
             UGameplayStatics::PlaySound2D(this, ExplosionSound);
-            if (this->GetName().Contains("Wind") || this->GetName().Contains("ball"))
+            if (this->GetName().Contains("Hit"))
             {
                 UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleFX, GetActorLocation());
                 Destroy(true);

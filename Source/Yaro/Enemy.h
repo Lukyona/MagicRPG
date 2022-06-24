@@ -65,6 +65,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float DeathDelay;
 
+	UPROPERTY(EditAnywhere)
 	bool bHasValidTarget;
 
 	// When enemy attck target, enemy look at target
@@ -86,7 +87,10 @@ public:
 	class AMain* Main;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	TArray<ACharacter*> Targets;
+	TArray<ACharacter*> AgroTargets;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TArray<ACharacter*> CombatTargets;
 
 	// Enemy's back to their initial location
 	FVector InitialLocation;
@@ -135,6 +139,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "AI")
 	bool bOverlappingCombatSphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "AI")
+	ACharacter* AgroTarget;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "AI")
 	ACharacter* CombatTarget;

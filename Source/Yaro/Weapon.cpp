@@ -66,21 +66,3 @@ void AWeapon::Equip(AMain* Char)
         }
     }
 }
-
-void AWeapon::Equip_NPC(AYaroCharacter* Char)
-{
-    if (Char)
-    {
-        SkeletalMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-        SkeletalMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
-
-        SkeletalMesh->SetSimulatePhysics(false);
-
-        const USkeletalMeshSocket* RightHandSocket = Char->GetMesh()->GetSocketByName("RightHandSocket");
-        if (RightHandSocket)
-        {
-            RightHandSocket->AttachActor(this, Char->GetMesh());
-            bRotate = false;
-        }
-    }
-}
