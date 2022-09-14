@@ -9,12 +9,20 @@
 /**
  * 
  */
+//UENUM(BlueprintType)
+//enum class EDialogueState :uint8
+//{
+//	EDS_Speak		UMETA(DeplayName = "NPC_Speak"),
+//	EDS_Reply			UMETA(DeplayName = "Reply")
+//};
+
 UCLASS()
 class YARO_API AMainPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
 public:
+	AMainPlayerController();
 
 	//Player can Targeting, then TargetArrow appear on Targeted enemy
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
@@ -55,6 +63,38 @@ public:
 	void DisplayPauseMenu();
 	void RemovePauseMenu();
 	void TogglePauseMenu();
+
+
+	void DisplayDialogueUI();
+	void RemoveDialogueUI();
+	void ToggleDialogueUI();
+
+	UPROPERTY(VisibleAnywhere)
+	bool bDialogueUIVisible;
+
+
+	UPROPERTY(EditAnywhere, Category = "Dialogue")
+	class UDialogueUI* DialogueUI;
+
+	UPROPERTY(VisibleAnywhere, Category = "Dialogue")
+	TSubclassOf<class UUserWidget> DialogueUIClass;
+
+	FORCEINLINE UDialogueUI* GetDialogueUI() { return DialogueUI; };
+
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dialogue")
+	//EDialogueState DialogueState;
+
+	//UFUNCTION(BlueprintCallable)
+	//void SetDialogueState(EDialogueState State);
+
+
+protected:
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+	class UDataTable* IntroDialogue;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+	class UDataTable* DungeonDialogue1;
 
 protected:
 	virtual void BeginPlay() override;

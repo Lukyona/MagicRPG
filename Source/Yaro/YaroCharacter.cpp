@@ -84,17 +84,19 @@ void AYaroCharacter::Tick(float DeltaTime)
 		SetActorRotation(InterpRotation);
 	}
 
+	if (!Player)
+	{
+		ACharacter* p = UGameplayStatics::GetPlayerCharacter(this, 0);
+		Player = Cast<AMain>(p);
+	}
+
 	if (this->GetName().Contains("Vovo") || this->GetName().Contains("Vivi") || this->GetName().Contains("Zizi"))
 	{
-		if (!Player)
-		{
-			ACharacter* p = UGameplayStatics::GetPlayerCharacter(this, 0);
-			Player = Cast<AMain>(p);
-		}
+
 		if (!canGo && Player && Player->NpcGo)
 		{
 			canGo = true;
-			//MoveToLocation();
+			MoveToLocation();
 		}
 	}
 }
@@ -106,12 +108,6 @@ void AYaroCharacter::MoveToPlayer()
 	float WaitTime = 1.5f; // 딜레이 타임 설정
 	GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
 		{
-			if (!Player)
-			{
-				ACharacter* p = UGameplayStatics::GetPlayerCharacter(this, 0);
-				Player = Cast<AMain>(p);
-			}
-
 			if (Player && Player->NpcGo && !CombatTarget && !bAttacking && !bOverlappingCombatSphere)
 			{
 				float distance = GetDistanceTo(Player);
@@ -257,7 +253,7 @@ void AYaroCharacter::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCom
 
 void AYaroCharacter::Attack()
 {
-	if ((!bAttacking) && (Player->MovementStatus != EMovementStatus::EMS_Dead) && (CombatTarget) && (CombatTarget->EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead))
+	if ((!bAttacking) && (CombatTarget) && (CombatTarget->EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead))
 	{
 
 		SkillNum = FMath::RandRange(1, 3);
@@ -438,8 +434,6 @@ void AYaroCharacter::Spawn()
 					FVector spawnLocation = AttackArrow->GetComponentTransform().GetLocation();
 					if (CombatTarget)
 					{
-						
-
 						if (this->GetName().Contains("Luko"))
 						{
 							if (SkillNum != 1) //루코의 경우 2,3번 스킬은 적 위치에서 스폰
@@ -449,7 +443,7 @@ void AYaroCharacter::Spawn()
 						}
 						else
 						{
-							if (SkillNum == 3) //모모의 경우 3번 스킬만 적 위치에서 스폰
+							if (SkillNum == 3) //루코 제외 3번 스킬만 적 위치에서 스폰
 							{
 								spawnLocation = CombatTarget->GetActorLocation();
 							}
@@ -472,41 +466,36 @@ void AYaroCharacter::MoveToLocation()
 	if (AIController)
 	{
 		AIController->MoveToLocation(Pos[index]);
-		index++;
+		//index++;
 	}
 
-	bool vovo = false;
-	bool vivi = false;
-	bool zizi = false;
+	//bool vovo = false;
+	//bool vivi = false;
+	//bool zizi = false;
 
 	GetWorld()->GetTimerManager().SetTimer(TeamMoveTimer, FTimerDelegate::CreateLambda([&]() {
 		if (!CombatTarget && !bOverlappingCombatSphere)
 		{
-			//UE_LOG(LogTemp, Log, TEXT("%s, going"), *(this->GetName()));
-			if (index <= 4)
+			if (index <= 3)
 			{
-				float distance = (GetActorLocation() - Pos[index-1]).Size();
+				float distance = (GetActorLocation() - Pos[index]).Size();
 				//UE_LOG(LogTemp, Log, TEXT("%f"), distance);
 				
 				if (AIController && distance <= 70.f)
 				{
-					if (this->GetName().Contains("Vovo")) vovo = true;
-					if (this->GetName().Contains("Vivi")) vivi = true;
-					if (this->GetName().Contains("Zizi")) zizi = true;
-
-					AIController->MoveToLocation(Pos[index]);
+					//if (this->GetName().Contains("Vovo")) vovo = true;
+					//if (this->GetName().Contains("Vivi")) vivi = true;
+					//if (this->GetName().Contains("Zizi")) zizi = true;
 
 					index++;
-
-					//UE_LOG(LogTemp, Log, TEXT("%s, now index %d"), *(this->GetName()), index);
-
+					AIController->MoveToLocation(Pos[index]);
 				}
 				else
 				{
-					if (this->GetName().Contains("Vovo")) vovo = false;
-					if (this->GetName().Contains("Vivi")) vivi = false;
-					if (this->GetName().Contains("Zizi")) zizi = false;
-					AIController->MoveToLocation(Pos[index-1]);
+					//if (this->GetName().Contains("Vovo")) vovo = false;
+					//if (this->GetName().Contains("Vivi")) vivi = false;
+					//if (this->GetName().Contains("Zizi")) zizi = false;
+					AIController->MoveToLocation(Pos[index]);
 				}
 			}
 		}

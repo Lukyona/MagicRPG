@@ -20,6 +20,7 @@
 #include "Engine/BlueprintGeneratedClass.h"
 #include "YaroSaveGame.h"
 #include "ItemStorage.h"
+#include "DialogueUI.h"
 
 // Sets default values
 AMain::AMain()
@@ -99,7 +100,11 @@ AMain::AMain()
 
 	bESCDown = false;
 
-
+	InteractionRange = CreateDefaultSubobject<UCapsuleComponent>(TEXT("InteractionRange"));
+	InteractionRange->SetupAttachment(GetMesh());
+	InteractionRange->SetRelativeLocation(FVector(0.f, 70.f, 90.f));
+	InteractionRange->SetRelativeRotation(FRotator(0.f, 0.f, 90.f));
+	InteractionRange->SetRelativeScale3D(FVector(1.5f, 1.f, 2.2f));
 }
 
 
@@ -116,6 +121,9 @@ void AMain::BeginPlay()
 	if (this->GetName().Contains("Girl")) Gender = 2;
 
 	Storage = GetWorld()->SpawnActor<AItemStorage>(ObjectStorage);
+
+	InteractionRange->OnComponentBeginOverlap.AddDynamic(this, &AMain::InteractionRangeOnOverlapBegin);
+	InteractionRange->OnComponentEndOverlap.AddDynamic(this, &AMain::InteractionRangeOnOverlapEnd);
 
 }
 
@@ -162,9 +170,11 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("ESC", IE_Pressed, this, &AMain::ESCDown);
 	PlayerInputComponent->BindAction("ESC", IE_Released, this, &AMain::ESCUp);
 
+	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AMain::StartDialogue);
+
 
 	// Axis는 매 프레임마다 호출
-							//“키 이름”, bind할 함수가 있는 클래스의 인스턴스, bind할 함수의 주소
+	//“키 이름”, bind할 함수가 있는 클래스의 인스턴스, bind할 함수의 주소
 	PlayerInputComponent->BindAxis("MoveForward", this, &AMain::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AMain::MoveRight);
 	PlayerInputComponent->BindAxis("Run", this, &AMain::Run);
@@ -182,6 +192,9 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 // 키가 안 눌렸으면 Value는 0
 void AMain::MoveForward(float Value)
 {
+	if (!MainPlayerController)
+		MainPlayerController = Cast<AMainPlayerController>(GetController());
+
 	if ((Controller != nullptr) && (Value != 0.0f) && (!bAttacking) && (MovementStatus != EMovementStatus::EMS_Dead))
 	{
 		// find out which way is forward
@@ -190,7 +203,6 @@ void AMain::MoveForward(float Value)
 
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 		AddMovementInput(Direction, Value);
-
 
 		if (bRunning && SP >= 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
 		{
@@ -267,8 +279,6 @@ void AMain::LMBDown() //Left Mouse Button
 		{
 			Weapon->Equip(this);
 			SetActiveOverlappingItem(nullptr);
-			if (!MainPlayerController)
-				MainPlayerController = Cast<AMainPlayerController>(GetController());
 
 		}
 	}
@@ -283,6 +293,13 @@ void AMain::LMBDown() //Left Mouse Button
 		}
 		CombatTarget = nullptr;
 		bHasCombatTarget = false;
+	}
+
+	if (MainPlayerController->bDialogueUIVisible)
+	{
+		if(MainPlayerController->DialogueUI->CurrentState != 3)
+			MainPlayerController->DialogueUI->Interact();
+
 	}
 }
 
@@ -463,9 +480,7 @@ void AMain::Spawn() //Spawn Magic
 		}
 
 		GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
-
 	}
-	
 }
 
 
@@ -489,7 +504,6 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 	else
 	{
 		HP -= DamageAmount;
-	
 		GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);	
 	}
 
@@ -551,6 +565,45 @@ void AMain::RevivalEnd()
 	GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
 
 }
+
+void AMain::InteractionRangeOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (auto actor = Cast<AMain>(OtherActor)) return;
+
+	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
+
+	if (OtherActor)
+	{
+		if(!InteractTarget) InteractTarget = Cast<ACharacter>(OtherActor);
+
+	}
+}
+
+void AMain::InteractionRangeOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (InteractTarget)
+	{
+		InteractTarget = nullptr;
+	}
+}
+
+void AMain::StartDialogue()
+{
+	if (!MainPlayerController)
+		MainPlayerController = Cast<AMainPlayerController>(GetController());
+
+	if(InteractTarget && !MainPlayerController->bDialogueUIVisible)
+		MainPlayerController->DisplayDialogueUI();
+
+	if (InteractTarget && MainPlayerController->bDialogueUIVisible && MainPlayerController->DialogueUI->CurrentState != 3)
+	{
+		UE_LOG(LogTemp, Log, TEXT("inter"));
+		MainPlayerController->DialogueUI->Interact();
+
+	}
+
+}
+
 
 void AMain::SaveGame()
 {

@@ -71,9 +71,8 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = Basic)
 	uint32 UserIndex;
 
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Basic)
-		int32 PlayerGender = 0;
+	int32 PlayerGender = 0;
 
 	UPROPERTY(VisibleAnywhere, Category = Basic)
 	FCharacterStats CharacterStats;

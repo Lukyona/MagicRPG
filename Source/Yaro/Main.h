@@ -151,6 +151,13 @@ public:
 	UPROPERTY(VisibleAnyWhere)
 	TArray<AEnemy*> Enemies;
 
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Interaction System")
+	class UCapsuleComponent* InteractionRange;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Interaction System")
+	class ACharacter* InteractTarget;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -261,4 +268,13 @@ public:
 	bool bESCDown;
 	void ESCDown();
 	void ESCUp();
+
+	UFUNCTION()
+	virtual void InteractionRangeOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION()
+	virtual void InteractionRangeOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	void StartDialogue();
+
+
 };

@@ -4,6 +4,17 @@
 #include "MainPlayerController.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "BrainComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "DialogueUI.h"
+
+
+AMainPlayerController::AMainPlayerController()
+{
+    static ConstructorHelpers::FClassFinder<UUserWidget> DialogueBPClass(TEXT("/Game/HUDandWigets/DialogueUI_BP.DialogueUI_BP_C"));
+
+    if (DialogueBPClass.Class != nullptr) DialogueUIClass = DialogueBPClass.Class;
+}
 
 void AMainPlayerController::BeginPlay()
 {
@@ -48,7 +59,24 @@ void AMainPlayerController::BeginPlay()
             PauseMenu->AddToViewport();
             PauseMenu->SetVisibility(ESlateVisibility::Hidden);
         }
+    }
+    
+    if (DialogueUIClass != nullptr)
+    {
+        DialogueUI = CreateWidget<UDialogueUI>(this, DialogueUIClass);
+    }
 
+    if (DialogueUI != nullptr)
+    {
+        DialogueUI->AddToViewport();
+        DialogueUI->SetVisibility(ESlateVisibility::Hidden);
+
+        if (IntroDialogue != nullptr)
+        {
+
+            //SetCinematicMode(true, true, true);
+            //DialogueUI->InitializeDialogue(IntroDialogue);
+        }
     }
 }
 
@@ -147,8 +175,7 @@ void AMainPlayerController::DisplayPauseMenu()
 void AMainPlayerController::RemovePauseMenu()
 {
     if (PauseMenu)
-    {
-        
+    {      
         bPauseMenuVisible = false;
         PauseMenu->SetVisibility(ESlateVisibility::Hidden);
 
@@ -169,3 +196,67 @@ void AMainPlayerController::TogglePauseMenu()
         DisplayPauseMenu();
     }
 }
+
+void AMainPlayerController::ToggleDialogueUI()
+{
+    if (bDialogueUIVisible)
+    {
+        RemoveDialogueUI();
+    }
+    else
+    {
+        DisplayDialogueUI();
+    }
+}
+
+
+void AMainPlayerController::DisplayDialogueUI()
+{
+    if (DialogueUI)
+    {
+        bDialogueUIVisible = true;
+
+        DialogueUI->SetVisibility(ESlateVisibility::Visible);
+
+        DialogueUI->InitializeDialogue(IntroDialogue);
+
+        FInputModeGameAndUI InputMode;  
+        SetInputMode(InputMode);
+        bShowMouseCursor = true;
+
+    }
+}
+
+void AMainPlayerController::RemoveDialogueUI()
+{
+    if (DialogueUI)
+    {
+
+        bDialogueUIVisible = false;
+
+        bShowMouseCursor = false;
+
+        FInputModeGameOnly InputModeGameOnly;
+        SetInputMode(InputModeGameOnly);
+
+        DialogueUI->OnAnimationHideMessageUI();
+
+
+    }
+}
+
+//void AMainPlayerController::SetDialogueState(EDialogueState State)
+//{
+//    DialogueState = State;
+//    
+//    if (DialogueState == EDialogueState::EDS_Speak)
+//    {
+//
+//    }
+//
+//    if (DialogueState == EDialogueState::EDS_Reply)
+//    {
+//
+//    }
+//}
+
