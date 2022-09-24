@@ -158,6 +158,13 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Interaction System")
 	class ACharacter* InteractTarget;
 
+
+	UPROPERTY(VisibleAnywhere)
+	class AYaroCharacter* test;
+
+    UPROPERTY(VisibleAnywhere)
+    TArray<AYaroCharacter*> NPCList;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

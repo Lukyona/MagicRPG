@@ -6,6 +6,10 @@
 #include "Main.h"
 #include "MainPlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "YaroCharacter.h"
+#include "AIController.h"
 
 
 void UDialogueUI::SetMessage(const FString& Text)
@@ -27,7 +31,7 @@ void UDialogueUI::AnimateMessage(const FString& Text)
     CurrentState = 1;
 
     InitialMessage = Text;
-    UE_LOG(LogTemp, Log, TEXT("%s, unitaial"), *InitialMessage);
+    UE_LOG(LogTemp, Log, TEXT("%s, AnimateMessage"), *InitialMessage);
 
     OutputMessage = "";
 
@@ -43,6 +47,7 @@ void UDialogueUI::AnimateMessage(const FString& Text)
 void UDialogueUI::OnTimerCompleted()
 {
     GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
+    //UE_LOG(LogTemp, Log, TEXT("OnTimerCompleted"));
 
     AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString());
 }
@@ -54,6 +59,10 @@ void UDialogueUI::OnAnimationTimerCompleted()
     OutputMessage.AppendChar(InitialMessage[iLetter]);
 
     NPCText->SetText(FText::FromString(OutputMessage));
+   // UE_LOG(LogTemp, Log, TEXT("OnAnimationTimerCompleted"));
+
+    if (SoundCueMessage != nullptr)
+        UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, SoundCueMessage);
 
     if ((iLetter + 1) < InitialMessage.Len())
     {
@@ -69,10 +78,13 @@ void UDialogueUI::OnAnimationTimerCompleted()
 
 void UDialogueUI::InitializeDialogue(UDataTable* DialogueTable)
 {
+    if(Main == nullptr)
+        Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
-    Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    if (MainPlayerController == nullptr)
+        MainPlayerController = Cast<AMainPlayerController>(Main->GetController());
 
-    MainPlayerController = Cast<AMainPlayerController>(Main->GetController());
+    //UE_LOG(LogTemp, Log, TEXT("InitializeDialogue"));
 
     CurrentState = 0;
 
@@ -81,10 +93,12 @@ void UDialogueUI::InitializeDialogue(UDataTable* DialogueTable)
 
     OnResetOptions();
 
+    Dialogue.Empty();
+
     for (auto it : DialogueTable->GetRowMap())
     {
         FNPCDialogue* Row = (FNPCDialogue*)it.Value;
-        
+
         Dialogue.Add(Row);
     }
 
@@ -92,7 +106,6 @@ void UDialogueUI::InitializeDialogue(UDataTable* DialogueTable)
     if (Dialogue.Num() > 0)
     {
         CurrentState = 0;
-        UE_LOG(LogTemp, Log, TEXT("work"));
 
         RowIndex = 0;
 
@@ -109,36 +122,32 @@ void UDialogueUI::InitializeDialogue(UDataTable* DialogueTable)
 
 void UDialogueUI::Interact()
 {
-    if (RowIndex >= Dialogue.Num())
-    {
-        CurrentState = 0;
-        MainPlayerController->RemoveDialogueUI();
-        UE_LOG(LogTemp, Log, TEXT("end"));
-    }
     if (CurrentState == 1) // The text is being animated, skip
     {
         GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
         NPCText->SetText(FText::FromString(InitialMessage));
+       // UE_LOG(LogTemp, Log, TEXT("Interact-1"));
 
         CurrentState = 2;
     }
     else if (CurrentState == 2) // Text completed
     {
         // Get next message
-        if ((MessageIndex + 1) < Dialogue[RowIndex]->Messages.Num())
+        if ((MessageIndex + 1) < Dialogue[RowIndex]->Messages.Num()) // 같은 npc의 다음 대사
         {
             MessageIndex += 1;
-            AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString());
+            DialogueEvents();
+           // UE_LOG(LogTemp, Log, TEXT("Interact-2-1"));
+
         }
         else
         {
-            UE_LOG(LogTemp, Log, TEXT("here"));
-
             NPCText->SetText(FText::FromString(""));
 
-            if (Dialogue[RowIndex]->PlayerReplies.Num() > 0)
+            if (Dialogue[RowIndex]->PlayerReplies.Num() > 0) // 플레이어 응답 있으면
             {
                 CharacterNameText->SetText(FText::FromString("player"));
+               // UE_LOG(LogTemp, Log, TEXT("Interact-2-2-1"));
 
                 OnResetOptions();
                 NumOfReply = Dialogue[RowIndex]->PlayerReplies.Num();
@@ -152,56 +161,167 @@ void UDialogueUI::Interact()
 
                 CurrentState = 3;
             }
-            else
+            else // 플레이어의 응답이 존재하지 않으면
             {
                 RowIndex += 1;
 
-                UE_LOG(LogTemp, Log, TEXT("Rwo index here, %d"), RowIndex);
-                if ((RowIndex >= 0) && (RowIndex < Dialogue.Num()))
+                if ((RowIndex >= 0) && (RowIndex < Dialogue.Num())) // 다음 npc 대사
                 {
-                    NPCText->SetText(FText::FromString(""));
+                   // UE_LOG(LogTemp, Log, TEXT("Interact-2-2-2"));
 
                     MessageIndex = 0;
+                    DialogueEvents();
 
-                    AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString());
                 }
                 else
                 {
+                   // UE_LOG(LogTemp, Log, TEXT("Interact-2-2-3"));
+
+
+                    bCanStartDialogue = false;
                     MainPlayerController->RemoveDialogueUI();
 
-                    //RowIndex = 0;
                     CurrentState = 0;
-                    UE_LOG(LogTemp, Log, TEXT("this"));
                 }
-
-                UE_LOG(LogTemp, Log, TEXT("done!"));
-
             }
         }
     }
-    else if (CurrentState == 3)
+    else if (CurrentState == 3) // 플레이어 응답 선택한 상태
     {
-        // 플레이어 응답에 따라 다르게 하려고 있는 거
+        // 플레이어 응답에 따라 RowIndex 바뀜
         RowIndex = Dialogue[RowIndex]->PlayerReplies[SelectedReply].AnswerIndex;
         OnResetOptions();
-        //RowIndex += 1;
-        UE_LOG(LogTemp, Log, TEXT("Rwo index here22, %d"), RowIndex);
 
         if ((RowIndex >= 0) && (RowIndex < Dialogue.Num()))
         {
             NPCText->SetText(FText::FromString(""));
+            //UE_LOG(LogTemp, Log, TEXT("Interact-3-1"));
 
             MessageIndex = 0;
-            AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString());
+            DialogueEvents();
+
         }
         else
         {
+            //UE_LOG(LogTemp, Log, TEXT("Interact-3-2"));
+
             CurrentState = 0;
             MainPlayerController->RemoveDialogueUI();
-            UE_LOG(LogTemp, Log, TEXT("this22"));
 
         }
     }
 }
 
+void UDialogueUI::DialogueEvents()
+{
+    int DNum = MainPlayerController->DialogueNum;
+   // UE_LOG(LogTemp, Log, TEXT("DialogueEvents"));
+
+
+    if (DNum == 0) // First Dialogue (cave)
+    {
+        if (RowIndex < 10 && Main->CameraBoom->TargetArmLength > 0) // 1인칭시점이 아닐 때
+        {
+            AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString());
+            return;
+
+        }
+
+        switch (RowIndex)
+        {
+            case 1: // Momo, Set FollowCamera's Z value of Rotation
+            case 7: 
+                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, -15.f, 0.f));
+                break;
+            case 2: // Vivi
+            case 6:
+                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
+                break;
+            case 3: // Luko
+            case 8:
+                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, -25.f, 0.f));
+                break;
+            case 4: // Zizi
+                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 13.f, 0.f));
+                break;
+            case 5: // Vovo
+            case 9:
+                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 30.f, 0.f));
+                if(RowIndex == 5 && MessageIndex == 2)
+                    Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 5.f, 0.f));
+                break;
+            case 10: // npc go
+                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
+                Main->CameraBoom->TargetArmLength = 500.f;
+                for(int i = 0; i < Main->NPCList.Num(); i++)
+                {
+                    if (!Main->NPCList[i]->GetName().Contains("Luko")) // npc move except luko
+                    {
+                        Main->NPCList[i]->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
+                    }
+                }
+                break;    
+            case 11: 
+                CurrentState = 0;
+                MainPlayerController->RemoveDialogueUI();
+                FTimerHandle Timer;
+                GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
+                    {
+                        MainPlayerController->DisplayDialogueUI();
+                    }), 1.5f, false); // n초 뒤 루코 대화
+                return;
+                break;
+        }
+    }
+
+    if (DNum == 3) // Third Dialogue (first dungeon, after golem battle)
+    {
+        switch (RowIndex)
+        {
+        case 0:
+            Main->CameraBoom->TargetArmLength = 200.f;
+            break;
+        case 2:
+            if (MessageIndex == 1)
+            {
+                for (int i = 0; i < Main->NPCList.Num(); i++)
+                {
+                    if (!Main->NPCList[i]->GetName().Contains("Vovo")) // npc move to the boat except vovo
+                    {
+                        Main->NPCList[i]->AIController->MoveToLocation(FVector(628.f, 946.f, 1840.f));
+                    }
+                }
+            }
+            break;
+        case 4:
+            for (int i = 0; i < Main->NPCList.Num(); i++)
+            {
+                if (Main->NPCList[i]->GetName().Contains("Vovo")) // vovo moves to the boat
+                {
+                    Main->NPCList[i]->AIController->MoveToLocation(FVector(628.f, 885.f, 1840.f));
+
+                }
+            }
+            CurrentState = 0;
+            MainPlayerController->RemoveDialogueUI();
+            return;
+            break;
+        case 11:
+            //CurrentState = 0;
+            //MainPlayerController->RemoveDialogueUI();
+            //FTimerHandle Timer;
+            //GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
+            //    {
+            //        MainPlayerController->DisplayDialogueUI();
+            //    }), 1.5f, false); // n초 뒤 루코 대화
+            //return;
+            break;
+        }
+    }
+
+    //UE_LOG(LogTemp, Log, TEXT("pass4"));
+    AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString());
+
+
+}
 

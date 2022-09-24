@@ -21,6 +21,7 @@
 #include "YaroSaveGame.h"
 #include "ItemStorage.h"
 #include "DialogueUI.h"
+#include "YaroCharacter.h"
 
 // Sets default values
 AMain::AMain()
@@ -28,7 +29,7 @@ AMain::AMain()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	//Create CameraBoom (pulls towards the playter if there's a collision), 콜리전이 있으면 카메라를 플레이어쪽으로 당김 
+	//Create CameraBoom (pulls towards the player if there's a collision), 콜리전이 있으면 카메라를 플레이어쪽으로 당김 
 	CameraBoom = CreateAbstractDefaultSubobject<USpringArmComponent>(TEXT("Camera"));
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->TargetArmLength = 500.f; //Camera follows at this distance
@@ -105,6 +106,7 @@ AMain::AMain()
 	InteractionRange->SetRelativeLocation(FVector(0.f, 70.f, 90.f));
 	InteractionRange->SetRelativeRotation(FRotator(0.f, 0.f, 90.f));
 	InteractionRange->SetRelativeScale3D(FVector(1.5f, 1.f, 2.2f));
+
 }
 
 
@@ -253,6 +255,7 @@ void AMain::Run(float Value)
 void AMain::TurnAtRate(float Rate)
 {
 	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+
 }
 
 void AMain::LookUpAtRate(float Rate)
@@ -263,6 +266,8 @@ void AMain::LookUpAtRate(float Rate)
 void AMain::CameraZoom(const float Value)
 {
 	if (Value == 0.f || !Controller) return;
+
+	if (MainPlayerController->DialogueNum == 0) return;
 
 	const float NewTargetArmLength = CameraBoom->TargetArmLength + Value * ZoomStep;
 	CameraBoom->TargetArmLength = FMath::Clamp(NewTargetArmLength, MinZoomLength, MaxZoomLength);
@@ -279,7 +284,6 @@ void AMain::LMBDown() //Left Mouse Button
 		{
 			Weapon->Equip(this);
 			SetActiveOverlappingItem(nullptr);
-
 		}
 	}
 
@@ -295,12 +299,24 @@ void AMain::LMBDown() //Left Mouse Button
 		bHasCombatTarget = false;
 	}
 
-	if (MainPlayerController->bDialogueUIVisible)
+	if (MainPlayerController->DialogueUI->CurrentState != 3)
 	{
-		if(MainPlayerController->DialogueUI->CurrentState != 3)
-			MainPlayerController->DialogueUI->Interact();
-
+        if (MainPlayerController->DialogueNum == 0)
+        {
+            if (MainPlayerController->DialogueUI->RowIndex < 1) return;
+            else MainPlayerController->DialogueUI->Interact();
+        }
+		else
+		{
+            if (MainPlayerController->bDialogueUIVisible)
+            {
+                if (MainPlayerController->DialogueUI->CurrentState != 3)
+                    MainPlayerController->DialogueUI->Interact();
+            }
+		}
+ 
 	}
+    
 }
 
 void AMain::LMBUp()
@@ -495,9 +511,7 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 			AEnemy* Enemy = Cast<AEnemy>(DamageCauser);
 			if (Enemy)
 			{
-				Enemy->bHasValidTarget = false;
 				Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Idle);
-
 			}
 		}
 	}
@@ -537,7 +551,7 @@ void AMain::DeathEnd()
 
 void AMain::Jump()
 {
-	if (MovementStatus != EMovementStatus::EMS_Dead)
+	if (MovementStatus != EMovementStatus::EMS_Dead && !MainPlayerController->bDialogueUIVisible) // 죽거나 대화 중일 때는 점프 불가
 	{
 		Super::Jump();
 	}
@@ -592,16 +606,26 @@ void AMain::StartDialogue()
 	if (!MainPlayerController)
 		MainPlayerController = Cast<AMainPlayerController>(GetController());
 
-	if(InteractTarget && !MainPlayerController->bDialogueUIVisible)
-		MainPlayerController->DisplayDialogueUI();
-
-	if (InteractTarget && MainPlayerController->bDialogueUIVisible && MainPlayerController->DialogueUI->CurrentState != 3)
+	if (MainPlayerController->DialogueUI->CurrentState != 3)
 	{
-		UE_LOG(LogTemp, Log, TEXT("inter"));
-		MainPlayerController->DialogueUI->Interact();
+        
+        if (MainPlayerController->DialogueNum == 0 && MainPlayerController->DialogueUI->RowIndex < 1) return;
+        else MainPlayerController->DialogueUI->Interact();
+       
+		/*else
+		{
+            if (InteractTarget && !MainPlayerController->bDialogueUIVisible)
+                MainPlayerController->DisplayDialogueUI();
+
+            if (InteractTarget && MainPlayerController->bDialogueUIVisible && MainPlayerController->DialogueUI->CurrentState != 3)
+            {
+                UE_LOG(LogTemp, Log, TEXT("inter"));
+                MainPlayerController->DialogueUI->Interact();
+            }
+		}*/
 
 	}
-
+    
 }
 
 

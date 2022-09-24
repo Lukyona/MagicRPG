@@ -65,9 +65,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float DeathDelay;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-	bool bHasValidTarget;
-
 	// When enemy attck target, enemy look at target
 	float InterpSpeed;
 	bool bInterpToTarget;

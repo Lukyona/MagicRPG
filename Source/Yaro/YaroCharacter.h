@@ -22,6 +22,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	class AMain* Player;
 
+	FTimerHandle MoveTimer; // move to player
+
 	void MoveToPlayer();
 
 

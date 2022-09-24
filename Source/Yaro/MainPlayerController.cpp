@@ -7,6 +7,9 @@
 #include "BrainComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "DialogueUI.h"
+#include "Main.h"
+#include "YaroCharacter.h"
+#include "AIController.h"
 
 
 AMainPlayerController::AMainPlayerController()
@@ -71,12 +74,6 @@ void AMainPlayerController::BeginPlay()
         DialogueUI->AddToViewport();
         DialogueUI->SetVisibility(ESlateVisibility::Hidden);
 
-        if (IntroDialogue != nullptr)
-        {
-
-            //SetCinematicMode(true, true, true);
-            //DialogueUI->InitializeDialogue(IntroDialogue);
-        }
     }
 }
 
@@ -120,6 +117,9 @@ void AMainPlayerController::Tick(float DeltaTime)
         FVector2D SizeInViewport = FVector2D(150.f, 15.f);
         EnemyHPBar->SetDesiredSizeInViewport(SizeInViewport);
     }
+
+   if(Main == nullptr) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
+
 }
 
 int AMainPlayerController::WhichKeyDown()
@@ -197,28 +197,43 @@ void AMainPlayerController::TogglePauseMenu()
     }
 }
 
-void AMainPlayerController::ToggleDialogueUI()
-{
-    if (bDialogueUIVisible)
-    {
-        RemoveDialogueUI();
-    }
-    else
-    {
-        DisplayDialogueUI();
-    }
-}
-
-
 void AMainPlayerController::DisplayDialogueUI()
 {
     if (DialogueUI)
     {
+        //UE_LOG(LogTemp, Log, TEXT("DisplayDialogueUI"));
+
+        if (!DialogueUI->bCanStartDialogue) return;
+
         bDialogueUIVisible = true;
+
+
+        switch (DialogueNum)
+        {
+            case 0:
+                DialogueUI->InitializeDialogue(IntroDialogue);
+                break;
+            case 1: // onlu luko dialogue
+            case 4: // the boat move
+                DialogueUI->OnAnimationShowMessageUI();
+                GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::OnTimerCompleted, 0.1f, false);
+                break;
+            case 2:
+                DialogueUI->InitializeDialogue(DungeonDialogue1);
+                break;
+            case 3:   
+                if (!bFadeOn)
+                {
+                    FadeAndDialogue();
+                    return;
+                }              
+                DialogueUI->InitializeDialogue(DungeonDialogue2);
+                bFadeOn = false;
+                break;
+        }
 
         DialogueUI->SetVisibility(ESlateVisibility::Visible);
 
-        DialogueUI->InitializeDialogue(IntroDialogue);
 
         FInputModeGameAndUI InputMode;  
         SetInputMode(InputMode);
@@ -231,6 +246,9 @@ void AMainPlayerController::RemoveDialogueUI()
 {
     if (DialogueUI)
     {
+        DialogueNum++;
+       
+        DialogueEvents();
 
         bDialogueUIVisible = false;
 
@@ -241,22 +259,102 @@ void AMainPlayerController::RemoveDialogueUI()
 
         DialogueUI->OnAnimationHideMessageUI();
 
-
     }
 }
 
-//void AMainPlayerController::SetDialogueState(EDialogueState State)
-//{
-//    DialogueState = State;
-//    
-//    if (DialogueState == EDialogueState::EDS_Speak)
-//    {
-//
-//    }
-//
-//    if (DialogueState == EDialogueState::EDS_Reply)
-//    {
-//
-//    }
-//}
 
+void AMainPlayerController::DialogueEvents()
+{
+    switch (DialogueNum)
+    {
+        case 1: // luko moves to player
+            for (AYaroCharacter* npc : Main->NPCList)
+            {
+                if (npc->GetName().Contains("Luko"))
+                {
+                    npc->MoveToPlayer();
+                }
+            }
+            break;
+        case 2:
+            SetCinematicMode(false, true, true);
+            for (AYaroCharacter* npc : Main->NPCList)
+            {
+                if (npc->GetName().Contains("Luko"))
+                {
+                    GetWorldTimerManager().ClearTimer(npc->MoveTimer);
+                    npc->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
+                }
+            }
+            break;
+        case 3:
+        case 4:
+            SetCinematicMode(false, true, true);
+            break;
+    }
+    
+
+}
+
+void AMainPlayerController::FadeAndDialogue()
+{
+    if (WFadeInOut) // 
+    {
+        FadeInOut = CreateWidget<UUserWidget>(this, WFadeInOut);
+        if (FadeInOut)
+        {
+            bFadeOn = true;
+
+            SetCinematicMode(true, true, true);
+            SetControlRotation(FRotator(0.f, 57.f, 0.f));
+
+            FadeOut();
+            FadeInOut->AddToViewport();          
+            
+        }
+    }
+}
+
+void AMainPlayerController::SetPositions()
+{
+    if (DialogueNum == 3)
+    {
+        Main->SetActorLocation(FVector(646.f, -1747.f, 2578.f));
+        Main->SetActorRotation(FRotator(0.f, 57.f, 0.f)); // y(pitch), z(yaw), x(roll)
+
+        for (AYaroCharacter* npc : Main->NPCList)
+        {
+            npc->AIController->StopMovement();
+            GetWorldTimerManager().ClearTimer(npc->MoveTimer);
+            GetWorldTimerManager().ClearTimer(npc->TeamMoveTimer);
+
+
+            if (npc->GetName().Contains("Momo"))
+            {
+                npc->SetActorLocation(FVector(594.f, -1543.f, 2531.f));
+                npc->SetActorRotation(FRotator(0.f, 280.f, 0.f));
+            }
+            else if (npc->GetName().Contains("Luko"))
+            {
+                npc->SetActorLocation(FVector(494.f, -1629.f, 2561.f));
+                npc->SetActorRotation(FRotator(0.f, 6.f, 0.f));
+            }
+            else if (npc->GetName().Contains("Vovo"))
+            {
+                npc->SetActorLocation(FVector(903.f, -1767.f, 2574.f));
+                npc->SetActorRotation(FRotator(0.f, 165.f, 0.f));
+            }
+            else if (npc->GetName().Contains("Vivi"))
+            {
+
+                npc->SetActorLocation(FVector(790.f, -1636.f, 2566.f));
+                npc->SetActorRotation(FRotator(00.f, 180.f, 0.f));
+            }
+            else if (npc->GetName().Contains("Zizi"))
+            {
+                npc->SetActorLocation(FVector(978.f, -1650.f, 2553.f));
+                npc->SetActorRotation(FRotator(0.f, 187.f, 0.f));
+            }
+        }
+    }
+}

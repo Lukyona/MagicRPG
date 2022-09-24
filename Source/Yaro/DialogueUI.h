@@ -51,7 +51,7 @@ class YARO_API UDialogueUI : public UUserWidget
 
 
 protected:
-	
+
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* NPCText;
 
@@ -60,6 +60,9 @@ protected:
 	
 	UPROPERTY(EditAnywhere, Category = "Dialogue")
 	float DelayBetweenLetters = 0.06f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class USoundBase* SoundCueMessage;
 
 public:
 
@@ -94,17 +97,12 @@ public:
 	void InitializeDialogue(class UDataTable* DialogueTable);
 
 	UFUNCTION(BlueprintCallable)
-	void Interact();
-	 
-
+    void Interact();
+   
+	void DialogueEvents();
 
 private:
 	
-	FTimerHandle TimerHandle;
-
-	UFUNCTION()
-	void OnTimerCompleted();
-
 	FString InitialMessage;
 
 	FString OutputMessage;
@@ -114,21 +112,24 @@ private:
 
 	TArray<FNPCDialogue*> Dialogue;
 
-	int32 MessageIndex;
 
-	int32 RowIndex;
 
 	UFUNCTION()
 	void OnAnimationTimerCompleted();
 
 
 public:
-
-	int32 CurrentState = 0; // 0 = None, 1 = Animating, 2 = Text Completed, 3 = Dialogue is waiting for replies
+    UPROPERTY(BlueprintReadWrite)
+	int32 CurrentState; // 0 = None, 1 = Animating, 2 = Text Completed, 3 = Dialogue is waiting for replies
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 SelectedReply;
 
+    UPROPERTY(BlueprintReadWrite)
+    int32 RowIndex;
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 MessageIndex;
 
 	//플레이어 대답 버튼들 Visibility 때문에 어쩔 수 없이 만든 변수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -139,4 +140,13 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	class AMainPlayerController* MainPlayerController;
+
+	// 대화 끝나고 바로 대화 또 못하게끔(애니메이션 시간이 필요)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bCanStartDialogue = true;
+
+	FTimerHandle TimerHandle;
+
+	UFUNCTION()
+	void OnTimerCompleted();
 };

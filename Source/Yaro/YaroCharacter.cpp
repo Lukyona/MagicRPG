@@ -14,7 +14,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Components/CapsuleComponent.h"
-
+#include "MainPlayerController.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AYaroCharacter
@@ -49,6 +49,7 @@ AYaroCharacter::AYaroCharacter()
 	InterpSpeed = 15.f;
 	bInterpToEnemy = false;
 
+	// positions in first dungeon
 	Pos.Add(FVector(2517.f, 5585.f, 3351.f));
 	Pos.Add(FVector(2345.f, 4223.f, 2833.f));
 	Pos.Add(FVector(2080.f, 283.f, 2838.f));
@@ -64,7 +65,6 @@ void AYaroCharacter::BeginPlay()
 
 
 	AIController = Cast<AAIController>(GetController());
-	if (this->GetName().Contains("Momo") || this->GetName().Contains("Luko")) MoveToPlayer();
 
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AYaroCharacter::CombatSphereOnOverlapBegin);
 	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AYaroCharacter::CombatSphereOnOverlapEnd);
@@ -88,14 +88,19 @@ void AYaroCharacter::Tick(float DeltaTime)
 	{
 		ACharacter* p = UGameplayStatics::GetPlayerCharacter(this, 0);
 		Player = Cast<AMain>(p);
+		Player->NPCList.Add(this);
 	}
 
-	if (this->GetName().Contains("Vovo") || this->GetName().Contains("Vivi") || this->GetName().Contains("Zizi"))
-	{
 
-		if (!canGo && Player && Player->NpcGo)
+	if (!canGo && Player && Player->NpcGo)
+	{
+		canGo = true;
+		if (this->GetName().Contains("Momo") || this->GetName().Contains("Luko"))
 		{
-			canGo = true;
+            GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 1.f);
+		}
+		else // 비비, 지지, 보보
+		{
 			MoveToLocation();
 		}
 	}
@@ -104,55 +109,53 @@ void AYaroCharacter::Tick(float DeltaTime)
 
 void AYaroCharacter::MoveToPlayer()
 {
-	FTimerHandle WaitHandle;
-	float WaitTime = 1.5f; // 딜레이 타임 설정
-	GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
+	if (Player == nullptr) return;
+
+	if ((Player->NpcGo == true && CombatTarget == nullptr && !bAttacking && !bOverlappingCombatSphere) || (Player->MainPlayerController->DialogueNum == 1))
+	{
+		float distance = GetDistanceTo(Player);
+
+		if (distance >= 500.f) //일정 거리 이상 떨어져있다면 속도 높여 달리기
 		{
-			if (Player && Player->NpcGo && !CombatTarget && !bAttacking && !bOverlappingCombatSphere)
+			if ((this->GetName()).Contains("Momo"))
 			{
-				float distance = GetDistanceTo(Player);
-
-				if (distance >= 500.f) //일정 거리 이상 떨어져있다면 속도 높여 달리기
-				{
-					if ((this->GetName()).Contains("Momo"))
-					{
-						GetCharacterMovement()->MaxWalkSpeed = 600.f;
-					}
-					else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
-					{
-						GetCharacterMovement()->MaxWalkSpeed = 500.f;
-					}
-					else
-					{
-						GetCharacterMovement()->MaxWalkSpeed = 450.f;
-					}
-				}
-				else //가깝다면 속도 낮춰 걷기
-				{
-					if ((this->GetName()).Contains("Momo"))
-					{
-						GetCharacterMovement()->MaxWalkSpeed = 300.f;
-					}
-					else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
-					{
-						GetCharacterMovement()->MaxWalkSpeed = 250.f;
-					}
-					else
-					{
-						GetCharacterMovement()->MaxWalkSpeed = 225.f;
-					}
-				}
-
-				FAIMoveRequest MoveRequest;
-				MoveRequest.SetGoalActor(Player);
-				MoveRequest.SetAcceptanceRadius(80.f);
-
-				FNavPathSharedPtr NavPath;
-				AIController->MoveTo(MoveRequest, &NavPath);
-
+				GetCharacterMovement()->MaxWalkSpeed = 600.f;
 			}
-			
-		}), WaitTime, true);	//딜레이 시간 적용하여 계속 반복
+			else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
+			{
+				GetCharacterMovement()->MaxWalkSpeed = 500.f;
+			}
+			else
+			{
+				GetCharacterMovement()->MaxWalkSpeed = 450.f;
+			}
+		}
+		else //가깝다면 속도 낮춰 걷기
+		{
+			if ((this->GetName()).Contains("Momo"))
+			{
+				GetCharacterMovement()->MaxWalkSpeed = 300.f;
+			}
+			else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
+			{
+				GetCharacterMovement()->MaxWalkSpeed = 250.f;
+			}
+			else
+			{
+				GetCharacterMovement()->MaxWalkSpeed = 225.f;
+			}
+		}
+
+		FAIMoveRequest MoveRequest;
+		MoveRequest.SetGoalActor(Player);
+		MoveRequest.SetAcceptanceRadius(80.f);
+
+		FNavPathSharedPtr NavPath;
+		AIController->MoveTo(MoveRequest, &NavPath);
+
+	}
+
+    GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);	
 }
 
 void AYaroCharacter::SetInterpToEnemy(bool Interp)
@@ -255,7 +258,6 @@ void AYaroCharacter::Attack()
 {
 	if ((!bAttacking) && (CombatTarget) && (CombatTarget->EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead))
 	{
-
 		SkillNum = FMath::RandRange(1, 3);
 		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/GreenStormAttack.GreenStormAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
 		if (this->GetName().Contains("Luko"))
@@ -461,19 +463,15 @@ void AYaroCharacter::Spawn()
 	}
 }
 
-void AYaroCharacter::MoveToLocation()
+void AYaroCharacter::MoveToLocation() // Vivi, Vovo, Zizi
 {	
 	if (AIController)
 	{
 		AIController->MoveToLocation(Pos[index]);
-		//index++;
 	}
 
-	//bool vovo = false;
-	//bool vivi = false;
-	//bool zizi = false;
-
 	GetWorld()->GetTimerManager().SetTimer(TeamMoveTimer, FTimerDelegate::CreateLambda([&]() {
+
 		if (!CombatTarget && !bOverlappingCombatSphere)
 		{
 			if (index <= 3)
@@ -483,21 +481,14 @@ void AYaroCharacter::MoveToLocation()
 				
 				if (AIController && distance <= 70.f)
 				{
-					//if (this->GetName().Contains("Vovo")) vovo = true;
-					//if (this->GetName().Contains("Vivi")) vivi = true;
-					//if (this->GetName().Contains("Zizi")) zizi = true;
-
 					index++;
 					AIController->MoveToLocation(Pos[index]);
 				}
 				else
 				{
-					//if (this->GetName().Contains("Vovo")) vovo = false;
-					//if (this->GetName().Contains("Vivi")) vivi = false;
-					//if (this->GetName().Contains("Zizi")) zizi = false;
 					AIController->MoveToLocation(Pos[index]);
 				}
 			}
 		}
-	}), 1.f, true);
+	}), 0.5f, true);
 }

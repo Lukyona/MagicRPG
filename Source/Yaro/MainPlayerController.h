@@ -6,15 +6,6 @@
 #include "GameFramework/PlayerController.h"
 #include "MainPlayerController.generated.h"
 
-/**
- * 
- */
-//UENUM(BlueprintType)
-//enum class EDialogueState :uint8
-//{
-//	EDS_Speak		UMETA(DeplayName = "NPC_Speak"),
-//	EDS_Reply			UMETA(DeplayName = "Reply")
-//};
 
 UCLASS()
 class YARO_API AMainPlayerController : public APlayerController
@@ -23,6 +14,8 @@ class YARO_API AMainPlayerController : public APlayerController
 	
 public:
 	AMainPlayerController();
+
+	class AMain* Main;
 
 	//Player can Targeting, then TargetArrow appear on Targeted enemy
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
@@ -64,16 +57,16 @@ public:
 	void RemovePauseMenu();
 	void TogglePauseMenu();
 
-
+	UFUNCTION(BlueprintCallable)
 	void DisplayDialogueUI();
+
 	void RemoveDialogueUI();
-	void ToggleDialogueUI();
 
 	UPROPERTY(VisibleAnywhere)
 	bool bDialogueUIVisible;
 
 
-	UPROPERTY(EditAnywhere, Category = "Dialogue")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
 	class UDialogueUI* DialogueUI;
 
 	UPROPERTY(VisibleAnywhere, Category = "Dialogue")
@@ -81,20 +74,38 @@ public:
 
 	FORCEINLINE UDialogueUI* GetDialogueUI() { return DialogueUI; };
 
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dialogue")
-	//EDialogueState DialogueState;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Dialogue")
+	int DialogueNum; // 0 - intro
 
-	//UFUNCTION(BlueprintCallable)
-	//void SetDialogueState(EDialogueState State);
+	void DialogueEvents();
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
+    TSubclassOf<UUserWidget> WFadeInOut;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Widgets")
+    UUserWidget* FadeInOut;
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Fade Events")
+    void FadeOut();
+
+	void FadeAndDialogue();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fade Events")
+	bool bFadeOn = false;
+
+    UFUNCTION(BlueprintCallable)
+	void SetPositions();
 
 protected:
-
+	// Dialogue data tables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
 	class UDataTable* IntroDialogue;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
 	class UDataTable* DungeonDialogue1;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+    class UDataTable* DungeonDialogue2;
 
 protected:
 	virtual void BeginPlay() override;
