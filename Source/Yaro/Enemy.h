@@ -187,4 +187,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void HitEnd();
+
+	UPROPERTY(VisibleAnywhere)
+	bool bAttackFromPlayer = false;
+
+	UPROPERTY(EditAnywhere)
+	float EnemyExp;
 };

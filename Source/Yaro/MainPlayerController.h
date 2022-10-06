@@ -46,23 +46,24 @@ public:
 	void RemoveEnemyHPBar();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
-	TSubclassOf<UUserWidget> WPauseMenu;
+	TSubclassOf<UUserWidget> WMenu;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Widgets")
-	UUserWidget* PauseMenu;
+	UUserWidget* Menu;
 
-	bool bPauseMenuVisible;
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	bool bMenuVisible;
 
-	void DisplayPauseMenu();
-	void RemovePauseMenu();
-	void TogglePauseMenu();
+	void DisplayMenu();
+	void RemoveMenu();
+	void ToggleMenu();
 
 	UFUNCTION(BlueprintCallable)
 	void DisplayDialogueUI();
 
 	void RemoveDialogueUI();
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bDialogueUIVisible;
 
 
@@ -72,11 +73,12 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Dialogue")
 	TSubclassOf<class UUserWidget> DialogueUIClass;
 
-	FORCEINLINE UDialogueUI* GetDialogueUI() { return DialogueUI; };
+	//FORCEINLINE UDialogueUI* GetDialogueUI() { return DialogueUI; };
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Dialogue")
 	int DialogueNum; // 0 - intro
 
+    UFUNCTION(BlueprintCallable)
 	void DialogueEvents();
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
@@ -95,6 +97,46 @@ public:
 
     UFUNCTION(BlueprintCallable)
 	void SetPositions();
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+    FText SystemText;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
+    TSubclassOf<UUserWidget> WSystemMessage;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Widgets")
+    UUserWidget* SystemMessage;
+
+    UFUNCTION(BlueprintCallable)
+    void DisplaySystemMessage();
+
+    UFUNCTION(BlueprintCallable)
+    void RemoveSystemMessage();
+
+	FString text;
+
+	bool SystemMessageOn = false;
+
+    bool bSystemMessageVisible;
+
+	UPROPERTY(BlueprintReadWrite)
+	int SystemMessageNum;
+
+    UFUNCTION(BlueprintCallable)
+	void SetSystemMessage();
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
+    TSubclassOf<UUserWidget> WManual;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Widgets")
+    UUserWidget* Manual;
+
+	void DisplayManual();
+
+    void RemoveManual();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	bool bManualVisible = false;
 
 protected:
 	// Dialogue data tables

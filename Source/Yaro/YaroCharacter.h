@@ -46,6 +46,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	class USphereComponent* CombatSphere;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    class USphereComponent* AttackSphere;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	bool bOverlappingCombatSphere;
 
@@ -69,6 +72,42 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float AttackDelay;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    bool bAttacking;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
+    class UAnimMontage* CombatMontage;
+
+    void Attack();
+
+    UFUNCTION(BlueprintCallable)
+    void AttackEnd();
+
+    UFUNCTION()
+    virtual void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    UFUNCTION()
+    virtual void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+    UFUNCTION()
+    virtual void AttackSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    UFUNCTION()
+    virtual void AttackSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+    class UArrowComponent* AttackArrow;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
+    TSubclassOf<class AMagicSkill> ToSpawn;
+
+    int SkillNum;
+
+    void Spawn();
+
+	bool bCanCastStrom = true;
+
+	void CanCastStormMagic();
+
 	void MoveToTarget(AEnemy* Target);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
@@ -85,6 +124,9 @@ public:
 	bool canGo = false;
 
 	FTimerHandle TeamMoveTimer;
+	
+    UPROPERTY(EditAnywhere)
+	bool bInterpToPlayer = false;
 
 protected:
 
@@ -100,31 +142,7 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Anims")
-	bool bAttacking;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
-	class UAnimMontage* CombatMontage;
-
-	void Attack();
-
-	UFUNCTION(BlueprintCallable)
-	void AttackEnd();
-
-	UFUNCTION()
-	virtual void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION()
-	virtual void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	class UArrowComponent* AttackArrow;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
-	TSubclassOf<class AMagicSkill> ToSpawn;
-
-	int SkillNum;
-
-	void Spawn();
 
 
 };

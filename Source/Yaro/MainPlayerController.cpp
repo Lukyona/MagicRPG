@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "MainPlayerController.h"
@@ -11,7 +11,6 @@
 #include "YaroCharacter.h"
 #include "AIController.h"
 
-
 AMainPlayerController::AMainPlayerController()
 {
     static ConstructorHelpers::FClassFinder<UUserWidget> DialogueBPClass(TEXT("/Game/HUDandWigets/DialogueUI_BP.DialogueUI_BP_C"));
@@ -23,9 +22,9 @@ void AMainPlayerController::BeginPlay()
 {
     Super::BeginPlay();
     
-    //ī�޶� ȸ�� ����
-    this->PlayerCameraManager->ViewPitchMin = -50.f; // ����ȸ�� ��
-    this->PlayerCameraManager->ViewPitchMax = 5.f; //�Ʒ�
+    //카메라 회전 제한
+    this->PlayerCameraManager->ViewPitchMin = -50.f; // 세로회전 위
+    this->PlayerCameraManager->ViewPitchMax = 5.f; //아래
 
     
     if (WTargetArrow)
@@ -54,16 +53,26 @@ void AMainPlayerController::BeginPlay()
         EnemyHPBar->SetAlignmentInViewport(Alignment);
     }
 
-    if (WPauseMenu)
+    if (WSystemMessage)
     {
-        PauseMenu = CreateWidget<UUserWidget>(this, WPauseMenu);
-        if (PauseMenu)
+        SystemMessage = CreateWidget<UUserWidget>(this, WSystemMessage);
+        if (SystemMessage)
         {
-            PauseMenu->AddToViewport();
-            PauseMenu->SetVisibility(ESlateVisibility::Hidden);
+            SystemMessage->AddToViewport();
+            SystemMessage->SetVisibility(ESlateVisibility::Hidden);
         }
     }
     
+    if (WManual)
+    {
+        Manual = CreateWidget<UUserWidget>(this, WManual);
+        if (Manual)
+        {
+            Manual->AddToViewport();
+            Manual->SetVisibility(ESlateVisibility::Hidden);
+        }
+    }
+
     if (DialogueUIClass != nullptr)
     {
         DialogueUI = CreateWidget<UDialogueUI>(this, DialogueUIClass);
@@ -73,7 +82,16 @@ void AMainPlayerController::BeginPlay()
     {
         DialogueUI->AddToViewport();
         DialogueUI->SetVisibility(ESlateVisibility::Hidden);
+    }
 
+    if (WMenu)
+    {
+        Menu = CreateWidget<UUserWidget>(this, WMenu);
+        if (Menu)
+        {
+            Menu->AddToViewport();
+            Menu->SetVisibility(ESlateVisibility::Hidden);
+        }
     }
 }
 
@@ -159,41 +177,56 @@ void AMainPlayerController::RemoveEnemyHPBar()
     }
 }
 
-void AMainPlayerController::DisplayPauseMenu()
+void AMainPlayerController::DisplayMenu()
 {
-    if (PauseMenu)
+    if (Menu)
     {
-        bPauseMenuVisible = true;
-        PauseMenu->SetVisibility(ESlateVisibility::Visible);
+        if (bManualVisible) RemoveManual();
+
+        bMenuVisible = true;
+
+        if (DialogueNum < 3 || bDialogueUIVisible) DisplaySystemMessage();
+
+        Menu->SetVisibility(ESlateVisibility::Visible);
 
         FInputModeGameAndUI InputMode;
         SetInputMode(InputMode);
         bShowMouseCursor = true;
+
+
     }
 }
 
-void AMainPlayerController::RemovePauseMenu()
+void AMainPlayerController::RemoveMenu()
 {
-    if (PauseMenu)
+    if (Menu)
     {      
-        bPauseMenuVisible = false;
-        PauseMenu->SetVisibility(ESlateVisibility::Hidden);
+        bMenuVisible = false;
+        if (SystemMessageOn) SetSystemMessage();    
+        else if (bSystemMessageVisible) RemoveSystemMessage();
 
-        FInputModeGameOnly InputModeGameOnly;
-        SetInputMode(InputModeGameOnly);
-        bShowMouseCursor = false;
+
+        Menu->SetVisibility(ESlateVisibility::Hidden);
+
+        if (!bDialogueUIVisible)
+        {
+            FInputModeGameOnly InputModeGameOnly;
+            SetInputMode(InputModeGameOnly);
+
+            bShowMouseCursor = false;
+        }
     }
 }
 
-void AMainPlayerController::TogglePauseMenu()
+void AMainPlayerController::ToggleMenu()
 {
-    if (bPauseMenuVisible)
+    if (bMenuVisible)
     {
-        RemovePauseMenu();
+        RemoveMenu();
     }
     else
     {
-        DisplayPauseMenu();
+        DisplayMenu();
     }
 }
 
@@ -205,8 +238,9 @@ void AMainPlayerController::DisplayDialogueUI()
 
         if (!DialogueUI->bCanStartDialogue) return;
 
-        bDialogueUIVisible = true;
+        if (bManualVisible) RemoveManual();
 
+        bDialogueUIVisible = true;
 
         switch (DialogueNum)
         {
@@ -214,9 +248,8 @@ void AMainPlayerController::DisplayDialogueUI()
                 DialogueUI->InitializeDialogue(IntroDialogue);
                 break;
             case 1: // onlu luko dialogue
-            case 4: // the boat move
                 DialogueUI->OnAnimationShowMessageUI();
-                GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::OnTimerCompleted, 0.1f, false);
+                GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::StartAnimatedMessage, 0.1f, false);
                 break;
             case 2:
                 DialogueUI->InitializeDialogue(DungeonDialogue1);
@@ -230,15 +263,17 @@ void AMainPlayerController::DisplayDialogueUI()
                 DialogueUI->InitializeDialogue(DungeonDialogue2);
                 bFadeOn = false;
                 break;
+            case 4: // the boat move
+                DialogueUI->OnAnimationShowMessageUI();
+                GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::DialogueEvents, 0.1f, false);
+                break;
         }
 
         DialogueUI->SetVisibility(ESlateVisibility::Visible);
 
-
         FInputModeGameAndUI InputMode;  
         SetInputMode(InputMode);
         bShowMouseCursor = true;
-
     }
 }
 
@@ -248,11 +283,11 @@ void AMainPlayerController::RemoveDialogueUI()
     {
         DialogueNum++;
        
-        DialogueEvents();
-
         bDialogueUIVisible = false;
 
         bShowMouseCursor = false;
+
+        DialogueEvents();
 
         FInputModeGameOnly InputModeGameOnly;
         SetInputMode(InputModeGameOnly);
@@ -267,38 +302,39 @@ void AMainPlayerController::DialogueEvents()
 {
     switch (DialogueNum)
     {
-        case 1: // luko moves to player
-            for (AYaroCharacter* npc : Main->NPCList)
-            {
-                if (npc->GetName().Contains("Luko"))
-                {
-                    npc->MoveToPlayer();
-                }
-            }
+        case 1: // luko moves to player    
+            Main->Luko->MoveToPlayer();         
             break;
         case 2:
-            SetCinematicMode(false, true, true);
-            for (AYaroCharacter* npc : Main->NPCList)
+            if (SystemMessageNum != 3)
             {
-                if (npc->GetName().Contains("Luko"))
-                {
-                    GetWorldTimerManager().ClearTimer(npc->MoveTimer);
-                    npc->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
-                }
+                GetWorldTimerManager().ClearTimer(Main->Luko->MoveTimer);
+                Main->Luko->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
+                SystemMessageNum = 2;
+                SetSystemMessage();
+                return;
+            }
+            SetCinematicMode(false, true, true);   
+            if (Main->EquippedWeapon == nullptr)
+            {
+                SetSystemMessage();
             }
             break;
         case 3:
+            Main->SaveGame();
+            SetCinematicMode(false, true, true);
+            break;
         case 4:
+            //DisplaySystemMessage();
+
             SetCinematicMode(false, true, true);
             break;
     }
-    
-
 }
 
 void AMainPlayerController::FadeAndDialogue()
 {
-    if (WFadeInOut) // 
+    if (WFadeInOut)
     {
         FadeInOut = CreateWidget<UUserWidget>(this, WFadeInOut);
         if (FadeInOut)
@@ -309,8 +345,7 @@ void AMainPlayerController::FadeAndDialogue()
             SetControlRotation(FRotator(0.f, 57.f, 0.f));
 
             FadeOut();
-            FadeInOut->AddToViewport();          
-            
+            FadeInOut->AddToViewport();                     
         }
     }
 }
@@ -326,35 +361,121 @@ void AMainPlayerController::SetPositions()
         {
             npc->AIController->StopMovement();
             GetWorldTimerManager().ClearTimer(npc->MoveTimer);
-            GetWorldTimerManager().ClearTimer(npc->TeamMoveTimer);
+            GetWorldTimerManager().ClearTimer(npc->TeamMoveTimer);     
+        }
+
+        Main->Momo->SetActorLocation(FVector(594.f, -1543.f, 2531.f));
+        Main->Momo->SetActorRotation(FRotator(0.f, 280.f, 0.f));
+         
+        Main->Luko->SetActorLocation(FVector(494.f, -1629.f, 2561.f));
+        Main->Luko->SetActorRotation(FRotator(0.f, 6.f, 0.f));
+         
+        Main->Vovo->SetActorLocation(FVector(903.f, -1767.f, 2574.f));
+        Main->Vovo->SetActorRotation(FRotator(0.f, 165.f, 0.f));   
+    
+        Main->Vivi->SetActorLocation(FVector(790.f, -1636.f, 2566.f));
+        Main->Vivi->SetActorRotation(FRotator(00.f, 180.f, 0.f));
+        
+        Main->Zizi->SetActorLocation(FVector(978.f, -1650.f, 2553.f));
+        Main->Zizi->SetActorRotation(FRotator(0.f, 187.f, 0.f));   
+    }
+}
+
+void AMainPlayerController::DisplaySystemMessage()
+{
+    if (SystemMessage)
+    {
+        if (bMenuVisible && DialogueNum < 3)
+        {
+            text = FString(TEXT("이 곳에선 저장되지 않습니다."));
+
+        }
+        if (bMenuVisible && bDialogueUIVisible)
+        {
+            text = FString(TEXT("대화 중엔 저장되지 않습니다."));
+        }
+
+        SystemText = FText::FromString(text);
+
+        bSystemMessageVisible = true;
+
+        SystemMessage->SetVisibility(ESlateVisibility::Visible);
+        UE_LOG(LogTemp, Log, TEXT("DisplaySystemMessage"));
+
+    }
+}
+
+void AMainPlayerController::RemoveSystemMessage()
+{
+    if (SystemMessage)
+    {
+        SystemMessage->SetVisibility(ESlateVisibility::Hidden);
+        SystemMessageOn = false;
+        bSystemMessageVisible = false;
+
+    }
+}
 
 
-            if (npc->GetName().Contains("Momo"))
-            {
-                npc->SetActorLocation(FVector(594.f, -1543.f, 2531.f));
-                npc->SetActorRotation(FRotator(0.f, 280.f, 0.f));
-            }
-            else if (npc->GetName().Contains("Luko"))
-            {
-                npc->SetActorLocation(FVector(494.f, -1629.f, 2561.f));
-                npc->SetActorRotation(FRotator(0.f, 6.f, 0.f));
-            }
-            else if (npc->GetName().Contains("Vovo"))
-            {
-                npc->SetActorLocation(FVector(903.f, -1767.f, 2574.f));
-                npc->SetActorRotation(FRotator(0.f, 165.f, 0.f));
-            }
-            else if (npc->GetName().Contains("Vivi"))
-            {
+void AMainPlayerController::SetSystemMessage()
+{
+    switch (SystemMessageNum)
+    {
+        case 1:
+            text = FString(TEXT("F키를 누르거나 마우스 왼쪽 버튼을 클릭하여\n대화를 진행할 수 있습니다."));
+            break;
+        case 2:
+            text = FString(TEXT("M키를 눌러 조작 매뉴얼을 확인하고\n다시 M키를 눌러 조작 매뉴얼을 닫으세요."));
+            break;
+        case 3:
+            text = FString(TEXT("이제 지팡이 가까이에서 마우스 왼쪽 버튼을 클릭하여\n지팡이를 장비하세요."));
+            break;
+        case 4:
+            text = FString(TEXT("포탈을 이용해 던전으로 이동하세요."));
+            break;
+    }
+    SystemMessageOn = true;
+    UE_LOG(LogTemp, Log, TEXT("SetSystemMessage"));
 
-                npc->SetActorLocation(FVector(790.f, -1636.f, 2566.f));
-                npc->SetActorRotation(FRotator(00.f, 180.f, 0.f));
-            }
-            else if (npc->GetName().Contains("Zizi"))
-            {
-                npc->SetActorLocation(FVector(978.f, -1650.f, 2553.f));
-                npc->SetActorRotation(FRotator(0.f, 187.f, 0.f));
-            }
+    DisplaySystemMessage();
+
+}
+
+void AMainPlayerController::DisplayManual()
+{
+    if (Manual)
+    {
+        if (bMenuVisible || bDialogueUIVisible)
+        {
+            DisplaySystemMessage();
+            text = FString(TEXT("대화 중이거나 메뉴가 활성화된 상태에서는\n조작 매뉴얼을 볼 수 없습니다."));
+            SystemText = FText::FromString(text);
+            FTimerHandle Timer;
+            GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]() {
+                
+                if (SystemMessageOn) SetSystemMessage();
+                else if (bSystemMessageVisible) RemoveSystemMessage();
+                
+            }), 2.f, false);
+        }
+        else
+        {
+            bManualVisible = true;
+            Manual->SetVisibility(ESlateVisibility::Visible);
+        }
+    }
+}
+
+void AMainPlayerController::RemoveManual()
+{
+    if (Manual)
+    {
+        bManualVisible = false;
+        Manual->SetVisibility(ESlateVisibility::Hidden);
+        if (DialogueNum == 2)
+        {
+            SystemMessageNum = 3;
+            DialogueEvents();
         }
     }
 }

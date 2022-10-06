@@ -40,11 +40,11 @@ AEnemy::AEnemy()
 
 
 	CombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision"));
-	CombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("EnemySocket_1"));
+	CombatCollision->SetupAttachment(GetMesh(), FName("EnemySocket_1"));
 
 	//여기서 두번째 소켓이 있는지 확인해봤자 블루프린트에선 적용이 안 된다.
 	CombatCollision2 = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision2"));
-	CombatCollision2->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("EnemySocket_2"));
+	CombatCollision2->SetupAttachment(GetMesh(), FName("EnemySocket_2"));
 
 	bOverlappingCombatSphere = false;
 
@@ -318,7 +318,7 @@ void AEnemy::MoveToTarget(ACharacter* Target)
 		SetEnemyMovementStatus(EEnemyMovementStatus::EMS_MoveToTarget);
 
 		GetWorldTimerManager().ClearTimer(CheckHandle);
-		UE_LOG(LogTemp, Log, TEXT("move to target"));
+		//UE_LOG(LogTemp, Log, TEXT("move to target"));
 
 		AgroTarget = Target;
 		FAIMoveRequest MoveRequest;
@@ -387,6 +387,8 @@ void AEnemy::Attack()
 	{
 		if (!bAttacking && CombatTarget)
 		{
+			if (CombatTarget == Main && Main->MovementStatus == EMovementStatus::EMS_Dead) return;
+
 			if (AIController)
 			{
 				AIController->StopMovement();
@@ -481,6 +483,7 @@ void AEnemy::Die()
 		}
 		SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
 
+		if (bAttackFromPlayer) Main->GetExp(EnemyExp);
 	}
 }
 
@@ -538,6 +541,28 @@ void AEnemy::HitEnd()
 	int index = MagicAttack->index;
 	if (!CombatTarget && AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
 
+	/* When enemy doesn't have combat target, player attacks enemy
+	or when enemy's combat target is not player and player attacks enemy.
+	At this time, enemy must sets player as a combat target.
+	*/
+	if (index == 0)
+	{
+		if ((CombatTarget == nullptr || CombatTarget != Main))
+		{
+			if (CombatTarget)
+			{
+				if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)
+				{
+					//UE_LOG(LogTemp, Log, TEXT("???"));
+
+					UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+					AnimInstance->Montage_Stop(0.1f, CombatMontage);
+				}
+			}
+			if (Main->MovementStatus != EMovementStatus::EMS_Dead) MoveToTarget(Main);
+		}
+	}
+
 	// When enemy doesn't have any combat target and enemy doesn't follow player,  Ai(npc) attacks enemy
 	if (!CombatTarget && AgroTarget != Main && index != 0)
 	{
@@ -551,25 +576,6 @@ void AEnemy::HitEnd()
 		{
 			MoveToTarget(npc);
 		}
-	}
-
-	/* When enemy doesn't have combat target, player attacks enemy
-	or when enemy's combat target is not player and player attacks enemy.
-	At this time, enemy must sets player as a combat target.
-	*/
-	if ((!CombatTarget || CombatTarget != Main) && index == 0)
-	{
-		if (CombatTarget)
-		{
-			if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)
-			{
-				//UE_LOG(LogTemp, Log, TEXT("???"));
-
-				UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-				AnimInstance->Montage_Stop(0.1f, CombatMontage);
-			}
-		}
-		if(Main->MovementStatus != EMovementStatus::EMS_Dead) MoveToTarget(Main);
 	}
 
 	if (CombatTarget)

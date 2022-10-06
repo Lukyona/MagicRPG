@@ -73,13 +73,6 @@ public:
 	void OnAnimationHideMessageUI();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
-	void OnShowMessageUI();
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
-	void OnHideMessageUI();
-	
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
 	void OnResetOptions();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
@@ -147,6 +140,9 @@ public:
 
 	FTimerHandle TimerHandle;
 
-	UFUNCTION()
-	void OnTimerCompleted();
+    FORCEINLINE void StartAnimatedMessage() { AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString()); }
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bDisableMouseAndKeyboard = false;
+
 };

@@ -75,6 +75,10 @@ AMain::AMain()
 	MaxSP = 300.f;
 	SP = 300.f;
 
+	Level = 1;
+	Exp = 0.f;
+	MaxExp = 90.f;
+
 	HPDelay = 3.f;
 	MPDelay = 2.f;
 	SPDelay = 0.5f;
@@ -174,6 +178,8 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AMain::StartDialogue);
 
+    PlayerInputComponent->BindAction("ShowManual", IE_Pressed, this, &AMain::ShowManual);
+
 
 	// Axis는 매 프레임마다 호출
 	//“키 이름”, bind할 함수가 있는 클래스의 인스턴스, bind할 함수의 주소
@@ -197,7 +203,7 @@ void AMain::MoveForward(float Value)
 	if (!MainPlayerController)
 		MainPlayerController = Cast<AMainPlayerController>(GetController());
 
-	if ((Controller != nullptr) && (Value != 0.0f) && (!bAttacking) && (MovementStatus != EMovementStatus::EMS_Dead))
+	if ((Controller != nullptr) && (Value != 0.0f) && bCanMove)
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation(); // 회전자 반환 함수
@@ -216,7 +222,7 @@ void AMain::MoveForward(float Value)
 
 void AMain::MoveRight(float Value)
 {
-	if ((Controller != nullptr) && (Value != 0.0f) && (!bAttacking) && (MovementStatus != EMovementStatus::EMS_Dead))
+	if ((Controller != nullptr) && (Value != 0.0f) && bCanMove)
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation(); // 회전자 반환 함수
@@ -225,7 +231,7 @@ void AMain::MoveRight(float Value)
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		AddMovementInput(Direction, Value);
 
-		if (bRunning && SP >= 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
+		if (bRunning && SP > 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
 		{
 			SP -= 1.f;
 		}
@@ -234,7 +240,7 @@ void AMain::MoveRight(float Value)
 
 void AMain::Run(float Value)
 {
-	if (!Value || SP < 0.f) //쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
+	if (!Value || SP <= 0.f) //쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
 	{
 		bRunning = false;
 		GetCharacterMovement()->MaxWalkSpeed = 350.f; //속도 하향
@@ -273,17 +279,22 @@ void AMain::CameraZoom(const float Value)
 	CameraBoom->TargetArmLength = FMath::Clamp(NewTargetArmLength, MinZoomLength, MaxZoomLength);
 }
 
-void AMain::LMBDown() //Left Mouse Button
+void AMain::LMBDown() //Left Mouse Button Down
 {
 	bLMBDown = true;
 
 	if (ActiveOverlappingItem && !EquippedWeapon)
 	{
-		AWeapon* Weapon = Cast<AWeapon>(ActiveOverlappingItem);
-		if (Weapon)
+        UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && NormalMontage)
 		{
-			Weapon->Equip(this);
-			SetActiveOverlappingItem(nullptr);
+			if (AnimInstance->Montage_IsPlaying(NormalMontage) == true) return;
+			bCanMove = false;
+            FRotator LookAtYaw = GetLookAtRotationYaw(ActiveOverlappingItem->GetActorLocation());
+            SetActorRotation(LookAtYaw);
+
+			AnimInstance->Montage_Play(NormalMontage);
+			AnimInstance->Montage_JumpToSection(FName("PickWand"), NormalMontage);
 		}
 	}
 
@@ -299,21 +310,10 @@ void AMain::LMBDown() //Left Mouse Button
 		bHasCombatTarget = false;
 	}
 
-	if (MainPlayerController->DialogueUI->CurrentState != 3)
+	if (MainPlayerController->bDialogueUIVisible && MainPlayerController->DialogueUI->CurrentState != 3 && !MainPlayerController->bMenuVisible)
 	{
-        if (MainPlayerController->DialogueNum == 0)
-        {
-            if (MainPlayerController->DialogueUI->RowIndex < 1) return;
-            else MainPlayerController->DialogueUI->Interact();
-        }
-		else
-		{
-            if (MainPlayerController->bDialogueUIVisible)
-            {
-                if (MainPlayerController->DialogueUI->CurrentState != 3)
-                    MainPlayerController->DialogueUI->Interact();
-            }
-		}
+        if (MainPlayerController->DialogueUI->bDisableMouseAndKeyboard) return;
+		else MainPlayerController->DialogueUI->Interact();
  
 	}
     
@@ -338,21 +338,20 @@ FRotator AMain::GetLookAtRotationYaw(FVector Target)
 
 void AMain::Attack()
 {
-	
-	if (EquippedWeapon && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead)
+	if (EquippedWeapon && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead && !MainPlayerController->bDialogueUIVisible)
 	{
 		SkillNum = MainPlayerController->WhichKeyDown();
-		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/WindAttack.WindAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
+		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/Wind_Hit_Attack.WindAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
 		switch (SkillNum)
 		{
 			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Wind_Hit_Attack.Wind_Hit_Attack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/Wind_Hit_Attack.Wind_Hit_Attack_C"));
 				break;
 			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/ShockAttack.ShockAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/ShockAttack.ShockAttack_C"));
 				break;
 			case 3:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/EarthAttack.EarthAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/EarthAttack.EarthAttack_C"));
 				break;
 			default:
 				break;
@@ -365,6 +364,8 @@ void AMain::Attack()
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance && CombatMontage)
 		{
+            bCanMove = false;
+
 			AnimInstance->Montage_Play(CombatMontage);
 			AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
 
@@ -376,6 +377,8 @@ void AMain::Attack()
 
 void AMain::AttackEnd()
 {
+    bCanMove = true;
+
 	bAttacking = false;
 	SetInterpToEnemy(false);
 }
@@ -495,6 +498,7 @@ void AMain::Spawn() //Spawn Magic
 				break;
 		}
 
+		CombatTarget->bAttackFromPlayer = true;
 		GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
 	}
 }
@@ -535,6 +539,7 @@ void AMain::Die()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && CombatMontage)
 	{
+		bCanMove = false;
 		AnimInstance->Montage_Play(CombatMontage);
 		AnimInstance->Montage_JumpToSection(FName("Death"));
 	}
@@ -577,7 +582,6 @@ void AMain::RevivalEnd()
 	GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);
 	GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
 	GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
-
 }
 
 void AMain::InteractionRangeOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -606,24 +610,10 @@ void AMain::StartDialogue()
 	if (!MainPlayerController)
 		MainPlayerController = Cast<AMainPlayerController>(GetController());
 
-	if (MainPlayerController->DialogueUI->CurrentState != 3)
-	{
-        
-        if (MainPlayerController->DialogueNum == 0 && MainPlayerController->DialogueUI->RowIndex < 1) return;
+	if (MainPlayerController->DialogueUI->CurrentState != 3 && !MainPlayerController->bMenuVisible)
+	{   
+        if (MainPlayerController->DialogueUI->bDisableMouseAndKeyboard) return;
         else MainPlayerController->DialogueUI->Interact();
-       
-		/*else
-		{
-            if (InteractTarget && !MainPlayerController->bDialogueUIVisible)
-                MainPlayerController->DisplayDialogueUI();
-
-            if (InteractTarget && MainPlayerController->bDialogueUIVisible && MainPlayerController->DialogueUI->CurrentState != 3)
-            {
-                UE_LOG(LogTemp, Log, TEXT("inter"));
-                MainPlayerController->DialogueUI->Interact();
-            }
-		}*/
-
 	}
     
 }
@@ -631,6 +621,10 @@ void AMain::StartDialogue()
 
 void AMain::SaveGame()
 {
+
+	if (MainPlayerController->bDialogueUIVisible) return;
+    UE_LOG(LogTemp, Log, TEXT("SaveGame"));
+
 	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
 
 	SaveGameInstance->PlayerGender = Gender;
@@ -640,6 +634,13 @@ void AMain::SaveGame()
 	SaveGameInstance->CharacterStats.MaxMP = MaxMP;
 	SaveGameInstance->CharacterStats.SP = SP;
 	SaveGameInstance->CharacterStats.MaxSP = MaxSP;
+	SaveGameInstance->CharacterStats.Level = Level;
+	SaveGameInstance->CharacterStats.Exp = Exp;
+	SaveGameInstance->CharacterStats.MaxExp = MaxExp;
+
+
+    SaveGameInstance->DialogueNum = MainPlayerController->DialogueNum;
+
 
 	SaveGameInstance->CharacterStats.Location = GetActorLocation();
 	SaveGameInstance->CharacterStats.Rotation = GetActorRotation();
@@ -669,6 +670,8 @@ void AMain::SaveGame()
 	//}
 
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
+    
+	GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 5.f, false);
 
 }
 
@@ -679,7 +682,7 @@ void AMain::LoadGame()
 	LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot(LoadGameInstance->SaveName, LoadGameInstance->UserIndex));
 
 	MainPlayerController = Cast<AMainPlayerController>(GetController());
-
+	MainPlayerController->DialogueNum = LoadGameInstance->DialogueNum;
 
 	HP = LoadGameInstance->CharacterStats.HP;
 	MaxHP = LoadGameInstance->CharacterStats.MaxHP;
@@ -687,37 +690,51 @@ void AMain::LoadGame()
 	MaxMP = LoadGameInstance->CharacterStats.MaxMP;
 	SP = LoadGameInstance->CharacterStats.SP;
 	MaxSP = LoadGameInstance->CharacterStats.MaxSP;
+	Level = LoadGameInstance->CharacterStats.Level;
+	Exp = LoadGameInstance->CharacterStats.Exp;
+	MaxExp = LoadGameInstance->CharacterStats.MaxExp;
 
 	SetActorLocation(LoadGameInstance->CharacterStats.Location);
 	SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
 
-	if (ObjectStorage)
-	{
-		if (Storage)
-		{
-			FString WeaponName = LoadGameInstance->CharacterStats.WeaponName;
+    if (SP < MaxSP && !recoverySP)
+    {
+        recoverySP = true;
+        GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
+    }
 
-			if (Storage->WeaponMap.Contains(WeaponName))
-			{
-				AWeapon* WeaponToEquip = GetWorld()->SpawnActor<AWeapon>(Storage->WeaponMap[WeaponName]);
-				WeaponToEquip->Equip(this);
-			}
+    if (HP < MaxHP)
+        GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);
+
+    if (MP < MaxMP)
+		GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
+	//if (ObjectStorage)
+	//{
+	//	if (Storage)
+	//	{
+	//		FString WeaponName = LoadGameInstance->CharacterStats.WeaponName;
+
+	//		if (Storage->WeaponMap.Contains(WeaponName))
+	//		{
+	//			AWeapon* WeaponToEquip = GetWorld()->SpawnActor<AWeapon>(Storage->WeaponMap[WeaponName]);
+	//			WeaponToEquip->Equip(this);
+	//		}
 
 
-			//for (int i = 0; i < LoadGameInstance->EnemyInfoArray.Num(); i++)
-			//{
-			//	//FString EnemyName = LoadGameInstance->EnemyInfoArray[i].EnemyName;
-			//	int index = LoadGameInstance->EnemyInfoArray[i].EnemyIndex;
-			//	if (Storage->EnemyMap.Contains(index))
-			//	{
-			//		AEnemy* Enemy = GetWorld()->SpawnActor<AEnemy>(Storage->EnemyMap[index]);
-			//		Enemy->SetActorLocation(LoadGameInstance->EnemyInfoArray[i].Location);
-			//		Enemy->SetActorRotation(LoadGameInstance->EnemyInfoArray[i].Rotation);
+	//		//for (int i = 0; i < LoadGameInstance->EnemyInfoArray.Num(); i++)
+	//		//{
+	//		//	//FString EnemyName = LoadGameInstance->EnemyInfoArray[i].EnemyName;
+	//		//	int index = LoadGameInstance->EnemyInfoArray[i].EnemyIndex;
+	//		//	if (Storage->EnemyMap.Contains(index))
+	//		//	{
+	//		//		AEnemy* Enemy = GetWorld()->SpawnActor<AEnemy>(Storage->EnemyMap[index]);
+	//		//		Enemy->SetActorLocation(LoadGameInstance->EnemyInfoArray[i].Location);
+	//		//		Enemy->SetActorRotation(LoadGameInstance->EnemyInfoArray[i].Rotation);
 
-			//	}
-			//}
-		}
-	}
+	//		//	}
+	//		//}
+	//	}
+	//}
 }
 
 void AMain::RecoveryHP()
@@ -757,11 +774,52 @@ void AMain::ESCDown()
 
 	if (MainPlayerController)
 	{
-		MainPlayerController->TogglePauseMenu();
+		MainPlayerController->ToggleMenu();
 	}
 }
 
 void AMain::ESCUp()
 {
 	bESCDown = false;
+}
+
+void AMain::GetExp(float exp)
+{
+	Exp += exp;
+
+	if (Exp >= MaxExp)
+	{
+        Level += 1;
+        if (LevelUpSound != nullptr)
+            UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
+
+		if (Exp == MaxExp)
+		{
+            Exp = 0.f;
+		}
+		else
+		{
+			float tmp = Exp - MaxExp;
+			Exp = tmp;
+		}
+
+		switch (Level)
+		{
+			case 2:
+				MaxExp = 150.f;
+				break;
+			case 3:
+				MaxExp = 250.f;
+				break;
+			case 4:
+				MaxExp = 400.f;
+				break;
+		}
+	}
+}
+
+void AMain::ShowManual()
+{
+	if (MainPlayerController->bManualVisible) MainPlayerController->RemoveManual();
+	else MainPlayerController->DisplayManual();
 }

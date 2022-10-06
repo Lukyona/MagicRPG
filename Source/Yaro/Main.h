@@ -76,6 +76,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float SP;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	int Level;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
+    float Exp;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
+    float MaxExp;
+
+	void GetExp(float exp);
+
 	// When player attck enemy, player look at enemy
 	float InterpSpeed;
 	bool bInterpToEnemy;
@@ -160,9 +171,21 @@ public:
 
 
 	UPROPERTY(VisibleAnywhere)
-	class AYaroCharacter* test;
+	class AYaroCharacter* Momo;
 
     UPROPERTY(VisibleAnywhere)
+    class AYaroCharacter* Luko;
+
+    UPROPERTY(VisibleAnywhere)
+    class AYaroCharacter* Vovo;
+
+    UPROPERTY(VisibleAnywhere)
+    class AYaroCharacter* Vivi;
+
+    UPROPERTY(VisibleAnywhere)
+    class AYaroCharacter* Zizi;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
     TArray<AYaroCharacter*> NPCList;
 
 protected:
@@ -212,8 +235,10 @@ public:
 	void LMBDown();
 	void LMBUp();
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
+    class UAnimMontage* NormalMontage;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Items)
 	class AItem* ActiveOverlappingItem;
 
 	FORCEINLINE void SetActiveOverlappingItem(AItem* Item) { ActiveOverlappingItem = Item; }
@@ -283,5 +308,14 @@ public:
 
 	void StartDialogue();
 
+	FTimerHandle SaveTimer;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bCanMove = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    class USoundBase* LevelUpSound;
+
+	void ShowManual();
 
 };
