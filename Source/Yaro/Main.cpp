@@ -77,7 +77,7 @@ AMain::AMain()
 
 	Level = 1;
 	Exp = 0.f;
-	MaxExp = 90.f;
+	MaxExp = 60.f;
 
 	HPDelay = 3.f;
 	MPDelay = 2.f;
@@ -138,6 +138,9 @@ void AMain::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+    if (!MainPlayerController)
+        MainPlayerController = Cast<AMainPlayerController>(GetController());
+
 	if (bInterpToEnemy && CombatTarget)
 	{
 		FRotator LookAtYaw = GetLookAtRotationYaw(CombatTarget->GetActorLocation());
@@ -146,6 +149,14 @@ void AMain::Tick(float DeltaTime)
 		SetActorRotation(InterpRotation);
 	}
 
+    if (bInterpToNpc && TargetNpc)
+    {
+        FRotator LookAtYaw = GetLookAtRotationYaw(TargetNpc->GetActorLocation());
+        FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed); //smooth transition
+
+        SetActorRotation(InterpRotation);
+    }
+
 	if (CombatTarget)
 	{
 		CombatTargetLocation = CombatTarget->GetActorLocation();
@@ -153,7 +164,20 @@ void AMain::Tick(float DeltaTime)
 		{
 			MainPlayerController->EnemyLocation = CombatTargetLocation;
 		}
+
+        if (CombatTarget->EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead)
+        {
+            CombatTarget = nullptr;
+            bHasCombatTarget = false;
+            if (MainPlayerController->bTargetArrowVisible)
+            {
+                MainPlayerController->RemoveTargetArrow();
+                MainPlayerController->RemoveEnemyHPBar();
+            }
+        }
 	}
+
+
 }
 
 // Called to bind functionality to input
@@ -200,9 +224,6 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 // 키가 안 눌렸으면 Value는 0
 void AMain::MoveForward(float Value)
 {
-	if (!MainPlayerController)
-		MainPlayerController = Cast<AMainPlayerController>(GetController());
-
 	if ((Controller != nullptr) && (Value != 0.0f) && bCanMove)
 	{
 		// find out which way is forward
@@ -217,7 +238,6 @@ void AMain::MoveForward(float Value)
 			SP -= 1.f;
 		}
 	}
-
 }
 
 void AMain::MoveRight(float Value)
@@ -338,6 +358,8 @@ FRotator AMain::GetLookAtRotationYaw(FVector Target)
 
 void AMain::Attack()
 {
+	if (MainPlayerController->DialogueNum < 3) return;
+
 	if (EquippedWeapon && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead && !MainPlayerController->bDialogueUIVisible)
 	{
 		SkillNum = MainPlayerController->WhichKeyDown();
@@ -345,14 +367,24 @@ void AMain::Attack()
 		switch (SkillNum)
 		{
 			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/Wind_Hit_Attack.Wind_Hit_Attack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/1_Wind_Hit_Attack.1_Wind_Hit_Attack_C"));
 				break;
 			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/ShockAttack.ShockAttack_C"));
+				if (Level < 2) return;
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/2_ShockAttack.2_ShockAttack_C"));
 				break;
 			case 3:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/EarthAttack.EarthAttack_C"));
+                if (Level < 3) return;
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/3_Electricball_Hit_Attack.3_Electricball_Hit_Attack_C"));
 				break;
+            case 4:
+                if (Level < 4) return;
+                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/4_PoisonAttack.4_PoisonAttack_C"));
+                break;
+            case 5:
+                if (Level < 5) return;
+                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/5_EarthAttack.5_EarthAttack_C"));
+                break;
 			default:
 				break;
 		}
@@ -449,8 +481,12 @@ void AMain::Targeting() //Targeting using Tap key
 			MainPlayerController->RemoveEnemyHPBar();
 		}
 		bHasCombatTarget = true;
-		CombatTarget = Targets[targetIndex];
-		targetIndex++;
+		if (Targets.Num() != 0 && !bAutoTargeting)
+		{
+            CombatTarget = Targets[targetIndex];
+            targetIndex++;
+		}
+
 
 		MainPlayerController->DisplayTargetArrow(); 
 		MainPlayerController->DisplayEnemyHPBar();
@@ -459,9 +495,27 @@ void AMain::Targeting() //Targeting using Tap key
 
 void AMain::Spawn() //Spawn Magic
 {
-	if (ToSpawn && MP >= 20)
+	if (ToSpawn && MP >= 15)
 	{
-		if (!(SkillNum == 1 || (SkillNum == 2 && MP >= 30) || (SkillNum == 3 && MP >= 40))) return; //If player have not enough MP, then player can't use magic
+        //UE_LOG(LogTemp, Log, TEXT("Spawn"));
+
+		//If player have not enough MP, then player can't use magic
+		switch (SkillNum)
+		{
+        case 2:
+            if (MP < 20.f) return;
+            break;
+        case 3:
+            if (MP < 25.f) return;
+            break;
+        case 4:
+            if (MP < 30.f) return;
+            break;
+        case 5:
+            if (MP < 35.f) return;
+            break;
+		}	
+
 
 		FTimerHandle WaitHandle;
 		GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
@@ -475,30 +529,37 @@ void AMain::Spawn() //Spawn Magic
 					FRotator rotator = this->GetActorRotation();
 
 					FVector spawnLocation = AttackArrow->GetComponentTransform().GetLocation();
-					if (SkillNum != 1 && CombatTarget)
+					if (SkillNum != 1 && SkillNum != 3 && CombatTarget)
 					{
 						spawnLocation = CombatTarget->GetActorLocation();
 					}
-				
+
 					MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);	
-					if (MagicAttack && SkillNum == 1 && CombatTarget) MagicAttack->Target = CombatTarget;
+					// 적에게로 이동하는 공격은 공격이 어디로 날라갈지를 정해줘야함.
+					if ((SkillNum == 1 || SkillNum == 3) && MagicAttack && CombatTarget) MagicAttack->Target = CombatTarget;
 				}
 			}), 0.6f, false); // 0.6초 뒤 실행, 반복X
 
 		switch (SkillNum)// decrease MP
 		{
 			case 1:
-				MP -= 20.f;
+				MP -= 15.f;
 				break;
 			case 2:
-				MP -= 30.f;
+				MP -= 20.f;
 				break;
 			case 3:
-				MP -= 40.f;
+				MP -= 25.f;
 				break;
+            case 4:
+                MP -= 30.f;
+                break;
+            case 5:
+                MP -= 35.f;
+                break;
 		}
 
-		CombatTarget->bAttackFromPlayer = true;
+		//if(CombatTarget) CombatTarget->bAttackFromPlayer = true;
 		GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
 	}
 }
@@ -556,7 +617,7 @@ void AMain::DeathEnd()
 
 void AMain::Jump()
 {
-	if (MovementStatus != EMovementStatus::EMS_Dead && !MainPlayerController->bDialogueUIVisible) // 죽거나 대화 중일 때는 점프 불가
+	if (MovementStatus != EMovementStatus::EMS_Dead && !MainPlayerController->bDialogueUIVisible && bCanMove) // 죽거나 대화 중일 때는 점프 불가, 수동으로 움직임 막았을 때도 불가
 	{
 		Super::Jump();
 	}
@@ -622,7 +683,12 @@ void AMain::StartDialogue()
 void AMain::SaveGame()
 {
 
-	if (MainPlayerController->bDialogueUIVisible) return;
+	if (MainPlayerController->bDialogueUIVisible)
+	{
+        GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 5.f, false);
+        return;
+
+	}
     UE_LOG(LogTemp, Log, TEXT("SaveGame"));
 
 	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
@@ -803,18 +869,48 @@ void AMain::GetExp(float exp)
 			Exp = tmp;
 		}
 
+		if (Level == 5) Exp = 100.f;
+
 		switch (Level)
 		{
 			case 2:
 				MaxExp = 150.f;
+				MainPlayerController->SystemMessageNum = 6;
+				MainPlayerController->SetSystemMessage();
+				MaxHP = 225.f;
+				MaxMP = 175.f;
+				MaxSP = 325.f;
 				break;
 			case 3:
 				MaxExp = 250.f;
+                MainPlayerController->SystemMessageNum = 7;
+                MainPlayerController->SetSystemMessage();
+                MaxHP = 250.f;
+                MaxMP = 200.f;
+                MaxSP = 350.f;
 				break;
 			case 4:
 				MaxExp = 400.f;
+                MainPlayerController->SystemMessageNum = 8;
+                MainPlayerController->SetSystemMessage();
+                MaxHP = 275.f;
+                MaxMP = 225.f;
+                MaxSP = 375.f;
 				break;
+            case 5:
+                MainPlayerController->SystemMessageNum = 9;
+                MainPlayerController->SetSystemMessage();
+                MaxHP = 300.f;
+                MaxMP = 250.f;
+                MaxSP = 400.f;
+                break;
 		}
+
+        FTimerHandle Timer;
+        GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
+            {
+                MainPlayerController->RemoveSystemMessage();
+            }), 3.f, false);
 	}
 }
 

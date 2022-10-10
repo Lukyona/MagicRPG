@@ -76,7 +76,7 @@ public:
 	//FORCEINLINE UDialogueUI* GetDialogueUI() { return DialogueUI; };
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Dialogue")
-	int DialogueNum; // 0 - intro
+	int DialogueNum = 0; // 0 - intro
 
     UFUNCTION(BlueprintCallable)
 	void DialogueEvents();
@@ -138,6 +138,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bManualVisible = false;
 
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    class USoundBase* ManualSoundCue;
+
 protected:
 	// Dialogue data tables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
@@ -148,6 +152,18 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
     class UDataTable* DungeonDialogue2;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+    class UDataTable* DungeonDialogue3;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+    class UDataTable* DungeonDialogue4;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+    class UDataTable* DungeonDialogue5;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+    class UDataTable* DungeonDialogue6;
 
 protected:
 	virtual void BeginPlay() override;

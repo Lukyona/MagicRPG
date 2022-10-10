@@ -59,7 +59,7 @@ void AMagicSkill::BeginPlay()
             Destroy(true);
         }
 
-    }), 3.f, false);
+    }), 2.f, false);
 
     FTimerHandle WaitHandle2;
     GetWorld()->GetTimerManager().SetTimer(WaitHandle2, FTimerDelegate::CreateLambda([&]() {
@@ -112,6 +112,18 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
         AEnemy* Enemy = Cast<AEnemy>(OtherActor);
         if (Enemy)
         {
+            if (index == 0)
+            {
+                Enemy->bAttackFromPlayer = true;
+                if (Enemy->Main->CombatTarget == nullptr)
+                {
+                    Enemy->Main->bAutoTargeting = true;
+                    Enemy->Main->CombatTarget = Enemy; // 자동으로 타겟 지정
+                    Enemy->Main->Targeting();
+                    Enemy->Main->bAutoTargeting = false;
+                }
+            }
+
             UGameplayStatics::PlaySound2D(this, ExplosionSound);
             if (this->GetName().Contains("Hit"))
             {
@@ -121,6 +133,7 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
             if (DamageTypeClass)
             {
                 UGameplayStatics::ApplyDamage(Enemy, Damage, MagicInstigator, this, DamageTypeClass);
+                
             }
         }
         

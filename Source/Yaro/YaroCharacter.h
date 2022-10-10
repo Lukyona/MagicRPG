@@ -24,6 +24,7 @@ public:
 
 	FTimerHandle MoveTimer; // move to player
 
+	UFUNCTION(BlueprintCallable)
 	void MoveToPlayer();
 
 
@@ -132,7 +133,6 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	
 
 protected:
 	// APawn interface

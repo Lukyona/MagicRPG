@@ -318,4 +318,12 @@ public:
 
 	void ShowManual();
 
+	bool bAutoTargeting = false;
+
+
+	bool bInterpToNpc = false;
+
+	class AYaroCharacter* TargetNpc; // Who the player look at
+
+
 };

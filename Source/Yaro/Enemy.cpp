@@ -16,6 +16,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Sound/SoundCue.h"
 #include "MainPlayerController.h"
+#include "Engine/EngineTypes.h"
 
 // Sets default values
 AEnemy::AEnemy()
@@ -59,6 +60,7 @@ AEnemy::AEnemy()
 	InterpSpeed = 10.f; //(플레이어 바라볼 때)회전 속도
 	bInterpToTarget = false;
 
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 // Called when the game starts or when spawned
@@ -110,6 +112,8 @@ void AEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+    if (!Main) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
+
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
 	if (bInterpToTarget && bOverlappingCombatSphere && CombatTarget)
@@ -142,8 +146,6 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
-
-	if (!Main) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
 	if (OtherActor && Alive()) //전투타겟이 없을 때 NPC에게도 유효, 전투타겟이 있어도 플레이어에게 반응
 	{

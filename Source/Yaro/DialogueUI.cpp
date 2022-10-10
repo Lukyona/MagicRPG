@@ -103,8 +103,7 @@ void UDialogueUI::InitializeDialogue(UDataTable* DialogueTable)
             MessageIndex = 0;
 
             OnAnimationShowMessageUI();
-
-            AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString());
+            DialogueEvents();
         }
     }
 }
@@ -254,14 +253,23 @@ void UDialogueUI::DialogueEvents()
             case 11: 
                 CurrentState = 0;
                 MainPlayerController->RemoveDialogueUI();
+                Main->bCanMove = false;
                 FTimerHandle Timer;
                 GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
                     {
                         MainPlayerController->DisplayDialogueUI();
+                        Main->bInterpToNpc = true;
+                        Main->TargetNpc = Main->Luko;
+
                     }), 1.7f, false); // 1.7초 뒤 루코 대화
                 return;
                 break;
         }
+    }
+
+    if (DNum == 2 && RowIndex >= 4)
+    {
+        Main->Luko->bInterpToPlayer = true;
     }
 
     if (DNum == 3) // Third Dialogue (first dungeon, after golem battle)
@@ -275,14 +283,16 @@ void UDialogueUI::DialogueEvents()
                 if (MessageIndex == 1)
                 {
                     // npc move to the boat except vovo
-                    Main->Momo->AIController->MoveToLocation(FVector(660.f, 1130.f, 1840.f));
-                    Main->Luko->AIController->MoveToLocation(FVector(620.f, 1060.f, 1840.f));
-                    Main->Vivi->AIController->MoveToLocation(FVector(710.f, 1030.f, 1840.f));
-                    Main->Zizi->AIController->MoveToLocation(FVector(690.f, 980.f, 1840.f));      
+                    Main->Momo->AIController->MoveToLocation(FVector(660.f, 1035.f, 1840.f));
+                    Main->Luko->AIController->MoveToLocation(FVector(598.f, 1030.f, 1840.f));
+                    Main->Vivi->AIController->MoveToLocation(FVector(710.f, 995.f, 1840.f));
+                    Main->Zizi->AIController->MoveToLocation(FVector(690.f, 930.f, 1840.f));      
                 }
                 break;
-            case 3: // vovo look at player
+            case 3: // vovo look at player and player look at vovo
                 Main->Vovo->bInterpToPlayer = true;
+                Main->bInterpToNpc = true;
+                Main->TargetNpc = Main->Vovo;
                 break;
             case 5:
                 if(SelectedReply == 1) RowIndex = 7;
@@ -310,7 +320,6 @@ void UDialogueUI::DialogueEvents()
                     return;
                 }
                 bDisableMouseAndKeyboard = true;
-
             case 9:
             case 10:
             case 11:
@@ -346,8 +355,58 @@ void UDialogueUI::DialogueEvents()
                 break;
             }
     }
+
+    if (DNum == 5)
+    {
+        switch (RowIndex)
+        {
+        case 2:
+            Main->Momo->SetActorRotation(FRotator(0.f, 200.f, 0.f));
+            Main->Zizi->SetActorRotation(FRotator(0.f, 245.f, 0.f));
+            break;
+        case 6:
+            if (MessageIndex == 2)
+                Main->Zizi->bInterpToPlayer = true;
+            break;
+        case 7:
+            Main->Momo->bInterpToPlayer = true;
+            Main->Vivi->bInterpToPlayer = true;
+            Main->Luko->bInterpToPlayer = true;
+            Main->Vovo->bInterpToPlayer = true;
+            break;
+        case 10:
+            Main->Zizi->bInterpToPlayer = false;
+            Main->Zizi->SetActorRotation(FRotator(0.f, 245.f, 0.f));
+            break;
+        case 13:
+            if(MessageIndex == 0)
+                Main->Momo->MoveToPlayer();
+            else
+            {
+                Main->Momo->bInterpToPlayer = false;
+                Main->Luko->bInterpToPlayer = false;
+                Main->Vovo->bInterpToPlayer = false;
+                Main->Vivi->bInterpToPlayer = false;
+            }
+            break;
+        }
+    }
+
+    if (DNum == 6)
+    {
+        if (RowIndex == 4)
+        {
+            CurrentState = 0;
+            MainPlayerController->RemoveDialogueUI();
+        }
+    }
+
+    if (DNum == 7)
+    {
+        if (RowIndex == 0) RowIndex = 4;
+    }
+
     //UE_LOG(LogTemp, Log, TEXT("pass4"));
     AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString());
-
 }
 

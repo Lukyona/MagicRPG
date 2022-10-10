@@ -155,52 +155,59 @@ void AYaroCharacter::MoveToPlayer()
 {
 	if (Player == nullptr) return;
 
-	if ((Player->NpcGo == true && CombatTarget == nullptr && !bAttacking && !bOverlappingCombatSphere) || (Player->MainPlayerController->DialogueNum == 1))
+	if (CombatTarget == nullptr && !bAttacking && !bOverlappingCombatSphere) // basic condition
 	{
-		float distance = GetDistanceTo(Player);
+		if (Player->MainPlayerController->DialogueNum < 5 && Player->NpcGo == false)
+		{
+			// 대화 넘버 1에서 루코가 이동하는 것 허용
+			if (!(Player->MainPlayerController->DialogueNum == 1 && this->GetName().Contains("Luko")))
+				return;
+		}
+
+        float distance = GetDistanceTo(Player);
         //UE_LOG(LogTemp, Log, TEXT("MoveToPlayer... %s"), *this->GetName());
 
-		if (distance >= 500.f) //일정 거리 이상 떨어져있다면 속도 높여 달리기
-		{
-			if ((this->GetName()).Contains("Momo"))
-			{
-				GetCharacterMovement()->MaxWalkSpeed = 600.f;
-			}
-			else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
-			{
-				GetCharacterMovement()->MaxWalkSpeed = 500.f;
-			}
-			else
-			{
-				GetCharacterMovement()->MaxWalkSpeed = 450.f;
-			}
-		}
-		else //가깝다면 속도 낮춰 걷기
-		{
-			if ((this->GetName()).Contains("Momo"))
-			{
-				GetCharacterMovement()->MaxWalkSpeed = 300.f;
-			}
-			else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
-			{
-				GetCharacterMovement()->MaxWalkSpeed = 250.f;
-			}
-			else
-			{
-				GetCharacterMovement()->MaxWalkSpeed = 225.f;
-			}
-		}
+        if (distance >= 500.f) //일정 거리 이상 떨어져있다면 속도 높여 달리기
+        {
+            if ((this->GetName()).Contains("Momo"))
+            {
+                GetCharacterMovement()->MaxWalkSpeed = 600.f;
+            }
+            else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
+            {
+                GetCharacterMovement()->MaxWalkSpeed = 500.f;
+            }
+            else
+            {
+                GetCharacterMovement()->MaxWalkSpeed = 450.f;
+            }
+        }
+        else //가깝다면 속도 낮춰 걷기
+        {
+            if ((this->GetName()).Contains("Momo"))
+            {
+                GetCharacterMovement()->MaxWalkSpeed = 300.f;
+            }
+            else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
+            {
+                GetCharacterMovement()->MaxWalkSpeed = 250.f;
+            }
+            else
+            {
+                GetCharacterMovement()->MaxWalkSpeed = 225.f;
+            }
+        }
 
-		FAIMoveRequest MoveRequest;
-		MoveRequest.SetGoalActor(Player);
-		MoveRequest.SetAcceptanceRadius(80.f);
+        FAIMoveRequest MoveRequest;
+        MoveRequest.SetGoalActor(Player);
+        MoveRequest.SetAcceptanceRadius(80.f);
 
-		FNavPathSharedPtr NavPath;
-		AIController->MoveTo(MoveRequest, &NavPath);
+        FNavPathSharedPtr NavPath;
+        AIController->MoveTo(MoveRequest, &NavPath);
 
-	}
+	}	
+    GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
 
-    GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);	
 }
 
 void AYaroCharacter::SetInterpToEnemy(bool Interp)
@@ -340,18 +347,17 @@ void AYaroCharacter::Attack()
 	{
         //UE_LOG(LogTemp, Log, TEXT("Attack,  %s"), *this->GetName());
 
-		if (bCanCastStrom)
+		if (bCanCastStrom) //npc can cast strom magic
 		{
             SkillNum = FMath::RandRange(1, 3);
             if (SkillNum == 1)
             {
                 bCanCastStrom = false;
                 FTimerHandle StormTimer;
-                GetWorldTimerManager().SetTimer(StormTimer, this, &AYaroCharacter::CanCastStormMagic, 6.f, false);
-
+                GetWorldTimerManager().SetTimer(StormTimer, this, &AYaroCharacter::CanCastStormMagic, 6.f, false);  // 6초 뒤 다시 스톰 사용 가능
             }
 		}
-		else
+		else //npc can't cast strom magic
 		{
             SkillNum = FMath::RandRange(2, 3);
 		}
@@ -461,7 +467,6 @@ void AYaroCharacter::Attack()
 	{
 		AttackEnd();
         //UE_LOG(LogTemp, Log, TEXT("AttackEnd... %s"), * this->GetName());
-
 	}
 }
 
@@ -577,9 +582,10 @@ void AYaroCharacter::MoveToLocation() // Vivi, Vovo, Zizi
 
 		if (!CombatTarget && !bOverlappingCombatSphere)
 		{
+            float distance = (GetActorLocation() - Pos[index]).Size();
+
 			if (index <= 3)
 			{
-				float distance = (GetActorLocation() - Pos[index]).Size();
 				//UE_LOG(LogTemp, Log, TEXT("%f"), distance);
 				
 				if (AIController && distance <= 70.f)
@@ -591,6 +597,17 @@ void AYaroCharacter::MoveToLocation() // Vivi, Vovo, Zizi
 				{
 					AIController->MoveToLocation(Pos[index]);
 				}
+			}
+			if (index == 4 && distance <= 70.f) // 골렘쪽으로 이동 중
+			{
+				if (Player->Momo->CombatTarget && Player->Momo->CombatTarget->GetName().Contains("Golem"))
+				{
+					AIController->MoveToActor(Player->Momo->CombatTarget);
+				}
+                if (Player->CombatTarget && Player->CombatTarget->GetName().Contains("Golem"))
+                {
+                    AIController->MoveToActor(Player->CombatTarget);
+                }
 			}
 		}
 	}), 0.5f, true);

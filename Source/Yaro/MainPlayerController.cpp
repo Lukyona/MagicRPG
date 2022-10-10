@@ -155,6 +155,14 @@ int AMainPlayerController::WhichKeyDown()
     {
         result = 3;
     }
+    if (WasInputKeyJustPressed(EKeys::Four) || WasInputKeyJustPressed(EKeys::NumPadFour))
+    {
+        result = 4;
+    }
+    if (WasInputKeyJustPressed(EKeys::Five) || WasInputKeyJustPressed(EKeys::NumPadFive))
+    {
+        result = 5;
+    }
 
     return result;
 }
@@ -247,7 +255,7 @@ void AMainPlayerController::DisplayDialogueUI()
             case 0:
                 DialogueUI->InitializeDialogue(IntroDialogue);
                 break;
-            case 1: // onlu luko dialogue
+            case 1: // only luko dialogue
                 DialogueUI->OnAnimationShowMessageUI();
                 GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::StartAnimatedMessage, 0.1f, false);
                 break;
@@ -267,6 +275,14 @@ void AMainPlayerController::DisplayDialogueUI()
                 DialogueUI->OnAnimationShowMessageUI();
                 GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::DialogueEvents, 0.1f, false);
                 break;
+            case 5: // second dungeon
+                DialogueUI->InitializeDialogue(DungeonDialogue3);
+                break;
+            case 6: // triggerbox1 overplap
+            case 7: // triggerbox2, player jump to plane
+                DialogueUI->InitializeDialogue(DungeonDialogue4);
+                break;
+
         }
 
         DialogueUI->SetVisibility(ESlateVisibility::Visible);
@@ -308,6 +324,8 @@ void AMainPlayerController::DialogueEvents()
         case 2:
             if (SystemMessageNum != 3)
             {
+                Main->bInterpToNpc = false;
+                Main->TargetNpc = nullptr;
                 GetWorldTimerManager().ClearTimer(Main->Luko->MoveTimer);
                 Main->Luko->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
                 SystemMessageNum = 2;
@@ -315,19 +333,31 @@ void AMainPlayerController::DialogueEvents()
                 return;
             }
             SetCinematicMode(false, true, true);   
-            if (Main->EquippedWeapon == nullptr)
+            if (Main->EquippedWeapon == nullptr) // get the wand
             {
                 SetSystemMessage();
             }
             break;
-        case 3:
+        case 3: // enter the first dungeon
+            Main->Luko->bInterpToPlayer = false;
             Main->SaveGame();
-            SetCinematicMode(false, true, true);
+            SystemMessageNum = 5;
+            SetSystemMessage();
             break;
-        case 4:
-            //DisplaySystemMessage();
-
+        case 4: // move to boat
             SetCinematicMode(false, true, true);
+            Main->bInterpToNpc = false;
+            Main->TargetNpc = nullptr;
+            break;
+        case 6: // enter the second dungeon
+            SetCinematicMode(false, true, true);
+            for (int i = 0; i < Main->NPCList.Num(); i++)
+            {
+                if (Main->NPCList[i] != Main->Momo) // momo's already follwing to player
+                {
+                    Main->NPCList[i]->MoveToPlayer();
+                }
+            }
             break;
     }
 }
@@ -337,6 +367,7 @@ void AMainPlayerController::FadeAndDialogue()
     if (WFadeInOut)
     {
         FadeInOut = CreateWidget<UUserWidget>(this, WFadeInOut);
+
         if (FadeInOut)
         {
             bFadeOn = true;
@@ -345,14 +376,17 @@ void AMainPlayerController::FadeAndDialogue()
             SetControlRotation(FRotator(0.f, 57.f, 0.f));
 
             FadeOut();
-            FadeInOut->AddToViewport();                     
+            FadeInOut->AddToViewport();
+
+
         }
     }
+    
 }
 
 void AMainPlayerController::SetPositions()
 {
-    if (DialogueNum == 3)
+    if (DialogueNum == 3) // after golem battle
     {
         Main->SetActorLocation(FVector(646.f, -1747.f, 2578.f));
         Main->SetActorRotation(FRotator(0.f, 57.f, 0.f)); // y(pitch), z(yaw), x(roll)
@@ -400,7 +434,7 @@ void AMainPlayerController::DisplaySystemMessage()
         bSystemMessageVisible = true;
 
         SystemMessage->SetVisibility(ESlateVisibility::Visible);
-        UE_LOG(LogTemp, Log, TEXT("DisplaySystemMessage"));
+        //UE_LOG(LogTemp, Log, TEXT("DisplaySystemMessage"));
 
     }
 }
@@ -433,9 +467,25 @@ void AMainPlayerController::SetSystemMessage()
         case 4:
             text = FString(TEXT("포탈을 이용해 던전으로 이동하세요."));
             break;
+        case 5:
+            text = FString(TEXT("숫자키 1로 한 가지 마법을 쓸 수 있습니다.\n준비가 되었다면 G키를 누르세요."));
+            break;
+        case 6:
+            text = FString(TEXT("레벨 2가 되었습니다!\n이제 숫자키 2로 두 번째 마법을 쓸 수 있습니다."));
+            break;
+        case 7:
+            text = FString(TEXT("레벨 3이 되었습니다!\n이제 숫자키 3으로 세 번째 마법을 쓸 수 있습니다."));
+            break;
+        case 8:
+            text = FString(TEXT("축하합니다!\n이제 숫자키 4로 네 번째 마법을 쓸 수 있습니다."));
+            break;
+        case 9:
+            text = FString(TEXT("레벨 5를 달성했습니다!\n이제 숫자키 5로 다섯 번째 마법을 쓸 수 있습니다."));
+            break;
+
     }
     SystemMessageOn = true;
-    UE_LOG(LogTemp, Log, TEXT("SetSystemMessage"));
+    //UE_LOG(LogTemp, Log, TEXT("SetSystemMessage"));
 
     DisplaySystemMessage();
 
@@ -460,6 +510,9 @@ void AMainPlayerController::DisplayManual()
         }
         else
         {
+            if (ManualSoundCue != nullptr)
+                UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, ManualSoundCue);
+
             bManualVisible = true;
             Manual->SetVisibility(ESlateVisibility::Visible);
         }
@@ -470,10 +523,14 @@ void AMainPlayerController::RemoveManual()
 {
     if (Manual)
     {
+        if (ManualSoundCue != nullptr)
+            UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, ManualSoundCue);
+
         bManualVisible = false;
         Manual->SetVisibility(ESlateVisibility::Hidden);
-        if (DialogueNum == 2)
+        if (DialogueNum == 2 && SystemMessageNum != 4)
         {
+            Main->bCanMove = true;
             SystemMessageNum = 3;
             DialogueEvents();
         }
