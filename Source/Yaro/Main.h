@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "Main.generated.h"
 
+// 블루프린트에서 쓰려면 다이나믹 멀티캐스트여야함
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_Dynamic);
 
 UENUM(BlueprintType)
 enum class EMovementStatus :uint8
@@ -15,7 +17,6 @@ enum class EMovementStatus :uint8
 
 	EMS_MAX				UMETA(DeplayName = "DefaultMAX")
 };
-
 
 UCLASS()
 class YARO_API AMain : public ACharacter
@@ -179,7 +180,7 @@ public:
     UPROPERTY(VisibleAnywhere)
     class AYaroCharacter* Vovo;
 
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
     class AYaroCharacter* Vivi;
 
     UPROPERTY(VisibleAnywhere)
@@ -187,6 +188,8 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
     TArray<AYaroCharacter*> NPCList;
+
+	class UMainAnimInstance* MainAnimInstance;
 
 protected:
 	// Called when the game starts or when spawned
@@ -245,6 +248,20 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items)
 	class AWeapon* EquippedWeapon;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Items)
+	class AItem* ItemInHand;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Items)
+    class USphereComponent* ItemSphere;
+
+    UFUNCTION()
+    virtual void ItemSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    UFUNCTION()
+    virtual void ItemSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Items)
+    class AActor* CurrentOverlappedActor;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Anims")
 	bool bAttacking;
@@ -325,5 +342,6 @@ public:
 
 	class AYaroCharacter* TargetNpc; // Who the player look at
 
-
+	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
+	FDele_Dynamic PlaneUp;
 };

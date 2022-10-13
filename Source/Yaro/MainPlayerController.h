@@ -15,6 +15,7 @@ class YARO_API AMainPlayerController : public APlayerController
 public:
 	AMainPlayerController();
 
+	UPROPERTY(BlueprintReadOnly)
 	class AMain* Main;
 
 	//Player can Targeting, then TargetArrow appear on Targeted enemy
@@ -90,6 +91,7 @@ public:
     UFUNCTION(BlueprintImplementableEvent, Category = "Fade Events")
     void FadeOut();
 
+	UFUNCTION(BlueprintCallable)
 	void FadeAndDialogue();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fade Events")
@@ -138,9 +140,14 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bManualVisible = false;
 
-
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     class USoundBase* ManualSoundCue;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	bool bFallenPlayer = false; // 플레이어가 던전 범위 밖으로 추락했을 때 true
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	int FallingCount = 0;
 
 protected:
 	// Dialogue data tables
@@ -164,6 +171,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
     class UDataTable* DungeonDialogue6;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+    class UDataTable* SpawnDialogue;
 
 protected:
 	virtual void BeginPlay() override;

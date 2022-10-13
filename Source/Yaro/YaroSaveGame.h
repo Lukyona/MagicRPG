@@ -35,7 +35,7 @@ struct FCharacterStats
     UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
     float MaxExp;
 
-	UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
 	FVector Location;
 
 	UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
@@ -86,7 +86,7 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Basic)
     int32 DialogueNum = 0;
 
-	UPROPERTY(VisibleAnywhere, Category = Basic)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Basic)
 	FCharacterStats CharacterStats;
 
 	UPROPERTY(VisibleAnywhere, Category = Basic)

@@ -127,7 +127,15 @@ public:
 	FTimerHandle TeamMoveTimer;
 	
     UPROPERTY(EditAnywhere)
-	bool bInterpToPlayer = false;
+	bool bInterpToCharacter = false;
+
+    class ACharacter* TargetCharacter; // Who the npc look at
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
+    class UAnimMontage* NormalMontage;
+
+    UAnimInstance* AnimInstance;
+
 
 protected:
 

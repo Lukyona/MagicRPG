@@ -244,45 +244,60 @@ void AMainPlayerController::DisplayDialogueUI()
     {
         //UE_LOG(LogTemp, Log, TEXT("DisplayDialogueUI"));
 
+        if (bFallenPlayer) FallingCount += 1;
+
         if (!DialogueUI->bCanStartDialogue) return;
 
         if (bManualVisible) RemoveManual();
 
+        if (bFallenPlayer && FallingCount == 1)
+        {
+            DialogueUI->InitializeDialogue(SpawnDialogue);
+        }
+
         bDialogueUIVisible = true;
 
-        switch (DialogueNum)
+        if (!bFallenPlayer)
         {
+            switch (DialogueNum)
+            {
             case 0:
+            case 1:
                 DialogueUI->InitializeDialogue(IntroDialogue);
                 break;
-            case 1: // only luko dialogue
-                DialogueUI->OnAnimationShowMessageUI();
-                GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::StartAnimatedMessage, 0.1f, false);
-                break;
+                //case 1: // only luko dialogue
+                //    DialogueUI->OnAnimationShowMessageUI();
+                //    GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::StartAnimatedMessage, 0.1f, false);
+                //    break;
             case 2:
                 DialogueUI->InitializeDialogue(DungeonDialogue1);
                 break;
-            case 3:   
+            case 3: //after golem battle
                 if (!bFadeOn)
                 {
                     FadeAndDialogue();
                     return;
-                }              
+                }
                 DialogueUI->InitializeDialogue(DungeonDialogue2);
                 bFadeOn = false;
                 break;
             case 4: // the boat move
-                DialogueUI->OnAnimationShowMessageUI();
-                GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::DialogueEvents, 0.1f, false);
+               /* DialogueUI->OnAnimationShowMessageUI();
+                GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::DialogueEvents, 0.1f, false);*/
+                DialogueUI->InitializeDialogue(DungeonDialogue2);
                 break;
             case 5: // second dungeon
                 DialogueUI->InitializeDialogue(DungeonDialogue3);
                 break;
             case 6: // triggerbox1 overplap
             case 7: // triggerbox2, player jump to plane
+            case 8: // triggerbox3, player go over the other side
+            case 9: // plane2 up
+            case 10: // Npcs went over the other side
                 DialogueUI->InitializeDialogue(DungeonDialogue4);
                 break;
 
+            }
         }
 
         DialogueUI->SetVisibility(ESlateVisibility::Visible);
@@ -297,13 +312,19 @@ void AMainPlayerController::RemoveDialogueUI()
 {
     if (DialogueUI)
     {
-        DialogueNum++;
-       
+        if (!bFallenPlayer)
+        {
+            DialogueNum++;
+            DialogueEvents();
+        }
+        else
+        {
+            bFallenPlayer = false;
+        }
+              
         bDialogueUIVisible = false;
 
         bShowMouseCursor = false;
-
-        DialogueEvents();
 
         FInputModeGameOnly InputModeGameOnly;
         SetInputMode(InputModeGameOnly);
@@ -339,13 +360,16 @@ void AMainPlayerController::DialogueEvents()
             }
             break;
         case 3: // enter the first dungeon
-            Main->Luko->bInterpToPlayer = false;
+            Main->Luko->bInterpToCharacter = false;
+            Main->Luko->TargetCharacter = nullptr;
             Main->SaveGame();
             SystemMessageNum = 5;
             SetSystemMessage();
             break;
         case 4: // move to boat
             SetCinematicMode(false, true, true);
+            Main->Vovo->bInterpToCharacter = false;
+            Main->Vovo->AIController->MoveToLocation(FVector(630.f, 970.f, 1840.f));
             Main->bInterpToNpc = false;
             Main->TargetNpc = nullptr;
             break;
@@ -358,6 +382,26 @@ void AMainPlayerController::DialogueEvents()
                     Main->NPCList[i]->MoveToPlayer();
                 }
             }
+            break;
+        case 9: // player go over the other side
+            if (Main->Vivi->NormalMontage != nullptr)
+            {
+                Main->Vivi->AnimInstance->Montage_Play(Main->Vivi->NormalMontage);
+                Main->Vivi->AnimInstance->Montage_JumpToSection(FName("Throw"));
+            }
+            Main->bInterpToNpc = false;
+            Main->TargetNpc = nullptr;
+            break;
+        case 10:
+            Main->Zizi->bInterpToCharacter = false;
+            Main->bInterpToNpc = false;
+            for (int i = 0; i < Main->NPCList.Num(); i++)
+            {
+                Main->NPCList[i]->MoveToPlayer();
+            }
+            break;
+        case 11: // npcs went over the other side
+            Main->bCanMove = true;
             break;
     }
 }
@@ -372,13 +416,13 @@ void AMainPlayerController::FadeAndDialogue()
         {
             bFadeOn = true;
 
-            SetCinematicMode(true, true, true);
-            SetControlRotation(FRotator(0.f, 57.f, 0.f));
-
+            if (DialogueNum == 3)
+            {
+                SetCinematicMode(true, true, true);
+                SetControlRotation(FRotator(0.f, 57.f, 0.f));
+            }
             FadeOut();
             FadeInOut->AddToViewport();
-
-
         }
     }
     
@@ -481,6 +525,9 @@ void AMainPlayerController::SetSystemMessage()
             break;
         case 9:
             text = FString(TEXT("레벨 5를 달성했습니다!\n이제 숫자키 5로 다섯 번째 마법을 쓸 수 있습니다."));
+            break;
+        case 10:
+            text = FString(TEXT("마우스 왼쪽 버튼을 클릭하여 돌을 줍고\n움직이는 돌 가까이서 마우스 왼쪽 버튼을 클릭하여 돌을 놓으세요."));
             break;
 
     }

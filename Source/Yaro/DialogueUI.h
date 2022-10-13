@@ -118,7 +118,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 SelectedReply;
 
-    UPROPERTY(BlueprintReadWrite)
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
     int32 RowIndex;
 
     UPROPERTY(BlueprintReadWrite)
@@ -144,5 +144,13 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bDisableMouseAndKeyboard = false;
+
+	void AutoCloseDialogue();
+
+    FTimerHandle OnceTimer;
+
+	void AllNpcLookAtPlayer();
+
+	void AllNpcDisableLookAt();
 
 };

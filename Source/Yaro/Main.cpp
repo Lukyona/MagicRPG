@@ -10,7 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Weapon.h"
-#include "Animation/AnimInstance.h"
+//#include "Animation/AnimInstance.h"
 #include "Components/SphereComponent.h"
 #include "Enemy.h"
 #include "Components/ArrowComponent.h"
@@ -22,6 +22,7 @@
 #include "ItemStorage.h"
 #include "DialogueUI.h"
 #include "YaroCharacter.h"
+#include "MainAnimInstance.h"
 
 // Sets default values
 AMain::AMain()
@@ -111,6 +112,11 @@ AMain::AMain()
 	InteractionRange->SetRelativeRotation(FRotator(0.f, 0.f, 90.f));
 	InteractionRange->SetRelativeScale3D(FVector(1.5f, 1.f, 2.2f));
 
+    ItemSphere = CreateDefaultSubobject<USphereComponent>(TEXT("ItemSphere"));
+	ItemSphere->SetupAttachment(GetRootComponent());
+	ItemSphere->InitSphereRadius(130.f);
+	ItemSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+
 }
 
 
@@ -131,6 +137,9 @@ void AMain::BeginPlay()
 	InteractionRange->OnComponentBeginOverlap.AddDynamic(this, &AMain::InteractionRangeOnOverlapBegin);
 	InteractionRange->OnComponentEndOverlap.AddDynamic(this, &AMain::InteractionRangeOnOverlapEnd);
 
+    ItemSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapBegin);
+    ItemSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapEnd);
+
 }
 
 // Called every frame
@@ -140,6 +149,10 @@ void AMain::Tick(float DeltaTime)
 
     if (!MainPlayerController)
         MainPlayerController = Cast<AMainPlayerController>(GetController());
+
+	if(!MainAnimInstance)
+		MainAnimInstance = Cast<UMainAnimInstance>(GetMesh()->GetAnimInstance());
+
 
 	if (bInterpToEnemy && CombatTarget)
 	{
@@ -305,16 +318,15 @@ void AMain::LMBDown() //Left Mouse Button Down
 
 	if (ActiveOverlappingItem && !EquippedWeapon)
 	{
-        UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && NormalMontage)
+		if (MainAnimInstance && NormalMontage)
 		{
-			if (AnimInstance->Montage_IsPlaying(NormalMontage) == true) return;
+			if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return;
 			bCanMove = false;
             FRotator LookAtYaw = GetLookAtRotationYaw(ActiveOverlappingItem->GetActorLocation());
             SetActorRotation(LookAtYaw);
 
-			AnimInstance->Montage_Play(NormalMontage);
-			AnimInstance->Montage_JumpToSection(FName("PickWand"), NormalMontage);
+			MainAnimInstance->Montage_Play(NormalMontage);
+			MainAnimInstance->Montage_JumpToSection(FName("PickWand"), NormalMontage);
 		}
 	}
 
@@ -334,9 +346,41 @@ void AMain::LMBDown() //Left Mouse Button Down
 	{
         if (MainPlayerController->DialogueUI->bDisableMouseAndKeyboard) return;
 		else MainPlayerController->DialogueUI->Interact();
- 
 	}
     
+    if (ActiveOverlappingItem && MainPlayerController->DialogueNum == 9) // pick up the yellow stone
+    {
+        if (MainAnimInstance && NormalMontage)
+        {
+            if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return;
+            bCanMove = false;
+            FRotator LookAtYaw = GetLookAtRotationYaw(ActiveOverlappingItem->GetActorLocation());
+            SetActorRotation(LookAtYaw);
+
+			MainAnimInstance->Montage_Play(NormalMontage);
+			MainAnimInstance->Montage_JumpToSection(FName("PickItem"), NormalMontage);
+        }
+    }
+
+	if (CurrentOverlappedActor && ItemInHand)
+	{
+        if (CurrentOverlappedActor->GetName().Contains("MovingStone") && ItemInHand->GetName().Contains("Yellow"))
+        {
+            if (MainPlayerController->DialogueNum == 9)
+            {
+                if (MainAnimInstance && NormalMontage)
+                {
+                    if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return;
+                    bCanMove = false;
+                    FRotator LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
+                    SetActorRotation(LookAtYaw);
+
+					MainAnimInstance->Montage_Play(NormalMontage);
+					MainAnimInstance->Montage_JumpToSection(FName("PutStone"), NormalMontage); // 돌 놓기
+                }
+            }
+        }
+	}
 }
 
 void AMain::LMBUp()
@@ -393,13 +437,12 @@ void AMain::Attack()
 		bAttacking = true;
 		SetInterpToEnemy(true);
 
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && CombatMontage)
+		if (MainAnimInstance && CombatMontage)
 		{
             bCanMove = false;
 
-			AnimInstance->Montage_Play(CombatMontage);
-			AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
+			MainAnimInstance->Montage_Play(CombatMontage);
+			MainAnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
 
 			Spawn();			
 		}
@@ -597,12 +640,11 @@ void AMain::Die()
 	GetWorldTimerManager().ClearTimer(MPTimer);
 	GetWorldTimerManager().ClearTimer(SPTimer);
 
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance && CombatMontage)
+	if (MainAnimInstance && CombatMontage)
 	{
 		bCanMove = false;
-		AnimInstance->Montage_Play(CombatMontage);
-		AnimInstance->Montage_JumpToSection(FName("Death"));
+		MainAnimInstance->Montage_Play(CombatMontage);
+		MainAnimInstance->Montage_JumpToSection(FName("Death"));
 	}
 	SetMovementStatus(EMovementStatus::EMS_Dead);
 
@@ -626,12 +668,11 @@ void AMain::Jump()
 void AMain::Revive() // if player is dead, spawn player at the initial location
 {
 	this->SetActorLocation(FVector(-192.f, 5257.f, 3350.f));
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance && CombatMontage)
+	if (MainAnimInstance && CombatMontage)
 	{
 		GetMesh()->bPauseAnims = false;
-		AnimInstance->Montage_Play(CombatMontage);
-		AnimInstance->Montage_JumpToSection(FName("Revival"));
+		MainAnimInstance->Montage_Play(CombatMontage);
+		MainAnimInstance->Montage_JumpToSection(FName("Revival"));
 		GetMesh()->bNoSkeletonUpdate = false;
 		HP += 50.f;
 	}
@@ -679,16 +720,37 @@ void AMain::StartDialogue()
     
 }
 
+void AMain::ItemSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor)
+	{
+        if (auto actor = Cast<AItem>(OtherActor)) return; // 오버랩된 게 아이템이면 실행X
+
+		CurrentOverlappedActor = OtherActor;
+		
+	}
+}
+
+void AMain::ItemSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+    if (OtherActor == CurrentOverlappedActor)
+    {
+
+        CurrentOverlappedActor = nullptr;
+
+    }
+}
+
 
 void AMain::SaveGame()
 {
-
-	if (MainPlayerController->bDialogueUIVisible)
+	if (MainPlayerController->bDialogueUIVisible || MainPlayerController->bFallenPlayer || MainAnimInstance->bIsInAir)
 	{
-        GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 5.f, false);
+        GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 3.f, false);
         return;
 
 	}
+
     UE_LOG(LogTemp, Log, TEXT("SaveGame"));
 
 	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
@@ -737,7 +799,7 @@ void AMain::SaveGame()
 
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
     
-	GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 5.f, false);
+	GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 3.f, false);
 
 }
 

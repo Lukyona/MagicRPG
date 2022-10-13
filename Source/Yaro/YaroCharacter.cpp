@@ -96,9 +96,9 @@ void AYaroCharacter::Tick(float DeltaTime)
 		SetActorRotation(InterpRotation);
 	}
 
-	if (bInterpToPlayer)
+	if (bInterpToCharacter && TargetCharacter)
 	{
-        FRotator LookAtYaw = GetLookAtRotationYaw(Player->GetActorLocation());
+        FRotator LookAtYaw = GetLookAtRotationYaw(TargetCharacter->GetActorLocation());
         FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed); //smooth transition
 
         SetActorRotation(InterpRotation);
@@ -148,6 +148,9 @@ void AYaroCharacter::Tick(float DeltaTime)
 			MoveToLocation();
 		}
 	}
+
+    if(!AnimInstance) AnimInstance = GetMesh()->GetAnimInstance();
+
 }
 
 
@@ -454,7 +457,6 @@ void AYaroCharacter::Attack()
 		bAttacking = true;
 		SetInterpToEnemy(true);
 
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance && CombatMontage)
 		{
 			AnimInstance->Montage_Play(CombatMontage);

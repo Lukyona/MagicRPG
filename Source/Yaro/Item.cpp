@@ -7,6 +7,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "Sound/SoundCue.h"
+#include "Main.h"
 
 // Sets default values
 AItem::AItem()
@@ -56,9 +57,27 @@ void AItem::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 		UGameplayStatics::PlaySound2D(this, OverlapSound);
 	}
 
+    if (OtherActor && this->GetName().Contains("Stone"))
+    {
+        AMain* Main = Cast<AMain>(OtherActor);
+        if (Main)
+        {
+            Main->SetActiveOverlappingItem(this);
+        }
+
+    }
 }
 
 void AItem::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	//UE_LOG(LogTemp, Warning, TEXT("Super::OnOverlapEnd()"));
+
+    if (OtherActor && this->GetName().Contains("Stone"))
+    {
+        AMain* Main = Cast<AMain>(OtherActor);
+        if (Main)
+        {
+            Main->SetActiveOverlappingItem(nullptr);
+        }
+    }
 }
