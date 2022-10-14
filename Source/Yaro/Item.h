@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Main.h"
+
 #include "Item.generated.h"
 
 UCLASS()
@@ -37,6 +39,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | ItemProperties")
 		float RotationRate;
+
+	UFUNCTION(BlueprintCallable)
+	void PickUp(AMain* Char);
 
 protected:
 	// Called when the game starts or when spawned

@@ -23,6 +23,8 @@
 #include "DialogueUI.h"
 #include "YaroCharacter.h"
 #include "MainAnimInstance.h"
+#include "AIController.h"
+
 
 // Sets default values
 AMain::AMain()
@@ -216,6 +218,8 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AMain::StartDialogue);
 
     PlayerInputComponent->BindAction("ShowManual", IE_Pressed, this, &AMain::ShowManual);
+
+    PlayerInputComponent->BindAction("Escape", IE_Pressed, this, &AMain::Escape);
 
 
 	// Axis는 매 프레임마다 호출
@@ -735,9 +739,7 @@ void AMain::ItemSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AAc
 {
     if (OtherActor == CurrentOverlappedActor)
     {
-
         CurrentOverlappedActor = nullptr;
-
     }
 }
 
@@ -768,34 +770,30 @@ void AMain::SaveGame()
 
 
     SaveGameInstance->DialogueNum = MainPlayerController->DialogueNum;
+    SaveGameInstance->CharacterStats.FallingCount = MainPlayerController->FallingCount;
 
 
 	SaveGameInstance->CharacterStats.Location = GetActorLocation();
 	SaveGameInstance->CharacterStats.Rotation = GetActorRotation();
 
-	if (EquippedWeapon) SaveGameInstance->CharacterStats.WeaponName = EquippedWeapon->Name;
 
-	//Storage->EnemyMap.Empty();
+    SaveGameInstance->NpcInfo.MomoLocation = Momo->GetActorLocation();
+    SaveGameInstance->NpcInfo.LukoLocation = Luko->GetActorLocation();
+    SaveGameInstance->NpcInfo.VovoLocation = Vovo->GetActorLocation();
+    SaveGameInstance->NpcInfo.ViviLocation = Vivi->GetActorLocation();
+    SaveGameInstance->NpcInfo.ZiziLocation = Zizi->GetActorLocation();
+    
+	if (MainPlayerController->DialogueNum < 4)
+		SaveGameInstance->NpcInfo.TeamMoveIndex = Vivi->index;
 
-	//if (Enemies.Num() != 0)
-	//{
-	//	for (int i = 0; i < Enemies.Num(); i++)
-	//	{
-	//		SaveGameInstance->EnemyInfo.EnemyIndex = Cast<AEnemy>(Enemies[i])->Index;
-	//		SaveGameInstance->EnemyInfo.Location = Cast<AEnemy>(Enemies[i])->GetActorLocation();
-	//		SaveGameInstance->EnemyInfo.Rotation = Cast<AEnemy>(Enemies[i])->GetActorRotation();
+	SaveGameInstance->DeadEnemyList = Enemies;
 
 
-	//		SaveGameInstance->EnemyInfoArray.Add(SaveGameInstance->EnemyInfo);
-	//		
-	//		TSubclassOf<class AEnemy> instance = Enemies[i]->GetClass();
+	if (ItemInHand)
+	{
+		SaveGameInstance->CharacterStats.ItemName = ItemInHand->GetName();
+	}
 
-	//	
-	//		Storage->EnemyMap.Add(Enemies[i]->Index, instance);
-	//	}
-	//	UE_LOG(LogTemp, Log, TEXT("%d, arraynum"), SaveGameInstance->EnemyInfoArray.Num());
-
-	//}
 
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
     
@@ -810,7 +808,8 @@ void AMain::LoadGame()
 	LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot(LoadGameInstance->SaveName, LoadGameInstance->UserIndex));
 
 	MainPlayerController = Cast<AMainPlayerController>(GetController());
-	MainPlayerController->DialogueNum = LoadGameInstance->DialogueNum;
+    MainPlayerController->DialogueNum = LoadGameInstance->DialogueNum;
+    MainPlayerController->FallingCount = LoadGameInstance->CharacterStats.FallingCount;
 
 	HP = LoadGameInstance->CharacterStats.HP;
 	MaxHP = LoadGameInstance->CharacterStats.MaxHP;
@@ -822,8 +821,26 @@ void AMain::LoadGame()
 	Exp = LoadGameInstance->CharacterStats.Exp;
 	MaxExp = LoadGameInstance->CharacterStats.MaxExp;
 
-	SetActorLocation(LoadGameInstance->CharacterStats.Location);
-	SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
+	Enemies = LoadGameInstance->DeadEnemyList;
+
+	if (MainPlayerController->DialogueNum != 5)
+	{
+        SetActorLocation(LoadGameInstance->CharacterStats.Location);
+        SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
+
+        Momo->SetActorLocation(LoadGameInstance->NpcInfo.MomoLocation);
+        Luko->SetActorLocation(LoadGameInstance->NpcInfo.LukoLocation);
+        Vovo->SetActorLocation(LoadGameInstance->NpcInfo.VovoLocation);
+        Vivi->SetActorLocation(LoadGameInstance->NpcInfo.ViviLocation);
+        Zizi->SetActorLocation(LoadGameInstance->NpcInfo.ZiziLocation);
+	}
+	
+	if (MainPlayerController->DialogueNum < 4)
+	{
+        Vovo->index = LoadGameInstance->NpcInfo.TeamMoveIndex;
+        Vivi->index = LoadGameInstance->NpcInfo.TeamMoveIndex;
+        Zizi->index = LoadGameInstance->NpcInfo.TeamMoveIndex;
+	}
 
     if (SP < MaxSP && !recoverySP)
     {
@@ -836,33 +853,69 @@ void AMain::LoadGame()
 
     if (MP < MaxMP)
 		GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
-	//if (ObjectStorage)
-	//{
-	//	if (Storage)
-	//	{
-	//		FString WeaponName = LoadGameInstance->CharacterStats.WeaponName;
-
-	//		if (Storage->WeaponMap.Contains(WeaponName))
-	//		{
-	//			AWeapon* WeaponToEquip = GetWorld()->SpawnActor<AWeapon>(Storage->WeaponMap[WeaponName]);
-	//			WeaponToEquip->Equip(this);
-	//		}
 
 
-	//		//for (int i = 0; i < LoadGameInstance->EnemyInfoArray.Num(); i++)
-	//		//{
-	//		//	//FString EnemyName = LoadGameInstance->EnemyInfoArray[i].EnemyName;
-	//		//	int index = LoadGameInstance->EnemyInfoArray[i].EnemyIndex;
-	//		//	if (Storage->EnemyMap.Contains(index))
-	//		//	{
-	//		//		AEnemy* Enemy = GetWorld()->SpawnActor<AEnemy>(Storage->EnemyMap[index]);
-	//		//		Enemy->SetActorLocation(LoadGameInstance->EnemyInfoArray[i].Location);
-	//		//		Enemy->SetActorRotation(LoadGameInstance->EnemyInfoArray[i].Rotation);
+    if (ObjectStorage)
+    {
+        if (Storage)
+        {
+            FString ItemName = LoadGameInstance->CharacterStats.ItemName;
 
-	//		//	}
-	//		//}
-	//	}
-	//}
+            if (ItemName.Contains("Yellow") && Storage->ItemMap.Contains("YellowStone")) // 저장할 때 손에 돌을 집은 상태였으면
+            {
+                AItem* Item = GetWorld()->SpawnActor<AItem>(Storage->ItemMap["YellowStone"]);
+                Item->PickUp(this);
+            }
+
+        }
+    }
+}
+
+void AMain::CheckDialogueRequirement()
+{
+	switch (MainPlayerController->DialogueNum)
+	{
+		case 3: // after golem died
+			for (int i = 0; i < Enemies.Num(); i++)
+			{
+				if (Enemies[i].Contains("Golem"))
+				{
+					MainPlayerController->DisplayDialogueUI();
+					return;
+				}
+			}
+			NpcGo = true;
+			break;
+		case 4: // npc move to boat and wait player
+            Momo->SetActorRotation(FRotator(0.f, 85.f, 0.f));
+            Luko->SetActorRotation(FRotator(0.f, 103.f, 0.f));
+            Vivi->SetActorRotation(FRotator(0.f, 97.f, 0.f));
+            Zizi->SetActorRotation(FRotator(0.f, 94.f, 0.f));
+            Vovo->SetActorRotation(FRotator(0.f, 91.f, 0.f));
+
+            Momo->AIController->MoveToLocation(FVector(660.f, 1035.f, 1840.f));
+            Luko->AIController->MoveToLocation(FVector(598.f, 1030.f, 1840.f));
+            Vivi->AIController->MoveToLocation(FVector(710.f, 995.f, 1840.f));
+            Zizi->AIController->MoveToLocation(FVector(690.f, 930.f, 1840.f));
+            Vovo->AIController->MoveToLocation(FVector(630.f, 970.f, 1840.f));
+			break;
+		 case 9: //if ItemInHand is null, the stone have to put on the floor (this is check in blueprint)
+			MainPlayerController->SystemMessageNum = 10;
+			MainPlayerController->SetSystemMessage();
+            MainPlayerController->DialogueUI->AllNpcLookAtPlayer();
+            for (int i = 0; i < NPCList.Num(); i++)
+            {
+                NPCList[i]->AIController->StopMovement();
+                GetWorld()->GetTimerManager().ClearTimer(NPCList[i]->MoveTimer);
+            }
+            Momo->AIController->MoveToLocation(FVector(5320.f, -3702.f, -2122.f));
+            Luko->AIController->MoveToLocation(FVector(5249.f, -3685.f, -2117.f));
+            Vovo->AIController->MoveToLocation(FVector(5462.f, -3725.f, -2117.f));
+            Vivi->AIController->MoveToLocation(FVector(5392.f, -3686.f, -2117.f));
+            Zizi->AIController->MoveToLocation(FVector(5538.f, -3696.f, -2115.f));
+			break;
+	}
+	
 }
 
 void AMain::RecoveryHP()
@@ -980,4 +1033,20 @@ void AMain::ShowManual()
 {
 	if (MainPlayerController->bManualVisible) MainPlayerController->RemoveManual();
 	else MainPlayerController->DisplayManual();
+}
+
+void AMain::Escape()
+{
+	if (MainPlayerController->DialogueNum >= 6)
+	{
+		if (MainPlayerController->DialogueNum <= 8)
+		{
+            SetActorLocation(FVector(4620.f, -3975.f, -2117.f));
+		}
+		else if (MainPlayerController->DialogueNum <= 12)
+		{
+            SetActorLocation(FVector(5165.f, -2307.f, -2117.f));
+		}
+
+	}
 }

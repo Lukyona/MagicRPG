@@ -526,8 +526,7 @@ void AYaroCharacter::Spawn()
 {
 	if (ToSpawn)
 	{
-		FTimerHandle WaitHandle;
-		GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
+		GetWorld()->GetTimerManager().SetTimer(MagicSpawnTimer, FTimerDelegate::CreateLambda([&]()
 			{
 				UWorld* world = GetWorld();
 				if (world)

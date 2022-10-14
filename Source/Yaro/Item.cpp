@@ -8,6 +8,8 @@
 #include "Engine/World.h"
 #include "Sound/SoundCue.h"
 #include "Main.h"
+#include "Engine/SkeletalMeshSocket.h"
+
 
 // Sets default values
 AItem::AItem()
@@ -79,5 +81,24 @@ void AItem::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* Other
         {
             Main->SetActiveOverlappingItem(nullptr);
         }
+    }
+}
+
+void AItem::PickUp(AMain* Char)
+{
+    Mesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+    Mesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+
+    Mesh->SetSimulatePhysics(false);
+    Mesh->bHiddenInGame = false;
+
+    const USkeletalMeshSocket* LeftHandSocket = Char->GetMesh()->GetSocketByName("LeftHandSocket");
+    if (LeftHandSocket)
+    {
+        LeftHandSocket->AttachActor(this, Char->GetMesh());
+        bRotate = false;
+        Char->ItemInHand = this;
+        Char->SetActiveOverlappingItem(nullptr);
+
     }
 }

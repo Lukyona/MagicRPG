@@ -42,25 +42,38 @@ struct FCharacterStats
 	FRotator Rotation;
 
 	UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
-	FString WeaponName;
+	FString ItemName;
+
+    UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
+	int FallingCount;
 };
 
 USTRUCT(BlueprintType)
-struct FEnemyInfo
+struct FNpcStats
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
-	FVector Location;
+    //UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
+    //float HP;
 
-	UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
-	FRotator Rotation;
 
-	/*UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
-	FString EnemyName;*/
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
+    FVector MomoLocation;
 
-	UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
-	int EnemyIndex;
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
+    FVector LukoLocation;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
+    FVector VovoLocation;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
+    FVector ViviLocation;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
+    FVector ZiziLocation;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
+	int TeamMoveIndex;
 };
 
 /**
@@ -89,9 +102,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Basic)
 	FCharacterStats CharacterStats;
 
-	UPROPERTY(VisibleAnywhere, Category = Basic)
-	TArray<FEnemyInfo> EnemyInfoArray;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Basic)
+	TArray<FString> DeadEnemyList;
 
-	UPROPERTY(EditAnywhere)
-	FEnemyInfo EnemyInfo;
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Basic)
+	FNpcStats NpcInfo;
 };

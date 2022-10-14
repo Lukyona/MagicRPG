@@ -18,6 +18,19 @@ enum class EEnemyMovementStatus :uint8
 	EMS_MAX				UMETA(DeplayName = "DefaultMAX")
 };
 
+//USTRUCT(BlueprintType)
+//struct FEnemyInfo
+//{
+//    GENERATED_BODY()
+//
+//    UPROPERTY(EditAnywhere, Category = "EnemyData")
+//    class AEnemy* EnemyClass;
+//
+//    UPROPERTY(EditAnywhere, Category = "EnemyData")
+//	int EnemyIndex;
+//
+//};
+
 UCLASS()
 class YARO_API AEnemy : public ACharacter
 {
@@ -26,6 +39,9 @@ class YARO_API AEnemy : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AEnemy();
+
+    //UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    //FEnemyInfo EnemyInfo;
 
 	/*UPROPERTY(EditAnywhere, Category = "SavedData")
 	FString Name;

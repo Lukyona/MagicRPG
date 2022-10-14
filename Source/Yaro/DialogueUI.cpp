@@ -204,6 +204,7 @@ void UDialogueUI::DialogueEvents()
     if (MainPlayerController->bFallenPlayer)
     {
         bDisableMouseAndKeyboard = false;
+
         if (MainPlayerController->FallingCount == 1)
         {
             if (RowIndex == 0)
@@ -214,14 +215,22 @@ void UDialogueUI::DialogueEvents()
             if (RowIndex == 7)
             {
                 AutoCloseDialogue();
-                Main->bCanMove = true;
                 AllNpcDisableLookAt();
+                MainPlayerController->bFallenPlayer = false;
                 return;
             }
         }
         else if (MainPlayerController->FallingCount == 5)
         {
-            RowIndex = 7;
+            if (RowIndex == 0) RowIndex = 7;
+
+            if (RowIndex == 8)
+            {
+                AutoCloseDialogue();
+                MainPlayerController->bFallenPlayer = false;
+                return;
+            }
+
         }
         else return;
     }
@@ -291,9 +300,10 @@ void UDialogueUI::DialogueEvents()
             }
         }
 
-        if (DNum == 1)
+        if (DNum == 1 && RowIndex == 0)
         {
-            if (RowIndex == 0) RowIndex = 11;
+            RowIndex = 11;
+            Main->CameraBoom->TargetArmLength = 500.f;
         }
 
         if (DNum == 2 && RowIndex == 4)
@@ -331,8 +341,6 @@ void UDialogueUI::DialogueEvents()
             case 6:
                 if (SelectedReply == 2)
                 {
-                    //RowIndex = 8;
-                    //Main->Vovo->AIController->MoveToLocation(FVector(630.f, 970.f, 1840.f));
                     AutoCloseDialogue();
                     return;
                 }
@@ -341,47 +349,38 @@ void UDialogueUI::DialogueEvents()
                 // vovo moves to the boat
                 if (SelectedReply == 1 || SelectedReply == 3)
                 {
-                    //Main->Vovo->AIController->MoveToLocation(FVector(630.f, 970.f, 1840.f));    
-                    //SelectedReply = 0;
                     AutoCloseDialogue();
                     return;
                 }
-                //case 9:
-                //case 10:
-                //case 11:
-                //    GetWorld()->GetTimerManager().SetTimer(OnceTimer, FTimerDelegate::CreateLambda([&]()
-                //    {
-                //        Interact();
-                //        if (RowIndex == 11)
-                //        {
-                //            bDisableMouseAndKeyboard = false;
-                //            GetWorld()->GetTimerManager().ClearTimer(OnceTimer);
-                //        }
-
-                //    }), 2.f, false); // 대화 자동 진행
                 break;
             }
         }
 
-        if (DNum == 4) // Third Dialogue (first dungeon, after golem battle)
+        if (DNum == 4) // Third Dialogue (first dungeon, boat moves)
         {
             switch (RowIndex)
             {
-            case 8:
+            case 0:
+                for (int i = 0; i < Main->NPCList.Num(); i++)
+                {
+                    Main->NPCList[i]->AIController->StopMovement();
+                }
+                RowIndex = 8;
                 bDisableMouseAndKeyboard = true;
             case 9:
             case 10:
             case 11:
+            case 12:
                 GetWorld()->GetTimerManager().SetTimer(OnceTimer, FTimerDelegate::CreateLambda([&]()
                     {
                         Interact();
-                        if (RowIndex == 11)
+                        if (RowIndex == 12)
                         {
                             bDisableMouseAndKeyboard = false;
                             GetWorld()->GetTimerManager().ClearTimer(OnceTimer);
                         }
 
-                    }), 3.f, false); // 대화 자동 진행
+                    }), 2.7f, false); // 대화 자동 진행
                 break;
             }
         }
@@ -572,6 +571,10 @@ void UDialogueUI::AutoCloseDialogue()
 
 void UDialogueUI::AllNpcLookAtPlayer()
 {
+
+    if (Main == nullptr)
+        Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
+
     for (int i = 0; i < Main->NPCList.Num(); i++)
     {
         Main->NPCList[i]->TargetCharacter = Main;

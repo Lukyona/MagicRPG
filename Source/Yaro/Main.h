@@ -157,12 +157,6 @@ public:
 
 	void RecoverySP();
 
-	UPROPERTY(VisibleAnyWhere)
-	int CurrentEnemyNum = 0;
-
-	UPROPERTY(VisibleAnyWhere)
-	TArray<AEnemy*> Enemies;
-
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Interaction System")
 	class UCapsuleComponent* InteractionRange;
@@ -171,19 +165,19 @@ public:
 	class ACharacter* InteractTarget;
 
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	class AYaroCharacter* Momo;
 
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     class AYaroCharacter* Luko;
 
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     class AYaroCharacter* Vovo;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
     class AYaroCharacter* Vivi;
 
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     class AYaroCharacter* Zizi;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
@@ -314,6 +308,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void LoadGame();
 
+
+    UPROPERTY(VisibleAnyWhere, BlueprintReadWrite)
+    TArray<FString> Enemies;
+
+
 	bool bESCDown;
 	void ESCDown();
 	void ESCUp();
@@ -344,4 +343,10 @@ public:
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
 	FDele_Dynamic PlaneUp;
+
+	UFUNCTION(BlueprintCallable)
+	void CheckDialogueRequirement(); // when player continew the game, if it is the time that start dialogue, then start dialogue
+
+
+	void Escape(); // press E key, spawn player at the other location
 };

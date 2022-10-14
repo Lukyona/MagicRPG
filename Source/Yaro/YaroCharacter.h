@@ -22,6 +22,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	class AMain* Player;
 
+    UPROPERTY(BlueprintReadWrite)
 	FTimerHandle MoveTimer; // move to player
 
 	UFUNCTION(BlueprintCallable)
@@ -105,6 +106,10 @@ public:
 
     void Spawn();
 
+    UPROPERTY(BlueprintReadWrite)
+    FTimerHandle MagicSpawnTimer;
+
+
 	bool bCanCastStrom = true;
 
 	void CanCastStormMagic();
@@ -120,11 +125,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void MoveToLocation();
 
+    UPROPERTY(VisibleAnywhere)
 	int index = 0;
 
 	bool canGo = false;
 
-	FTimerHandle TeamMoveTimer;
+    UPROPERTY(BlueprintReadWrite)
+	FTimerHandle TeamMoveTimer; // vivi, vivi, zizi
 	
     UPROPERTY(EditAnywhere)
 	bool bInterpToCharacter = false;

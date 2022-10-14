@@ -62,11 +62,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void DisplayDialogueUI();
 
+    UFUNCTION(BlueprintCallable)
 	void RemoveDialogueUI();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bDialogueUIVisible;
-
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
 	class UDialogueUI* DialogueUI;
@@ -74,9 +74,7 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Dialogue")
 	TSubclassOf<class UUserWidget> DialogueUIClass;
 
-	//FORCEINLINE UDialogueUI* GetDialogueUI() { return DialogueUI; };
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Dialogue")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
 	int DialogueNum = 0; // 0 - intro
 
     UFUNCTION(BlueprintCallable)
@@ -119,6 +117,7 @@ public:
 
 	bool SystemMessageOn = false;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
     bool bSystemMessageVisible;
 
 	UPROPERTY(BlueprintReadWrite)
@@ -146,7 +145,7 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bFallenPlayer = false; // 플레이어가 던전 범위 밖으로 추락했을 때 true
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int FallingCount = 0;
 
 protected:

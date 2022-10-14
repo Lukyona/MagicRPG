@@ -244,13 +244,11 @@ void AMainPlayerController::DisplayDialogueUI()
     {
         //UE_LOG(LogTemp, Log, TEXT("DisplayDialogueUI"));
 
-        if (bFallenPlayer) FallingCount += 1;
-
         if (!DialogueUI->bCanStartDialogue) return;
 
         if (bManualVisible) RemoveManual();
 
-        if (bFallenPlayer && FallingCount == 1)
+        if (bFallenPlayer && (FallingCount == 1 || FallingCount == 5))
         {
             DialogueUI->InitializeDialogue(SpawnDialogue);
         }
@@ -265,10 +263,6 @@ void AMainPlayerController::DisplayDialogueUI()
             case 1:
                 DialogueUI->InitializeDialogue(IntroDialogue);
                 break;
-                //case 1: // only luko dialogue
-                //    DialogueUI->OnAnimationShowMessageUI();
-                //    GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::StartAnimatedMessage, 0.1f, false);
-                //    break;
             case 2:
                 DialogueUI->InitializeDialogue(DungeonDialogue1);
                 break;
@@ -282,8 +276,6 @@ void AMainPlayerController::DisplayDialogueUI()
                 bFadeOn = false;
                 break;
             case 4: // the boat move
-               /* DialogueUI->OnAnimationShowMessageUI();
-                GetWorld()->GetTimerManager().SetTimer(DialogueUI->TimerHandle, DialogueUI, &UDialogueUI::DialogueEvents, 0.1f, false);*/
                 DialogueUI->InitializeDialogue(DungeonDialogue2);
                 break;
             case 5: // second dungeon
@@ -319,7 +311,7 @@ void AMainPlayerController::RemoveDialogueUI()
         }
         else
         {
-            bFallenPlayer = false;
+            Main->bCanMove = true;
         }
               
         bDialogueUIVisible = false;
@@ -415,6 +407,8 @@ void AMainPlayerController::FadeAndDialogue()
         if (FadeInOut)
         {
             bFadeOn = true;
+
+            if (bFallenPlayer) FallingCount += 1;
 
             if (DialogueNum == 3)
             {

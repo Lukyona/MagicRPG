@@ -469,9 +469,7 @@ void AEnemy::Die()
 {
 	if (EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead)
 	{
-		//Main->CurrentEnemyNum -= 1;
-		//Main->Enemies.Remove(this);
-
+		Main->Enemies.Add(this->GetName());
 		if (AIController) AIController->StopMovement();
 		SetInterpToTarget(false);
 
@@ -497,6 +495,7 @@ void AEnemy::DeathEnd()
 
 	if (this->GetName().Contains("Golem")) // °ñ·½ ¾²·¯¶ß¸° µÚ ´ëÈ­
 	{
+		Main->SaveGame();
 		Main->MainPlayerController->DisplayDialogueUI();
 	}
 }
