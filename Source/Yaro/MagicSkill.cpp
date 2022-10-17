@@ -59,7 +59,7 @@ void AMagicSkill::BeginPlay()
             Destroy(true);
         }
 
-    }), 1.5f, false);
+    }), 1.f, false);
 
     FTimerHandle WaitHandle2;
     GetWorld()->GetTimerManager().SetTimer(WaitHandle2, FTimerDelegate::CreateLambda([&]() {
@@ -109,38 +109,60 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
 {
     if (OtherActor)
     {
-        AEnemy* Enemy = Cast<AEnemy>(OtherActor);
-        if (Enemy)
+        if (this->index != 10)
         {
-            if (index == 0)
+            AEnemy* Enemy = Cast<AEnemy>(OtherActor);
+            if (Enemy)
             {
-                Enemy->bAttackFromPlayer = true;
-                if (Enemy->Main->CombatTarget == nullptr)
+                if (index == 0)
                 {
-                    if (Enemy->Main->Targets.Contains(Enemy))
+                    Enemy->bAttackFromPlayer = true;
+                    if (Enemy->Main->CombatTarget == nullptr)
                     {
-                        Enemy->Main->bAutoTargeting = true;
-                        Enemy->Main->CombatTarget = Enemy; // 자동으로 타겟 지정
-                        Enemy->Main->Targeting();
-                        Enemy->Main->bAutoTargeting = false;
+                        if (Enemy->Main->Targets.Contains(Enemy))
+                        {
+                            Enemy->Main->bAutoTargeting = true;
+                            Enemy->Main->CombatTarget = Enemy; // 자동으로 타겟 지정
+                            Enemy->Main->Targeting();
+                            Enemy->Main->bAutoTargeting = false;
+                        }
+
                     }
+                }
+
+                UGameplayStatics::PlaySound2D(this, ExplosionSound);
+                if (this->GetName().Contains("Hit"))
+                {
+                    UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleFX, GetActorLocation());
+                    Destroy(true);
+                }
+                if (DamageTypeClass)
+                {
+                    UGameplayStatics::ApplyDamage(Enemy, Damage, MagicInstigator, this, DamageTypeClass);
 
                 }
             }
+        }
+       
+        if (index == 10)
+        {
+            ACharacter* TargetCharacter = Cast<ACharacter>(OtherActor);
+            if (TargetCharacter)
+            {
+                UGameplayStatics::PlaySound2D(this, ExplosionSound);
+                if (this->GetName().Contains("Hit"))
+                {
+                    UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleFX, GetActorLocation());
 
-            UGameplayStatics::PlaySound2D(this, ExplosionSound);
-            if (this->GetName().Contains("Hit"))
-            {
-                UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleFX, GetActorLocation());
-                Destroy(true);
-            }     
-            if (DamageTypeClass)
-            {
-                UGameplayStatics::ApplyDamage(Enemy, Damage, MagicInstigator, this, DamageTypeClass);
-                
+                    Destroy(true);
+                }
+                if (DamageTypeClass)
+                {
+                    UGameplayStatics::ApplyDamage(TargetCharacter, Damage, MagicInstigator, this, DamageTypeClass);
+
+                }
             }
         }
-        
     }
 }
 

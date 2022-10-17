@@ -44,8 +44,8 @@ public:
 
 	FORCEINLINE void SetInstigator(AController* Inst) { MagicInstigator = Inst; }
 
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "MoveActor")
-	class AEnemy* Target;
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "MoveActor")
+	class ACharacter* Target;
 
 	UPROPERTY(EditDefaultsOnly)
 	int index;

@@ -145,6 +145,7 @@ void AYaroCharacter::Tick(float DeltaTime)
 		}
 		else // 비비, 지지, 보보
 		{
+
 			MoveToLocation();
 		}
 	}
@@ -168,7 +169,6 @@ void AYaroCharacter::MoveToPlayer()
 		}
 
         float distance = GetDistanceTo(Player);
-        //UE_LOG(LogTemp, Log, TEXT("MoveToPlayer... %s"), *this->GetName());
 
         if (distance >= 500.f) //일정 거리 이상 떨어져있다면 속도 높여 달리기
         {
@@ -366,19 +366,19 @@ void AYaroCharacter::Attack()
 		}
 		
 
-		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Luko/GreenStormAttack.GreenStormAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
+		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/GreenStormAttack.GreenStormAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
 		if (this->GetName().Contains("Luko"))
 		{
 			switch (SkillNum)
 			{
 				case 1:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Luko/GreenStormAttack.GreenStormAttack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/GreenStormAttack.GreenStormAttack_C"));
 					break;
 				case 2:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Luko/DarkAttack.DarkAttack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/DarkAttack.DarkAttack_C"));
 					break;
 				case 3:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Luko/LightAttack.LightAttack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/LightAttack.LightAttack_C"));
 					break;
 				default:
 					break;
@@ -389,13 +389,13 @@ void AYaroCharacter::Attack()
 			switch (SkillNum)
 			{
 				case 1:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Momo/RedStormAttack.RedStormAttack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/RedStormAttack.RedStormAttack_C"));
 					break;
 				case 2:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Momo/Fireball_Hit_Attack.Fireball_Hit_Attack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/Fireball_Hit_Attack.Fireball_Hit_Attack_C"));
 					break;
 				case 3:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Momo/FireAttack.FireAttack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/FireAttack.FireAttack_C"));
 					break;
 				default:
 					break;
@@ -406,13 +406,13 @@ void AYaroCharacter::Attack()
 			switch (SkillNum)
 			{
 			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Vovo/YellowStormAttack.YellowStormAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/YellowStormAttack.YellowStormAttack_C"));
 				break;
 			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Vovo/Waterball_Hit_Attack.Waterball_Hit_Attack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/Waterball_Hit_Attack.Waterball_Hit_Attack_C"));
 				break;
 			case 3:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Vovo/AquaAttack.AquaAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/AquaAttack.AquaAttack_C"));
 				break;
 			default:
 				break;
@@ -423,13 +423,13 @@ void AYaroCharacter::Attack()
 			switch (SkillNum)
 			{
 			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Vivi/BlueStormAttack.BlueStormAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/BlueStormAttack.BlueStormAttack_C"));
 				break;
 			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Vivi/Ice_Hit_Attack.Ice_Hit_Attack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/Ice_Hit_Attack.Ice_Hit_Attack_C"));
 				break;
 			case 3:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Vivi/IceAttack.IceAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/IceAttack.IceAttack_C"));
 				break;
 			default:
 				break;
@@ -440,13 +440,13 @@ void AYaroCharacter::Attack()
 			switch (SkillNum)
 			{
 			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Zizi/PurpleStormAttack.PurpleStormAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/PurpleStormAttack.PurpleStormAttack_C"));
 				break;
 			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Zizi/Thunderball_Hit_Attack.Thunderball_Hit_Attack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/Thunderball_Hit_Attack.Thunderball_Hit_Attack_C"));
 				break;
 			case 3:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/Zizi/LightningAttack.LightningAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/LightningAttack.LightningAttack_C"));
 				break;
 			default:
 				break;

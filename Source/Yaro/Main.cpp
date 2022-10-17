@@ -411,27 +411,27 @@ void AMain::Attack()
 	if (EquippedWeapon && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead && !MainPlayerController->bDialogueUIVisible)
 	{
 		SkillNum = MainPlayerController->WhichKeyDown();
-		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/Wind_Hit_Attack.WindAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
+		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/Wind_Hit_Attack.WindAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
 		switch (SkillNum)
 		{
 			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/1_Wind_Hit_Attack.1_Wind_Hit_Attack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/1_Wind_Hit_Attack.1_Wind_Hit_Attack_C"));
 				break;
 			case 2:
 				if (Level < 2) return;
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/2_ShockAttack.2_ShockAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/2_ShockAttack.2_ShockAttack_C"));
 				break;
 			case 3:
                 if (Level < 3) return;
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/3_Electricball_Hit_Attack.3_Electricball_Hit_Attack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/3_Electricball_Hit_Attack.3_Electricball_Hit_Attack_C"));
 				break;
             case 4:
                 if (Level < 4) return;
-                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/4_PoisonAttack.4_PoisonAttack_C"));
+                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/4_PoisonAttack.4_PoisonAttack_C"));
                 break;
             case 5:
                 if (Level < 5) return;
-                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprint/MagicAttacks/MainCharacter/5_EarthAttack.5_EarthAttack_C"));
+                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/5_EarthAttack.5_EarthAttack_C"));
                 break;
 			default:
 				break;
@@ -671,7 +671,11 @@ void AMain::Jump()
 
 void AMain::Revive() // if player is dead, spawn player at the initial location
 {
-	this->SetActorLocation(FVector(-192.f, 5257.f, 3350.f));
+	if(MainPlayerController->DialogueNum <= 4)
+		this->SetActorLocation(FVector(-192.f, 5257.f, 3350.f));
+	else
+        this->SetActorLocation(FVector(3910.f, -3920.f,-2115.f));
+
 	if (MainAnimInstance && CombatMontage)
 	{
 		GetMesh()->bPauseAnims = false;
@@ -753,7 +757,7 @@ void AMain::SaveGame()
 
 	}
 
-    UE_LOG(LogTemp, Log, TEXT("SaveGame"));
+    //UE_LOG(LogTemp, Log, TEXT("SaveGame"));
 
 	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
 
@@ -915,7 +919,7 @@ void AMain::CheckDialogueRequirement()
             Zizi->AIController->MoveToLocation(FVector(5538.f, -3696.f, -2115.f));
 			break;
 	}
-	
+
 }
 
 void AMain::RecoveryHP()

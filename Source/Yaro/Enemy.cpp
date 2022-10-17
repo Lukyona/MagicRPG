@@ -102,8 +102,8 @@ void AEnemy::BeginPlay()
 
 	Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
-	//Main->CurrentEnemyNum += 1;
-	//Main->Enemies.Add(this);
+    AnimInstance = GetMesh()->GetAnimInstance();
+
 
 }
 
@@ -113,8 +113,6 @@ void AEnemy::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
     if (!Main) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
-
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
 	if (bInterpToTarget && bOverlappingCombatSphere && CombatTarget)
 	{
@@ -146,6 +144,7 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
+
 
 	if (OtherActor && Alive()) //전투타겟이 없을 때 NPC에게도 유효, 전투타겟이 있어도 플레이어에게 반응
 	{
@@ -193,6 +192,7 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 					AgroTargets.Remove(target);
 				}
 			}
+            //UE_LOG(LogTemp, Log, TEXT("enddd %s"), *target->GetName());
 
 			if (AgroTarget != Main) //npc를 쫓아가던 중이면(인식 범위 나간 것도 npc)
 			{
@@ -218,6 +218,7 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 
 			if (AgroTargets.Num() == 0) // no one's in agrosphere
 			{
+				AIController->StopMovement();
 				MoveToLocation();
 			}
 		}
@@ -264,7 +265,6 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 		//UE_LOG(LogTemp, Log, TEXT("////OtherActor %s"), *OtherActor->GetName());
 
 		if (!target) return;
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		AnimInstance->Montage_Stop(0.1f, CombatMontage);
 
 		
@@ -401,18 +401,23 @@ void AEnemy::Attack()
 			SetInterpToTarget(false);
 			//UE_LOG(LogTemp, Log, TEXT("attack"));
 
-			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 			if (AnimInstance)
 			{
 				AnimInstance->Montage_Play(CombatMontage);
 
-				if (this->GetName().Contains("Grux"))
+				if (this->GetName().Contains("Grux") || this->GetName().Contains("LizardMan") || this->GetName().Contains("LizardMan") || this->GetName().Contains("Archer"))
 				{
 					AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
 				}
 				else
 				{
-					int num = FMath::RandRange(1, 3);
+					int num = 0;
+
+					if(this->GetName().Contains("Dino") || this->GetName().Contains("Lizard_BP"))
+                        num = FMath::RandRange(1, 2);
+					else
+						num = FMath::RandRange(1, 3);
+
 					switch (num)
 					{
 						case 1:
@@ -451,7 +456,6 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 	}
 	else
 	{
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance)
 		{
 			AnimInstance->Montage_Play(CombatMontage);
@@ -475,7 +479,6 @@ void AEnemy::Die()
 
 		if (DeathSound) UGameplayStatics::PlaySound2D(this, DeathSound);
 
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance)
 		{
 			AnimInstance->Montage_Play(CombatMontage);
@@ -542,6 +545,7 @@ void AEnemy::HitEnd()
 	int index = MagicAttack->index;
 	if (!CombatTarget && AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
 
+
 	/* When enemy doesn't have combat target, player attacks enemy
 	or when enemy's combat target is not player and player attacks enemy.
 	At this time, enemy must sets player as a combat target.
@@ -554,9 +558,6 @@ void AEnemy::HitEnd()
 			{
 				if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)
 				{
-					//UE_LOG(LogTemp, Log, TEXT("???"));
-
-					UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 					AnimInstance->Montage_Stop(0.1f, CombatMontage);
 				}
 			}

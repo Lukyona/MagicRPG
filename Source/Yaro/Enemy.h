@@ -18,19 +18,6 @@ enum class EEnemyMovementStatus :uint8
 	EMS_MAX				UMETA(DeplayName = "DefaultMAX")
 };
 
-//USTRUCT(BlueprintType)
-//struct FEnemyInfo
-//{
-//    GENERATED_BODY()
-//
-//    UPROPERTY(EditAnywhere, Category = "EnemyData")
-//    class AEnemy* EnemyClass;
-//
-//    UPROPERTY(EditAnywhere, Category = "EnemyData")
-//	int EnemyIndex;
-//
-//};
-
 UCLASS()
 class YARO_API AEnemy : public ACharacter
 {
@@ -40,14 +27,6 @@ public:
 	// Sets default values for this character's properties
 	AEnemy();
 
-    //UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    //FEnemyInfo EnemyInfo;
-
-	/*UPROPERTY(EditAnywhere, Category = "SavedData")
-	FString Name;
-
-	UPROPERTY(EditAnywhere, Category = "SavedData")
-		int Index = 0;*/
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	EEnemyMovementStatus EnemyMovementStatus;
@@ -124,6 +103,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
 	class USoundCue* SkillSound;
 
+	class UAnimInstance* AnimInstance;
+
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -194,6 +176,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void DeathEnd();
 
+    UFUNCTION(BlueprintCallable)
 	bool Alive();
 
 	void Disappear();

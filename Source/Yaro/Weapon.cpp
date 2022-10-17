@@ -62,6 +62,7 @@ void AWeapon::Equip(AMain* Char)
             RightHandSocket->AttachActor(this, Char->GetMesh());
             bRotate = false;
             Char->EquippedWeapon = this;
+            SetWeaponState(EWeaponState::EWS_Equipped);
         }
     }
 }
