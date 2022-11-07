@@ -157,14 +157,6 @@ public:
 
 	void RecoverySP();
 
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Interaction System")
-	class UCapsuleComponent* InteractionRange;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Interaction System")
-	class ACharacter* InteractTarget;
-
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	class AYaroCharacter* Momo;
 
@@ -309,7 +301,7 @@ public:
 	void LoadGame();
 
 
-    UPROPERTY(VisibleAnyWhere, BlueprintReadWrite)
+    UPROPERTY(EditAnyWhere, BlueprintReadWrite)
     TArray<FString> Enemies;
 
 
@@ -317,10 +309,6 @@ public:
 	void ESCDown();
 	void ESCUp();
 
-	UFUNCTION()
-	virtual void InteractionRangeOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION()
-	virtual void InteractionRangeOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	void StartDialogue();
 
@@ -349,4 +337,9 @@ public:
 
 
 	void Escape(); // press E key, spawn player at the other location
+
+	UFUNCTION(BlueprintCallable)
+	bool CanTalkWithNpc();
+
+	void AllNpcMoveToPlayer();
 };

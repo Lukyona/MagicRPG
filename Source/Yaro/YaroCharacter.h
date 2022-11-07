@@ -12,7 +12,6 @@ class AYaroCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-
 public:
 	AYaroCharacter();
 
@@ -27,12 +26,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void MoveToPlayer();
-
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items)
-	class AItem* ActiveOverlappingItem;
-
-	FORCEINLINE void SetActiveOverlappingItem(AItem* Item) { ActiveOverlappingItem = Item; }
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UBoxComponent* Wand;
@@ -52,7 +45,7 @@ public:
     class USphereComponent* AttackSphere;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	bool bOverlappingCombatSphere;
+	bool bOverlappingAttackSphere;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	class AEnemy* CombatTarget;
@@ -61,13 +54,10 @@ public:
 	FVector CombatTargetLocation;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	bool bHasCombatTarget;
+	TArray<AEnemy*> AgroTargets;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	TArray<AEnemy*> Targets;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	int targetIndex;
+	TArray<AEnemy*> CombatTargets;
 
 	FTimerHandle AttackTimer;
 
@@ -143,6 +133,11 @@ public:
 
     UAnimInstance* AnimInstance;
 
+	void Teleport();
+
+	FTimerHandle TeleportTimer;
+
+	int TeleportCount = 0;
 
 protected:
 

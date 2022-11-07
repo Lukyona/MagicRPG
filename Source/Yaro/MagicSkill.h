@@ -28,10 +28,10 @@ public:
 	class UProjectileMovementComponent* MovementComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
-	class USoundCue* ExplosionSound;
+	class USoundBase* ExplosionSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
-	class USoundCue* MagicSound;
+	class USoundBase* MagicSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float Damage;

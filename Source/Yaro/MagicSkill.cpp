@@ -56,10 +56,11 @@ void AMagicSkill::BeginPlay()
     GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]() {
         if (this->IsValidLowLevel())
         {
+            if (this->GetName().Contains("Tornado") || this->GetName().Contains("Laser")) return;
             Destroy(true);
         }
 
-    }), 1.f, false);
+    }), 1.5f, false);
 
     FTimerHandle WaitHandle2;
     GetWorld()->GetTimerManager().SetTimer(WaitHandle2, FTimerDelegate::CreateLambda([&]() {
@@ -138,14 +139,16 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
                 }
                 if (DamageTypeClass)
                 {
+                    if (this->GetName().Contains("Laser")) return;
                     UGameplayStatics::ApplyDamage(Enemy, Damage, MagicInstigator, this, DamageTypeClass);
-
                 }
             }
         }
        
-        if (index == 10)
+        if (index == 10) // enemy's magic skill
         {
+            if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
+
             ACharacter* TargetCharacter = Cast<ACharacter>(OtherActor);
             if (TargetCharacter)
             {

@@ -164,6 +164,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bAttacking;
 
+	UFUNCTION(BlueprintCallable)
 	void Attack();
 
 	UFUNCTION(BlueprintCallable)
@@ -190,6 +191,9 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	bool bAttackFromPlayer = false;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float EnemyExp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString Name;
 };

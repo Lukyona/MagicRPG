@@ -15,7 +15,7 @@ class YARO_API AMainPlayerController : public APlayerController
 public:
 	AMainPlayerController();
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadWrite)
 	class AMain* Main;
 
 	//Player can Targeting, then TargetArrow appear on Targeted enemy
@@ -139,14 +139,17 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bManualVisible = false;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    class USoundBase* ManualSoundCue;
-
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bFallenPlayer = false; // 플레이어가 던전 범위 밖으로 추락했을 때 true
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int FallingCount = 0;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void CalculateDialogueDistance();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	bool bCalculateOn;
 
 protected:
 	// Dialogue data tables

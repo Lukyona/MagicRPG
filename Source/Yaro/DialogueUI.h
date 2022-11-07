@@ -64,6 +64,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	class USoundBase* SoundCueMessage;
 
+	UPROPERTY(EditAnywhere)
+	class USoundBase* ExplosionSound;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AEnemySpawner> Spawner;
+
+
 public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
@@ -87,6 +94,7 @@ public:
 
 	void AnimateMessage(const FString& Text);
 
+	UFUNCTION(BlueprintCallable)
 	void InitializeDialogue(class UDataTable* DialogueTable);
 
 	UFUNCTION(BlueprintCallable)
@@ -152,5 +160,9 @@ public:
 	void AllNpcLookAtPlayer();
 
 	void AllNpcDisableLookAt();
+
+	void AllNpcStopFollowPlayer();
+
+	void AutoDialogue();
 
 };

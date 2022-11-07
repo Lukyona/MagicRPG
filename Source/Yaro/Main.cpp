@@ -108,12 +108,6 @@ AMain::AMain()
 
 	bESCDown = false;
 
-	InteractionRange = CreateDefaultSubobject<UCapsuleComponent>(TEXT("InteractionRange"));
-	InteractionRange->SetupAttachment(GetMesh());
-	InteractionRange->SetRelativeLocation(FVector(0.f, 70.f, 90.f));
-	InteractionRange->SetRelativeRotation(FRotator(0.f, 0.f, 90.f));
-	InteractionRange->SetRelativeScale3D(FVector(1.5f, 1.f, 2.2f));
-
     ItemSphere = CreateDefaultSubobject<USphereComponent>(TEXT("ItemSphere"));
 	ItemSphere->SetupAttachment(GetRootComponent());
 	ItemSphere->InitSphereRadius(130.f);
@@ -135,9 +129,6 @@ void AMain::BeginPlay()
 	if (this->GetName().Contains("Girl")) Gender = 2;
 
 	Storage = GetWorld()->SpawnActor<AItemStorage>(ObjectStorage);
-
-	InteractionRange->OnComponentBeginOverlap.AddDynamic(this, &AMain::InteractionRangeOnOverlapBegin);
-	InteractionRange->OnComponentEndOverlap.AddDynamic(this, &AMain::InteractionRangeOnOverlapEnd);
 
     ItemSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapBegin);
     ItemSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapEnd);
@@ -517,6 +508,7 @@ void AMain::Targeting() //Targeting using Tap key
 {
 	if (bOverlappingCombatSphere) //There is a enemy in combatsphere
 	{
+		//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Targeting"));
 		if (targetIndex >= Targets.Num()) //타겟인덱스가 총 타겟 가능 몹 수 이상이면 다시 0으로 초기화
 		{
 			targetIndex = 0;
@@ -524,16 +516,20 @@ void AMain::Targeting() //Targeting using Tap key
 		//There is already exist targeted enemy, then targetArrow remove
 		if (MainPlayerController->bTargetArrowVisible)
 		{
+
 			MainPlayerController->RemoveTargetArrow();
 			MainPlayerController->RemoveEnemyHPBar();
 		}
-		bHasCombatTarget = true;
+
 		if (Targets.Num() != 0 && !bAutoTargeting)
 		{
+			//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("noautotargt"));
+			if (Targets[targetIndex]->EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead) return;
             CombatTarget = Targets[targetIndex];
             targetIndex++;
 		}
-
+		bHasCombatTarget = true;
+		//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("displaye"));
 
 		MainPlayerController->DisplayTargetArrow(); 
 		MainPlayerController->DisplayEnemyHPBar();
@@ -644,13 +640,16 @@ void AMain::Die()
 	GetWorldTimerManager().ClearTimer(MPTimer);
 	GetWorldTimerManager().ClearTimer(SPTimer);
 
+	if (bAttacking) AttackEnd();
+
+	SetMovementStatus(EMovementStatus::EMS_Dead);
+
 	if (MainAnimInstance && CombatMontage)
 	{
 		bCanMove = false;
 		MainAnimInstance->Montage_Play(CombatMontage);
 		MainAnimInstance->Montage_JumpToSection(FName("Death"));
 	}
-	SetMovementStatus(EMovementStatus::EMS_Dead);
 
 }
 
@@ -671,10 +670,13 @@ void AMain::Jump()
 
 void AMain::Revive() // if player is dead, spawn player at the initial location
 {
-	if(MainPlayerController->DialogueNum <= 4)
+	if(MainPlayerController->DialogueNum <= 4) // first dungeon
 		this->SetActorLocation(FVector(-192.f, 5257.f, 3350.f));
-	else
+	else if(MainPlayerController->DialogueNum <= 15) // second dungeon
         this->SetActorLocation(FVector(3910.f, -3920.f,-2115.f));
+	else												// boss level
+		this->SetActorLocation(FVector(8.f, 1978.f, 184.f));
+
 
 	if (MainAnimInstance && CombatMontage)
 	{
@@ -692,27 +694,6 @@ void AMain::RevivalEnd()
 	GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);
 	GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
 	GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
-}
-
-void AMain::InteractionRangeOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (auto actor = Cast<AMain>(OtherActor)) return;
-
-	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
-
-	if (OtherActor)
-	{
-		if(!InteractTarget) InteractTarget = Cast<ACharacter>(OtherActor);
-
-	}
-}
-
-void AMain::InteractionRangeOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (InteractTarget)
-	{
-		InteractTarget = nullptr;
-	}
 }
 
 void AMain::StartDialogue()
@@ -752,10 +733,10 @@ void AMain::SaveGame()
 {
 	if (MainPlayerController->bDialogueUIVisible || MainPlayerController->bFallenPlayer || MainAnimInstance->bIsInAir)
 	{
-        GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 3.f, false);
-        return;
+		GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 1.f, false);
 
-	}
+        return;
+	} 
 
     //UE_LOG(LogTemp, Log, TEXT("SaveGame"));
 
@@ -772,14 +753,11 @@ void AMain::SaveGame()
 	SaveGameInstance->CharacterStats.Exp = Exp;
 	SaveGameInstance->CharacterStats.MaxExp = MaxExp;
 
-
     SaveGameInstance->DialogueNum = MainPlayerController->DialogueNum;
     SaveGameInstance->CharacterStats.FallingCount = MainPlayerController->FallingCount;
 
-
 	SaveGameInstance->CharacterStats.Location = GetActorLocation();
 	SaveGameInstance->CharacterStats.Rotation = GetActorRotation();
-
 
     SaveGameInstance->NpcInfo.MomoLocation = Momo->GetActorLocation();
     SaveGameInstance->NpcInfo.LukoLocation = Luko->GetActorLocation();
@@ -792,17 +770,16 @@ void AMain::SaveGame()
 
 	SaveGameInstance->DeadEnemyList = Enemies;
 
-
 	if (ItemInHand)
 	{
 		SaveGameInstance->CharacterStats.ItemName = ItemInHand->GetName();
 	}
 
-
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
-    
-	GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 3.f, false);
 
+	if (MainPlayerController->DialogueNum == 18 && MainPlayerController->SystemMessageNum == 12) return;
+
+	GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 1.f, false);
 }
 
 void AMain::LoadGame()
@@ -826,18 +803,6 @@ void AMain::LoadGame()
 	MaxExp = LoadGameInstance->CharacterStats.MaxExp;
 
 	Enemies = LoadGameInstance->DeadEnemyList;
-
-	if (MainPlayerController->DialogueNum != 5)
-	{
-        SetActorLocation(LoadGameInstance->CharacterStats.Location);
-        SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
-
-        Momo->SetActorLocation(LoadGameInstance->NpcInfo.MomoLocation);
-        Luko->SetActorLocation(LoadGameInstance->NpcInfo.LukoLocation);
-        Vovo->SetActorLocation(LoadGameInstance->NpcInfo.VovoLocation);
-        Vivi->SetActorLocation(LoadGameInstance->NpcInfo.ViviLocation);
-        Zizi->SetActorLocation(LoadGameInstance->NpcInfo.ZiziLocation);
-	}
 	
 	if (MainPlayerController->DialogueNum < 4)
 	{
@@ -873,10 +838,26 @@ void AMain::LoadGame()
 
         }
     }
+
+	if (MainPlayerController->DialogueNum != 5)
+	{
+		if (MainPlayerController->DialogueNum == 15 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) return;
+
+		SetActorLocation(LoadGameInstance->CharacterStats.Location);
+		SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
+
+		Momo->SetActorLocation(LoadGameInstance->NpcInfo.MomoLocation);
+		Luko->SetActorLocation(LoadGameInstance->NpcInfo.LukoLocation);
+		Vovo->SetActorLocation(LoadGameInstance->NpcInfo.VovoLocation);
+		Vivi->SetActorLocation(LoadGameInstance->NpcInfo.ViviLocation);
+		Zizi->SetActorLocation(LoadGameInstance->NpcInfo.ZiziLocation);
+	}
 }
 
 void AMain::CheckDialogueRequirement()
 {
+	int count = 0;
+
 	switch (MainPlayerController->DialogueNum)
 	{
 		case 3: // after golem died
@@ -884,6 +865,12 @@ void AMain::CheckDialogueRequirement()
 			{
 				if (Enemies[i].Contains("Golem"))
 				{
+					Momo->AIController->MoveToLocation(FVector(594.f, -1543.f, 2531.f));
+					Luko->AIController->MoveToLocation(FVector(494.f, -1629.f, 2561.f));
+					Vovo->AIController->MoveToLocation(FVector(903.f, -1767.f, 2574.f));
+					Vivi->AIController->MoveToLocation(FVector(790.f, -1636.f, 2566.f));
+					Zizi->AIController->MoveToLocation(FVector(978.f, -1650.f, 2553.f));
+
 					MainPlayerController->DisplayDialogueUI();
 					return;
 				}
@@ -912,12 +899,52 @@ void AMain::CheckDialogueRequirement()
                 NPCList[i]->AIController->StopMovement();
                 GetWorld()->GetTimerManager().ClearTimer(NPCList[i]->MoveTimer);
             }
-            Momo->AIController->MoveToLocation(FVector(5320.f, -3702.f, -2122.f));
-            Luko->AIController->MoveToLocation(FVector(5249.f, -3685.f, -2117.f));
-            Vovo->AIController->MoveToLocation(FVector(5462.f, -3725.f, -2117.f));
-            Vivi->AIController->MoveToLocation(FVector(5392.f, -3686.f, -2117.f));
-            Zizi->AIController->MoveToLocation(FVector(5538.f, -3696.f, -2115.f));
+			Momo->AIController->MoveToLocation(FVector(5307.f, -3808.f, -2122.f));
+			Luko->AIController->MoveToLocation(FVector(5239.f, -3865.f, -2117.f));
+			Vovo->AIController->MoveToLocation(FVector(5433.f, -3855.f, -2117.f));
+			Vivi->AIController->MoveToLocation(FVector(5392.f, -3686.f, -2117.f));
+			Zizi->AIController->MoveToLocation(FVector(5538.f, -3696.f, -2115.f));
 			break;
+		 case 12:
+			 for (auto enemy : Enemies)
+			 {
+				 if(enemy.Contains("spider")) // Event enemies in second dungeon
+					 count++;
+
+				 if (count == 5)
+				 {
+					 MainPlayerController->bCalculateOn = true;
+					 MainPlayerController->DisplayDialogueUI();
+
+				 }
+			 }
+			 break;
+		 case 14:
+			 for (auto enemy : Enemies)
+			 {
+				 if (enemy.Contains("monster")) // Final enemies in second dungeon
+					 count++;
+
+				 if (count == 3) MainPlayerController->DisplayDialogueUI();
+			 }
+			 break;
+		 case 16:
+			 Vivi->AIController->MoveToLocation(FVector(105.f, 3176.f, 182.f));
+			 Momo->AIController->MoveToLocation(FVector(-86.f, 3263.f, 177.f));
+			 Luko->AIController->MoveToLocation(FVector(184.f, 3317.f, 182.f));
+			 Vovo->AIController->MoveToLocation(FVector(-140.f, 3370.f, 182.f));
+			 Zizi->AIController->MoveToLocation(FVector(68.f, 3398.f, 184.f));
+			 MainPlayerController->DialogueUI->SelectedReply = 2;
+			 break;
+		 case 17:
+			 Vivi->AIController->MoveToLocation(FVector(100.f, 1997.f, 182.f));
+			 Momo->AIController->MoveToLocation(FVector(-86.f, 2150.f, 177.f));
+			 Luko->AIController->MoveToLocation(FVector(171.f, 2130.f, 182.f));
+			 Vovo->AIController->MoveToLocation(FVector(-160.f, 2060.f, 182.f));
+			 Zizi->AIController->MoveToLocation(FVector(18.f, 2105.f, 184.f));
+			 break;
+
+
 	}
 
 }
@@ -988,7 +1015,7 @@ void AMain::GetExp(float exp)
 			Exp = tmp;
 		}
 
-		if (Level == 5) Exp = 100.f;
+		if (Level == 5) Exp = MaxExp;
 
 		switch (Level)
 		{
@@ -1025,6 +1052,16 @@ void AMain::GetExp(float exp)
                 break;
 		}
 
+		HP += 100.f;
+		MP += 50.f;
+		SP += 100.f;
+
+		if (HP > MaxHP) HP = MaxHP;
+		if (MP > MaxMP) MP = MaxMP;
+		if (SP > MaxSP) SP = MaxSP;
+
+
+
         FTimerHandle Timer;
         GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
             {
@@ -1041,16 +1078,43 @@ void AMain::ShowManual()
 
 void AMain::Escape()
 {
-	if (MainPlayerController->DialogueNum >= 6)
+
+	if (MainPlayerController->DialogueNum >= 6 && !MainPlayerController->bDialogueUIVisible && MovementStatus != EMovementStatus::EMS_Dead)
 	{
 		if (MainPlayerController->DialogueNum <= 8)
 		{
             SetActorLocation(FVector(4620.f, -3975.f, -2117.f));
 		}
-		else if (MainPlayerController->DialogueNum <= 12)
+		else if (MainPlayerController->DialogueNum <= 11)
 		{
             SetActorLocation(FVector(5165.f, -2307.f, -2117.f));
 		}
+		else if(MainPlayerController->DialogueNum <= 15)
+		{
+			SetActorLocation(FVector(2726.f, -3353.f, -500.f));
+		}
+	}
+}
 
+bool AMain::CanTalkWithNpc()
+{
+	for (int i = 0; i < NPCList.Num(); i++)
+	{
+		float distance = GetDistanceTo(NPCList[i]);
+		//UE_LOG(LogTemp, Log, TEXT("%s %f"), *NPCList[i]->GetName(), distance);
+
+		if (distance >= 1300.f)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void AMain::AllNpcMoveToPlayer()
+{
+	for (int i = 0; i < NPCList.Num(); i++)
+	{
+		NPCList[i]->MoveToPlayer();
 	}
 }

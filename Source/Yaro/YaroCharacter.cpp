@@ -47,9 +47,7 @@ AYaroCharacter::AYaroCharacter()
     AttackSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
     AttackSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 
-	bOverlappingCombatSphere = false;
-	bHasCombatTarget = false;
-	targetIndex = 0;
+	bOverlappingAttackSphere = false;
 
 	AttackArrow = CreateAbstractDefaultSubobject<UArrowComponent>(TEXT("AttackArrow"));
 	AttackArrow->SetupAttachment(GetRootComponent());
@@ -159,13 +157,44 @@ void AYaroCharacter::MoveToPlayer()
 {
 	if (Player == nullptr) return;
 
-	if (CombatTarget == nullptr && !bAttacking && !bOverlappingCombatSphere) // basic condition
+	if (CombatTarget == nullptr && !bAttacking && !bOverlappingAttackSphere && AgroTargets.Num() == 0) // basic condition
 	{
+		if (Player->MainPlayerController->bDialogueUIVisible)
+		{
+			GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
+			return;
+
+		}
+
 		if (Player->MainPlayerController->DialogueNum < 5 && Player->NpcGo == false)
 		{
 			// 대화 넘버 1에서 루코가 이동하는 것 허용
 			if (!(Player->MainPlayerController->DialogueNum == 1 && this->GetName().Contains("Luko")))
 				return;
+		}
+
+		for (int i = 0; i < Player->NPCList.Num(); i++)
+		{
+			if (Player->NPCList[i]->AgroTargets.Num() != 0 && !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) // 다른 npc의 인식 범위에 몬스터가 있으면 도와주러 감, 단 첫번째 던전은 제외
+			{
+				UE_LOG(LogTemp, Log, TEXT("go help move %s"), *this->GetName());
+				if ((this->GetName()).Contains("Momo"))
+				{
+					GetCharacterMovement()->MaxWalkSpeed = 600.f;
+				}
+				else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
+				{
+					GetCharacterMovement()->MaxWalkSpeed = 500.f;
+				}
+				else
+				{
+					GetCharacterMovement()->MaxWalkSpeed = 450.f;
+				}
+				MoveToTarget(Player->NPCList[i]->AgroTargets[0]);
+				GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 1.f);
+
+				return;
+			}
 		}
 
         float distance = GetDistanceTo(Player);
@@ -184,6 +213,8 @@ void AYaroCharacter::MoveToPlayer()
             {
                 GetCharacterMovement()->MaxWalkSpeed = 450.f;
             }
+			if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first") && !GetWorldTimerManager().IsTimerActive(TeleportTimer))
+				Teleport();
         }
         else //가깝다면 속도 낮춰 걷기
         {
@@ -199,6 +230,7 @@ void AYaroCharacter::MoveToPlayer()
             {
                 GetCharacterMovement()->MaxWalkSpeed = 225.f;
             }
+			TeleportCount = 0;
         }
 
         FAIMoveRequest MoveRequest;
@@ -208,9 +240,36 @@ void AYaroCharacter::MoveToPlayer()
         FNavPathSharedPtr NavPath;
         AIController->MoveTo(MoveRequest, &NavPath);
 
-	}	
-    GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
+	}
+	else
+	{
+		if(UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first"))
+			GetWorldTimerManager().ClearTimer(TeleportTimer); 
+	}
 
+    GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
+}
+
+void AYaroCharacter::Teleport()
+{
+	TeleportCount += 1;
+	if (TeleportCount >= 25) SetActorLocation(Player->GetActorLocation() + FVector(15.f, 25.f, 0.f));
+
+	float distance = (GetActorLocation() - Player->GetActorLocation()).Size();
+	UE_LOG(LogTemp, Log, TEXT("count %d %s"), TeleportCount, *this->GetName());
+
+	if (distance <= 400.f)
+	{
+		if (AIController)
+		{
+			TeleportCount = 0;
+			GetWorldTimerManager().ClearTimer(TeleportTimer);
+		}
+	}
+	else
+	{
+		GetWorldTimerManager().SetTimer(TeleportTimer, this, &AYaroCharacter::Teleport, 0.5f);
+	}
 }
 
 void AYaroCharacter::SetInterpToEnemy(bool Interp)
@@ -246,24 +305,19 @@ void AYaroCharacter::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedC
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 		if (Enemy)
 		{
-			bOverlappingCombatSphere = true;
-			for (int i = 0; i < Targets.Num(); i++)
+			for (int i = 0; i < AgroTargets.Num(); i++)
 			{
-				if (Enemy == Targets[i]) //already exist
+				if (Enemy == AgroTargets[i]) //already exist
 				{
 					return;
 				}
 			}
-			Targets.Add(Enemy);
+			AgroTargets.Add(Enemy);
 
 			if (!CombatTarget)
 			{
-				CombatTarget = Targets[targetIndex];
-				targetIndex++;
-				MoveToTarget(CombatTarget);
-				bHasCombatTarget = true;
+				MoveToTarget(Enemy);
 			}
-
 		}
 	}
 }
@@ -275,31 +329,36 @@ void AYaroCharacter::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCom
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 		if (Enemy)
 		{
-			for (int i = 0; i < Targets.Num(); i++)
+			for (int i = 0; i < AgroTargets.Num(); i++)
 			{
-				if (Enemy == Targets[i]) //already exist
+				if (Enemy == AgroTargets[i]) //already exist
 				{
-					Targets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
-					targetIndex--;
-					if (targetIndex < 0) targetIndex = 0;
+					AgroTargets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
+
 				}
 			}
 
-			if (Enemy == CombatTarget)
-			{
-				//UE_LOG(LogTemp, Log, TEXT("%s, overlap out"), *(this->GetName()));
+			//if (bAttacking) AttackEnd();
 
+			if (AgroTargets.Num() == 0)
+			{
 				CombatTarget = nullptr;
-				bHasCombatTarget = false;
-			}
+				for (int i = 0; i < Player->NPCList.Num(); i++)
+				{
+					if (Player->NPCList[i]->AgroTargets.Num() != 0 && !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) // 다른 npc의 인식 범위에 몬스터가 있으면 도와주러 감
+					{
+						UE_LOG(LogTemp, Log, TEXT("overlap end go help %s"), *this->GetName());
 
-			if (Targets.Num() == 0)
-			{
-				bOverlappingCombatSphere = false;
+						MoveToTarget(Player->NPCList[i]->AgroTargets[0]);
+					}
+				}
 			}
-			else if(bAttacking)
+			else
 			{
-				AttackEnd();
+				UE_LOG(LogTemp, Log, TEXT("yes agro now combat %s"), *this->GetName());
+
+				CombatTarget = AgroTargets[0];
+				Attack();
 			}
 		}
 	}
@@ -310,9 +369,26 @@ void AYaroCharacter::AttackSphereOnOverlapBegin(UPrimitiveComponent* OverlappedC
     if (OtherActor)
     {
         AEnemy* Enemy = Cast<AEnemy>(OtherActor);
-        if (Enemy && !bAttacking)
+
+        if (Enemy)
         {
-            //UE_LOG(LogTemp, Log, TEXT("AttackSphereOnOverlapBegin %s"), *this->GetName());
+			for (int i = 0; i < CombatTargets.Num(); i++)
+			{
+				if (Enemy == CombatTargets[i]) //already exist
+				{
+					return;
+				}
+			}
+			CombatTargets.Add(Enemy);
+
+			//if (bAttacking) AttackEnd();
+
+			if (CombatTarget) return;
+
+            UE_LOG(LogTemp, Log, TEXT("AttackSphereOnOverlapBegin %s"), *this->GetName());
+			bOverlappingAttackSphere = true;
+
+			CombatTarget = Enemy;
 
 			AIController->StopMovement();
 			Attack();          
@@ -327,19 +403,45 @@ void AYaroCharacter::AttackSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCom
         AEnemy* Enemy = Cast<AEnemy>(OtherActor);
         if (Enemy)
         {
-            //UE_LOG(LogTemp, Log, TEXT("AttackSphereOnOverlapEnd %s"), *this->GetName());
+            UE_LOG(LogTemp, Log, TEXT("AttackSphereOnOverlapEnd %s"), *this->GetName());	
 
-			if (bAttacking)
+			if (Enemy == CombatTarget)
 			{
-                bAttacking = false;
-                SetInterpToEnemy(false);
+
+				//if (bAttacking) AttackEnd();
+				CombatTarget = nullptr;
+
+				for (int i = 0; i < CombatTargets.Num(); i++)
+				{
+					if (Enemy == CombatTargets[i]) //already exist
+					{
+						CombatTargets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
+					}
+				}
+
+				if (CombatTargets.Num() != 0)
+				{
+					UE_LOG(LogTemp, Log, TEXT("%s, combattaerget tes"), *this->GetName());
+
+					CombatTarget = CombatTargets[0];
+
+					Attack();
+				}
+				else
+				{
+					bOverlappingAttackSphere = false;
+
+					if (AgroTargets.Num() != 0)
+					{
+						UE_LOG(LogTemp, Log, TEXT("%s, no combat but agro yes"), *this->GetName());
+
+						CombatTarget = AgroTargets[0];
+						Attack();
+
+					}
+
+				}
 			}
-
-            if (Targets.Num() != 0)
-            {
-				MoveToTarget(Targets[0]);
-            }
-
         }
     }
 }
@@ -352,34 +454,62 @@ void AYaroCharacter::Attack()
 
 		if (bCanCastStrom) //npc can cast strom magic
 		{
-            SkillNum = FMath::RandRange(1, 3);
-            if (SkillNum == 1)
-            {
-                bCanCastStrom = false;
-                FTimerHandle StormTimer;
-                GetWorldTimerManager().SetTimer(StormTimer, this, &AYaroCharacter::CanCastStormMagic, 6.f, false);  // 6초 뒤 다시 스톰 사용 가능
-            }
+			if (Player->MainPlayerController->DialogueNum <= 5)
+			{
+				SkillNum = FMath::RandRange(1, 3);
+			}
+			else if (Player->MainPlayerController->DialogueNum <= 14)
+			{
+				SkillNum = FMath::RandRange(1, 4);
+			}
+			else
+			{
+				SkillNum = FMath::RandRange(1, 5);
+			}          
 		}
 		else //npc can't cast strom magic
 		{
-            SkillNum = FMath::RandRange(2, 3);
+			if (Player->MainPlayerController->DialogueNum <= 5)
+			{
+				SkillNum = FMath::RandRange(2, 3);
+			}
+			else if (Player->MainPlayerController->DialogueNum <= 14)
+			{
+				SkillNum = FMath::RandRange(2, 4);
+			}
+			else
+			{
+				SkillNum = FMath::RandRange(2, 5);
+			}
 		}
 		
+        if (SkillNum == 1)
+        {
+            bCanCastStrom = false;
+            FTimerHandle StormTimer;
+            GetWorldTimerManager().SetTimer(StormTimer, this, &AYaroCharacter::CanCastStormMagic, 8.f, false);  // 8초 뒤 다시 스톰 사용 가능
+        }
 
-		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/GreenStormAttack.GreenStormAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
+		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/1_GreenStormAttack.1_GreenStormAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
 		if (this->GetName().Contains("Luko"))
 		{
 			switch (SkillNum)
 			{
 				case 1:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/GreenStormAttack.GreenStormAttack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/1_GreenStormAttack.1_GreenStormAttack_C"));
 					break;
-				case 2:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/DarkAttack.DarkAttack_C"));
-					break;
+                case 2:
+                    LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/2_Greenball_Hit_Attack.2_Greenball_Hit_Attack_C"));
+                    break;
 				case 3:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/LightAttack.LightAttack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/3_LightAttack.3_LightAttack_C"));
 					break;
+                case 4:
+                    LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/4_DarkAttack.4_DarkAttack_C"));
+                    break;
+                case 5:
+                    LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/5_GreenLaserAttack.5_GreenLaserAttack_C"));
+                    break;
 				default:
 					break;
 			}
@@ -389,14 +519,20 @@ void AYaroCharacter::Attack()
 			switch (SkillNum)
 			{
 				case 1:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/RedStormAttack.RedStormAttack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/1_RedStormAttack.1_RedStormAttack_C"));
 					break;
 				case 2:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/Fireball_Hit_Attack.Fireball_Hit_Attack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/2_Fireball_Hit_Attack.2_Fireball_Hit_Attack_C"));
 					break;
 				case 3:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/FireAttack.FireAttack_C"));
+					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/3_FireAttack.3_FireAttack_C"));
 					break;
+                case 4:
+                    LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/4_Fireball_Hit_Attack.4_Fireball_Hit_Attack_C"));
+                    break;
+                case 5:
+                    LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/5_RedLaserAttack.5_RedLaserAttack_C"));
+                    break;
 				default:
 					break;
 			}
@@ -406,14 +542,20 @@ void AYaroCharacter::Attack()
 			switch (SkillNum)
 			{
 			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/YellowStormAttack.YellowStormAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/1_YellowStormAttack.1_YellowStormAttack_C"));
 				break;
 			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/Waterball_Hit_Attack.Waterball_Hit_Attack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/2_Waterball_Hit_Attack.2_Waterball_Hit_Attack_C"));
 				break;
 			case 3:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/AquaAttack.AquaAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/3_AquaAttack.3_AquaAttack_C"));
 				break;
+            case 4:
+                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/4_AuraAttack.4_AuraAttack_C"));
+                break;
+            case 5:
+                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/5_YellowLaserAttack.5_YellowLaserAttack_C"));
+                break;
 			default:
 				break;
 			}
@@ -423,14 +565,20 @@ void AYaroCharacter::Attack()
 			switch (SkillNum)
 			{
 			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/BlueStormAttack.BlueStormAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/1_BlueStormAttack.1_BlueStormAttack_C"));
 				break;
 			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/Ice_Hit_Attack.Ice_Hit_Attack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/2_Ice_Hit_Attack.2_Ice_Hit_Attack_C"));
 				break;
-			case 3:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/IceAttack.IceAttack_C"));
+            case 3:
+                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/3_IceBolt_Hit_Attack.3_IceBolt_Hit_Attack_C"));
+                break;
+			case 4:
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/4_IceAttack.4_IceAttack_C"));
 				break;
+            case 5:
+                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/5_BlueLaserAttack.5_BlueLaserAttack_C"));
+                break;
 			default:
 				break;
 			}
@@ -440,14 +588,20 @@ void AYaroCharacter::Attack()
 			switch (SkillNum)
 			{
 			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/PurpleStormAttack.PurpleStormAttack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/1_PurpleStormAttack.1_PurpleStormAttack_C"));
 				break;
 			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/Thunderball_Hit_Attack.Thunderball_Hit_Attack_C"));
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/2_Thunderball_Hit_Attack.2_Thunderball_Hit_Attack_C"));
 				break;
-			case 3:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/LightningAttack.LightningAttack_C"));
+            case 3:
+                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/3_EnergyBolt_Hit_Attack.3_EnergyBolt_Hit_Attack_C"));
 				break;
+			case 4:
+				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/4_LightningAttack.4_LightningAttack_C"));
+				break;
+            case 5:
+                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/5_TornadoAttack.5_TornadoAttack_C"));
+                break;
 			default:
 				break;
 			}
@@ -476,48 +630,86 @@ void AYaroCharacter::AttackEnd()
 {
 	bAttacking = false;
 	SetInterpToEnemy(false);
-    //UE_LOG(LogTemp, Log, TEXT("AttackEnd %s"), *this->GetName());
+    UE_LOG(LogTemp, Log, TEXT("AttackEnd %s"), *this->GetName());
 
-	if (bOverlappingCombatSphere)
+	if (bOverlappingAttackSphere)
 	{
 		if (CombatTarget && CombatTarget->EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead)
 		{
-			for (int i = 0; i < Targets.Num(); i++)
+			for (int i = 0; i < CombatTargets.Num(); i++)
 			{
-				if (CombatTarget == Targets[i]) //already exist
+				if (CombatTarget == CombatTargets[i]) //already exist
 				{
-					Targets.Remove(CombatTarget); //타겟팅 가능 몹 배열에서 제거
-					targetIndex--;
-					if (targetIndex < 0) targetIndex = 0;
-
+					CombatTargets.Remove(CombatTarget); //타겟팅 가능 몹 배열에서 제거
 				}
 			}			
 
-			CombatTarget = nullptr;
-			bHasCombatTarget = false;
-
-			if (Targets.Num() == 0)
+			for (int i = 0; i < AgroTargets.Num(); i++)
 			{
-				bOverlappingCombatSphere = false;
-                //UE_LOG(LogTemp, Log, TEXT("no monster %s"), *this->GetName());
+				if (CombatTarget == AgroTargets[i]) //already exist
+				{
+					AgroTargets.Remove(CombatTarget); //타겟팅 가능 몹 배열에서 제거
 
+				}
+			}
+
+			CombatTarget = nullptr;
+
+			if (CombatTargets.Num() == 0)
+			{
+				bOverlappingAttackSphere = false;
+                UE_LOG(LogTemp, Log, TEXT("no monster combatargets %s"), *this->GetName());
+				
+				if (AgroTargets.Num() != 0)
+				{
+					CombatTarget = AgroTargets[0];
+					Attack();
+					UE_LOG(LogTemp, Log, TEXT("but agro yes %s"), *this->GetName());
+
+				}
+				else
+				{
+					for (int i = 0; i < Player->NPCList.Num(); i++)
+					{
+						if (Player->NPCList[i]->AgroTargets.Num() != 0 && !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) // 다른 npc의 인식 범위에 몬스터가 있으면 도와주러 감
+						{
+							UE_LOG(LogTemp, Log, TEXT("attack end go help %s"), *this->GetName());
+
+							MoveToTarget(Player->NPCList[i]->AgroTargets[0]);
+						}
+					}
+				}
+				
+				
 			}
 			else
 			{
-				CombatTarget = Targets[targetIndex];
-                //UE_LOG(LogTemp, Log, TEXT("CombatTarget set %s"), * this->GetName());
-
-				targetIndex++;
-				if (targetIndex >= Targets.Num()) //타겟인덱스가 총 타겟 가능 몹 수 이상이면 다시 0으로 초기화
-				{
-					targetIndex = 0;
-				}
-				bHasCombatTarget = true;
+				CombatTarget = CombatTargets[0];
+                UE_LOG(LogTemp, Log, TEXT("CombatTarget set %s"), * this->GetName());
 			}
 		}
 
 		if (CombatTarget)
 			GetWorldTimerManager().SetTimer(AttackTimer, this, &AYaroCharacter::Attack, AttackDelay);
+	}
+	else
+	{
+		if (AgroTargets.Num() != 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("moveto %s"), *this->GetName());
+			for (int i = 0; i < AgroTargets.Num(); i++)
+			{
+				if (AgroTargets[i]->EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead)
+				{
+					CombatTarget = AgroTargets[i];
+					GetWorldTimerManager().SetTimer(AttackTimer, this, &AYaroCharacter::Attack, AttackDelay);
+					return;
+				}
+			}
+
+			
+		}
+
 	}
 }
 
@@ -527,42 +719,37 @@ void AYaroCharacter::Spawn()
 	if (ToSpawn)
 	{
 		GetWorld()->GetTimerManager().SetTimer(MagicSpawnTimer, FTimerDelegate::CreateLambda([&]()
+		{
+			UWorld* world = GetWorld();
+			if (world)
 			{
-				UWorld* world = GetWorld();
-				if (world)
+				FActorSpawnParameters spawnParams;
+				spawnParams.Owner = this;
+
+				FRotator rotator = this->GetActorRotation();
+
+				FVector spawnLocation = AttackArrow->GetComponentTransform().GetLocation();
+				if (CombatTarget)
 				{
-					FActorSpawnParameters spawnParams;
-					spawnParams.Owner = this;
-
-					FRotator rotator = this->GetActorRotation();
-
-					FVector spawnLocation = AttackArrow->GetComponentTransform().GetLocation();
-					if (CombatTarget)
-					{
-						if (this->GetName().Contains("Luko"))
+						if (SkillNum == 3 && (this->GetName().Contains("Momo") || this->GetName().Contains("Luko") || this->GetName().Contains("Vovo"))) //모모,루코,보보의 경우 3번 스킬은 적 위치에서 스폰
 						{
-							if (SkillNum != 1) //루코의 경우 2,3번 스킬은 적 위치에서 스폰
-							{
-								spawnLocation = CombatTarget->GetActorLocation();
-							}
+							spawnLocation = CombatTarget->GetActorLocation();
 						}
-						else
+						
+						if (SkillNum == 4 && !this->GetName().Contains("Momo")) //모모 제외 4번 스킬 적 위치에서 스폰
 						{
-							if (SkillNum == 3) //루코 제외 3번 스킬만 적 위치에서 스폰
-							{
-								spawnLocation = CombatTarget->GetActorLocation();
-							}
-						}
-					}		
+							spawnLocation = CombatTarget->GetActorLocation();
+						}			
+				}		
 
-					MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);
-					if (MagicAttack && CombatTarget)
-					{
-						MagicAttack->Target = CombatTarget;
-						MagicAttack->Caster = this;
-					}
+				MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);
+				if (MagicAttack && CombatTarget)
+				{
+					MagicAttack->Target = CombatTarget;
+					MagicAttack->Caster = this;
 				}
-			}), 0.6f, false); // 0.6초 뒤 실행, 반복X
+			}
+		}), 0.6f, false); // 0.6초 뒤 실행, 반복X
 	}
 }
 
@@ -581,7 +768,7 @@ void AYaroCharacter::MoveToLocation() // Vivi, Vovo, Zizi
 
 	GetWorld()->GetTimerManager().SetTimer(TeamMoveTimer, FTimerDelegate::CreateLambda([&]() {
 
-		if (!CombatTarget && !bOverlappingCombatSphere)
+		if (!CombatTarget && !bOverlappingAttackSphere)
 		{
             float distance = (GetActorLocation() - Pos[index]).Size();
 

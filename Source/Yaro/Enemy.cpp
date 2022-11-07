@@ -17,6 +17,7 @@
 #include "Sound/SoundCue.h"
 #include "MainPlayerController.h"
 #include "Engine/EngineTypes.h"
+#include "YaroCharacter.h"
 
 // Sets default values
 AEnemy::AEnemy()
@@ -153,7 +154,7 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 		ACharacter* target = Cast<ACharacter>(OtherActor);
 
 		if (!target) return;
-		//UE_LOG(LogTemp, Log, TEXT("OtherActor %s"), *target->GetName());
+		UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapBegin %s"), *target->GetName());
 
 		if (target == Main)
 		{
@@ -192,7 +193,7 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 					AgroTargets.Remove(target);
 				}
 			}
-            //UE_LOG(LogTemp, Log, TEXT("enddd %s"), *target->GetName());
+            //UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapEnd %s"), *target->GetName());
 
 			if (AgroTarget != Main) //npc를 쫓아가던 중이면(인식 범위 나간 것도 npc)
 			{
@@ -235,6 +236,8 @@ void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent
 
 		if (target)
 		{			
+			//UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapBegin %s"), *OtherActor->GetName());
+
 			for (int i = 0; i < CombatTargets.Num(); i++)
 			{
 				if (target == CombatTargets[i]) return;
@@ -262,13 +265,18 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 	{
 		ACharacter* target = Cast<ACharacter>(OtherActor);
 		//UE_LOG(LogTemp, Log, TEXT("CombatSphere On Overlap End"));
-		//UE_LOG(LogTemp, Log, TEXT("////OtherActor %s"), *OtherActor->GetName());
+		UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapEnd %s"), *OtherActor->GetName());
 
 		if (!target) return;
+
 		AnimInstance->Montage_Stop(0.1f, CombatMontage);
 
 		
-		if(target == CombatTarget) CombatTarget = nullptr; //전투타겟이 전투범위를 나감
+		if (target == CombatTarget)
+		{
+			CombatTarget = nullptr; //전투타겟이 전투범위를 나감
+			if (bAttacking) AttackEnd();
+		}
 
 		for (int i = 0; i < CombatTargets.Num(); i++) // Remove target in the target list
 		{
@@ -302,9 +310,10 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 			{
 				CombatTarget = CombatTargets[0];
 				bOverlappingCombatSphere = true;
+				Attack();
 			}
 		}	
-		if(bAttacking) AttackEnd();
+
 	}
 }
 
@@ -389,7 +398,12 @@ void AEnemy::Attack()
 	{
 		if (!bAttacking && CombatTarget)
 		{
-			if (CombatTarget == Main && Main->MovementStatus == EMovementStatus::EMS_Dead) return;
+			if (CombatTarget == Main && Main->MovementStatus == EMovementStatus::EMS_Dead)
+			{
+				AttackEnd();
+				return;
+
+			}
 
 			if (AIController)
 			{
@@ -405,7 +419,8 @@ void AEnemy::Attack()
 			{
 				AnimInstance->Montage_Play(CombatMontage);
 
-				if (this->GetName().Contains("Grux") || this->GetName().Contains("LizardMan") || this->GetName().Contains("LizardMan") || this->GetName().Contains("Archer"))
+				if (this->GetName().Contains("Grux") || this->GetName().Contains("LizardMan") || this->GetName().Contains("LizardMan")
+					|| this->GetName().Contains("Archer") || this->GetName().Contains("Spider"))
 				{
 					AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
 				}
@@ -443,6 +458,45 @@ void AEnemy::AttackEnd()
 	//UE_LOG(LogTemp, Log, TEXT("attack end"));
 	if (bOverlappingCombatSphere && !AgroTarget)
 	{
+		if (CombatTarget)
+		{
+			if (CombatTarget == Main)
+			{
+				if (Main->MovementStatus == EMovementStatus::EMS_Dead)
+				{
+					AgroTargets.Remove(Main);
+					CombatTargets.Remove(Main);
+
+					if (CombatTargets.Num() == 0) // no one's in Combatsphere
+					{
+						bOverlappingCombatSphere = false;
+
+						if (AgroTargets.Num() != 0) // 인식범위 내에 다른 누군가가 있으면
+						{
+							MoveToTarget(AgroTargets[0]);
+						}
+						
+					}
+					else //전투범위 내에 다른 누군가가 있으면
+					{
+						
+						CombatTarget = CombatTargets[0];
+						bOverlappingCombatSphere = true;
+						
+					}
+				}
+
+			}
+			else
+			{
+				AYaroCharacter* npc = Cast<AYaroCharacter>(CombatTarget);
+				/*if (npc->MovementStatus == EMovementStatus::EMS_Dead)
+				{
+
+				}*/
+			}
+		}
+
 		GetWorldTimerManager().SetTimer(AttackTimer, this, &AEnemy::Attack, AttackDelay);
 	}
 }
@@ -456,7 +510,7 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 	}
 	else
 	{
-		if (AnimInstance)
+		if (AnimInstance && !bAttacking)
 		{
 			AnimInstance->Montage_Play(CombatMontage);
 			AnimInstance->Montage_JumpToSection(FName("Hit"), CombatMontage);
@@ -465,6 +519,7 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 	}
 
 	MagicAttack = Cast<AMagicSkill>(DamageCauser);
+	//UE_LOG(LogTemp, Log, TEXT("attck %s"), *MagicAttack->GetName());
 
 	return DamageAmount;
 }
@@ -473,7 +528,7 @@ void AEnemy::Die()
 {
 	if (EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead)
 	{
-		Main->Enemies.Add(this->GetName());
+		Main->Enemies.Add(Name);
 		if (AIController) AIController->StopMovement();
 		SetInterpToTarget(false);
 
@@ -494,13 +549,17 @@ void AEnemy::DeathEnd()
 {
 	GetMesh()->bPauseAnims = true;
 	GetMesh()->bNoSkeletonUpdate = true;
-	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::Disappear, DeathDelay);
 
-	if (this->GetName().Contains("Golem")) // 골렘 쓰러뜨린 뒤 대화
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first") && Main->Enemies.Num() == 9) // 첫번째 던전 클리어했는지
 	{
 		Main->SaveGame();
+		if (Main->Momo->TeleportCount == 0) GetWorldTimerManager().ClearTimer(Main->Momo->MoveTimer);
+		if (Main->Luko->TeleportCount == 0) GetWorldTimerManager().ClearTimer(Main->Luko->MoveTimer);
+
 		Main->MainPlayerController->DisplayDialogueUI();
 	}
+
+	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::Disappear, DeathDelay);
 }
 
 bool AEnemy::Alive()
