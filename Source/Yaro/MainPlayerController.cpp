@@ -10,6 +10,8 @@
 #include "Main.h"
 #include "YaroCharacter.h"
 #include "AIController.h"
+#include "Kismet/KismetMathLibrary.h"
+
 
 AMainPlayerController::AMainPlayerController()
 {
@@ -96,6 +98,8 @@ void AMainPlayerController::BeginPlay()
 
     bCalculateOn = true;
 
+    SpeechBubble = GetWorld()->SpawnActor<AActor>(SpeechBubble_BP);
+
 }
 
 void AMainPlayerController::DisplayTargetArrow()
@@ -114,6 +118,30 @@ void AMainPlayerController::RemoveTargetArrow()
         bTargetArrowVisible = false;
         TargetArrow->SetVisibility(ESlateVisibility::Hidden);
     }
+}
+
+void AMainPlayerController::DisplaySpeechBuubble(class AYaroCharacter* npc)
+{
+    if (SpeechBubble && bCanDisplaySpeechBubble)
+    {
+        NpcLocation = npc->GetActorLocation() + FVector(0.f, 0.f, 93.f);
+
+        SpeechBubble->SetActorLocation(NpcLocation);
+        SpeechBubble->SetActorHiddenInGame(false);
+
+        bSpeechBuubbleVisible = true;
+    }
+}
+
+void AMainPlayerController::RemoveSpeechBuubble()
+{
+    if (SpeechBubble)
+    {
+        bCanDisplaySpeechBubble = false;
+        bSpeechBuubbleVisible = false;
+        SpeechBubble->SetActorHiddenInGame(true);
+    }
+
 }
 
 void AMainPlayerController::Tick(float DeltaTime)
@@ -137,6 +165,14 @@ void AMainPlayerController::Tick(float DeltaTime)
 
         FVector2D SizeInViewport = FVector2D(150.f, 15.f);
         EnemyHPBar->SetDesiredSizeInViewport(SizeInViewport);
+    }
+
+    if (bSpeechBuubbleVisible)
+    {
+        FRotator LookAtYaw = UKismetMathLibrary::FindLookAtRotation(SpeechBubble->GetActorLocation(), Main->GetActorLocation());
+        FRotator InterpRotation = FMath::RInterpTo(SpeechBubble->GetActorRotation(), LookAtYaw, DeltaTime, 20.f); //smooth transition
+
+        SpeechBubble->SetActorRotation(InterpRotation);
     }
 
    if(Main == nullptr) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
@@ -185,6 +221,7 @@ void AMainPlayerController::RemoveEnemyHPBar()
     {
         bEnemyHPBarVisible = false;
         EnemyHPBar->SetVisibility(ESlateVisibility::Hidden);
+        bCanDisplaySpeechBubble = false;
     }
 }
 
@@ -276,6 +313,7 @@ void AMainPlayerController::DisplayDialogueUI()
                         FadeAndDialogue();
                         return;
                     }
+                    bCanDisplaySpeechBubble = true;
                     DialogueUI->InitializeDialogue(DungeonDialogue2);
                     bFadeOn = false;
                     break;
@@ -283,6 +321,7 @@ void AMainPlayerController::DisplayDialogueUI()
                     DialogueUI->InitializeDialogue(DungeonDialogue2);
                     break;
                 case 5: // second dungeon
+                    bCanDisplaySpeechBubble = true;
                     DialogueUI->InitializeDialogue(DungeonDialogue3);
                     break;
                 case 6: // triggerbox1 overplap
@@ -290,19 +329,27 @@ void AMainPlayerController::DisplayDialogueUI()
                 case 8: // triggerbox3, player go over the other side
                 case 9: // plane2 up
                 case 10: // Npcs went over the other side
+                    if(DialogueNum == 8 || DialogueNum == 9) bCanDisplaySpeechBubble = true;
                     DialogueUI->InitializeDialogue(DungeonDialogue4);
                     break;
-                case 11:
+                case 11: // discover food table trap
+                case 16: // move to the rocks
                     if (!bFadeOn)
                     {
                         FadeAndDialogue();
                         return;
                     }
-                    DialogueUI->InitializeDialogue(DungeonDialogue5);
+                    bCanDisplaySpeechBubble = true;
+                    if(DialogueNum == 11)
+                        DialogueUI->InitializeDialogue(DungeonDialogue5);
+                    else if(DialogueNum == 16)
+                        DialogueUI->InitializeDialogue(DungeonDialogue6);
+
                     bFadeOn = false;
                     break;
-                case 12:
-                case 14:
+                case 12: // after combat with spiders
+                case 13: // before combat with final monsters in second dungeon
+                case 14: // after combat with little monsters
                     if (bCalculateOn)
                     {
                         bDialogueUIVisible = false;
@@ -310,26 +357,15 @@ void AMainPlayerController::DisplayDialogueUI()
                         CalculateDialogueDistance();
                         return;
                     }
-                    DialogueUI->InitializeDialogue(DungeonDialogue5);
-                    break;
-                case 13:
+                    bCanDisplaySpeechBubble = true;
                     DialogueUI->InitializeDialogue(DungeonDialogue5);
                     break;
                 case 15: // boss level enter
-                case 17: // boss combat start soon
+                case 17: // be ready to combat with boss 
+                    bCanDisplaySpeechBubble = true;
                     DialogueUI->InitializeDialogue(DungeonDialogue6);
                     break;
-                case 16: // vivi destroy the rocks
-                    if (!bFadeOn)
-                    {
-                        FadeAndDialogue();
-                        return;
-                    }
-                    DialogueUI->InitializeDialogue(DungeonDialogue6);
-                    bFadeOn = false;
-                    break;
-                
-
+             
             }
             
         }
@@ -356,6 +392,8 @@ void AMainPlayerController::RemoveDialogueUI()
         else
         {
             Main->bCanMove = true;
+            if(bSpeechBuubbleVisible)
+                RemoveSpeechBuubble();
         }
               
         bDialogueUIVisible = false;
@@ -375,7 +413,7 @@ void AMainPlayerController::DialogueEvents()
 {
     switch (DialogueNum)
     {
-        case 1: // luko moves to player    
+        case 1: // luko moves to player   
             Main->Luko->MoveToPlayer();         
             break;
         case 2:
@@ -396,6 +434,7 @@ void AMainPlayerController::DialogueEvents()
             }
             break;
         case 3: // enter the first dungeon
+            RemoveSpeechBuubble();
             Main->Luko->bInterpToCharacter = false;
             Main->Luko->TargetCharacter = nullptr;
             Main->SaveGame();
@@ -403,6 +442,7 @@ void AMainPlayerController::DialogueEvents()
             SetSystemMessage();
             break;
         case 4: // move to boat
+            RemoveSpeechBuubble();
             SetCinematicMode(false, true, true);
             Main->Vovo->bInterpToCharacter = false;
             Main->Vovo->AIController->MoveToLocation(FVector(630.f, 970.f, 1840.f));
@@ -410,9 +450,11 @@ void AMainPlayerController::DialogueEvents()
             Main->TargetNpc = nullptr;
             break;
         case 5:
+            RemoveSpeechBuubble();
             GetWorld()->GetTimerManager().ClearTimer(DialogueUI->OnceTimer);
             break;
         case 6: // enter the second dungeon
+            RemoveSpeechBuubble();
             SetCinematicMode(false, true, true);
             for (int i = 0; i < Main->NPCList.Num(); i++)
             {
@@ -422,7 +464,13 @@ void AMainPlayerController::DialogueEvents()
                 }
             }
             break;
+        case 7:
+        case 8:
+            Main->bCanMove = true;
+            RemoveSpeechBuubble();
+            break;
         case 9: // player go over the other side
+            RemoveSpeechBuubble();
             if (Main->Vivi->NormalMontage != nullptr)
             {
                 Main->Vivi->AnimInstance->Montage_Play(Main->Vivi->NormalMontage);
@@ -432,11 +480,13 @@ void AMainPlayerController::DialogueEvents()
             Main->TargetNpc = nullptr;
             break;
         case 10:
+            RemoveSpeechBuubble();
             Main->Zizi->bInterpToCharacter = false;
             Main->bInterpToNpc = false;
             Main->AllNpcMoveToPlayer();
             break;
         case 11: // npcs went over the other side
+            RemoveSpeechBuubble();
             Main->bCanMove = true;
             Main->bInterpToNpc = false;
             Main->TargetNpc = nullptr;
@@ -450,10 +500,13 @@ void AMainPlayerController::DialogueEvents()
             GetWorld()->GetTimerManager().ClearTimer(DialogueUI->OnceTimer);
             break;
         case 13:
+        case 14:
+            RemoveSpeechBuubble();
             Main->bCanMove = true;
             Main->AllNpcMoveToPlayer();
             break;
         case 15:
+            RemoveSpeechBuubble();
             DialogueUI->bDisableMouseAndKeyboard = false;
             Main->bCanMove = true;
             SystemMessageNum = 11;
@@ -467,10 +520,12 @@ void AMainPlayerController::DialogueEvents()
             DialogueUI->bDisableMouseAndKeyboard = false;
             break;
         case 17:
+            RemoveSpeechBuubble();
             DialogueUI->bDisableMouseAndKeyboard = false;
             Main->bCanMove = true;
             break;
         case 18: // fog appear, boss combat soon
+            RemoveSpeechBuubble();
             DialogueUI->bDisableMouseAndKeyboard = false;
             Main->bCanMove = true;
             Main->AllNpcMoveToPlayer();

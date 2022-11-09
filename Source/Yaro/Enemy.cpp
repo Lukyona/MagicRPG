@@ -154,7 +154,7 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 		ACharacter* target = Cast<ACharacter>(OtherActor);
 
 		if (!target) return;
-		UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapBegin %s"), *target->GetName());
+		//UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapBegin %s"), *target->GetName());
 
 		if (target == Main)
 		{
@@ -265,7 +265,7 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 	{
 		ACharacter* target = Cast<ACharacter>(OtherActor);
 		//UE_LOG(LogTemp, Log, TEXT("CombatSphere On Overlap End"));
-		UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapEnd %s"), *OtherActor->GetName());
+		//UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapEnd %s"), *OtherActor->GetName());
 
 		if (!target) return;
 

@@ -151,6 +151,24 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bCalculateOn;
 
+
+	bool bSpeechBuubbleVisible;
+
+	UFUNCTION(BlueprintCallable)
+	void DisplaySpeechBuubble(class AYaroCharacter* npc);
+
+	void RemoveSpeechBuubble();
+
+	FVector NpcLocation;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	bool bCanDisplaySpeechBubble = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<class AActor> SpeechBubble_BP;
+
+	class AActor* SpeechBubble;
+
 protected:
 	// Dialogue data tables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")

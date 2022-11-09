@@ -55,7 +55,7 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* NPCText;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = (BindWidget), BlueprintReadWrite)
 	class UTextBlock* CharacterNameText;
 	
 	UPROPERTY(EditAnywhere, Category = "Dialogue")
@@ -66,9 +66,6 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	class USoundBase* ExplosionSound;
-
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<class AEnemySpawner> Spawner;
 
 
 public:
@@ -101,6 +98,9 @@ public:
     void Interact();
    
 	void DialogueEvents();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void SetSpeechBubbleLocation();
 
 private:
 	
@@ -136,10 +136,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int NumOfReply; 
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	class AMain* Main;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	class AMainPlayerController* MainPlayerController;
 
 	// 대화 끝나고 바로 대화 또 못하게끔(애니메이션 시간이 필요)

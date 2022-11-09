@@ -161,9 +161,11 @@ void AYaroCharacter::MoveToPlayer()
 	{
 		if (Player->MainPlayerController->bDialogueUIVisible)
 		{
-			GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
-			return;
-
+			if (Player->MainPlayerController->DialogueNum != 6)
+			{
+				GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
+				return;
+			}
 		}
 
 		if (Player->MainPlayerController->DialogueNum < 5 && Player->NpcGo == false)
@@ -305,6 +307,8 @@ void AYaroCharacter::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedC
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 		if (Enemy)
 		{
+			UE_LOG(LogTemp, Log, TEXT("Yaro CombatSphereOnOverlapBegin %s"), *this->GetName());
+
 			for (int i = 0; i < AgroTargets.Num(); i++)
 			{
 				if (Enemy == AgroTargets[i]) //already exist
@@ -316,6 +320,8 @@ void AYaroCharacter::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedC
 
 			if (!CombatTarget)
 			{
+				UE_LOG(LogTemp, Log, TEXT("MoveToTarget %s"), *this->GetName());
+
 				MoveToTarget(Enemy);
 			}
 		}
@@ -334,32 +340,40 @@ void AYaroCharacter::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCom
 				if (Enemy == AgroTargets[i]) //already exist
 				{
 					AgroTargets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
-
 				}
 			}
 
 			//if (bAttacking) AttackEnd();
+			UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapEnd %s"), *this->GetName());
 
-			if (AgroTargets.Num() == 0)
+			if (!CombatTarget || Enemy == CombatTarget)
 			{
 				CombatTarget = nullptr;
-				for (int i = 0; i < Player->NPCList.Num(); i++)
-				{
-					if (Player->NPCList[i]->AgroTargets.Num() != 0 && !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) // 다른 npc의 인식 범위에 몬스터가 있으면 도와주러 감
-					{
-						UE_LOG(LogTemp, Log, TEXT("overlap end go help %s"), *this->GetName());
 
-						MoveToTarget(Player->NPCList[i]->AgroTargets[0]);
+				if (AgroTargets.Num() == 0)
+				{
+					for (int i = 0; i < Player->NPCList.Num(); i++)
+					{
+						if (Player->NPCList[i]->AgroTargets.Num() != 0 && !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) // 다른 npc의 인식 범위에 몬스터가 있으면 도와주러 감
+						{
+
+							if (Player->NPCList[i]->AgroTargets[0]->EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead) return;
+							UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapEnd Go Help %s"), *this->GetName());
+
+							MoveToTarget(Player->NPCList[i]->AgroTargets[0]);
+								
+						}
 					}
 				}
-			}
-			else
-			{
-				UE_LOG(LogTemp, Log, TEXT("yes agro now combat %s"), *this->GetName());
+				else
+				{
+					UE_LOG(LogTemp, Log, TEXT("I Have AgroTargets %s"), *this->GetName());
 
-				CombatTarget = AgroTargets[0];
-				Attack();
+					CombatTarget = AgroTargets[0];
+					Attack();
+				}
 			}
+			
 		}
 	}
 }
@@ -405,26 +419,24 @@ void AYaroCharacter::AttackSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCom
         {
             UE_LOG(LogTemp, Log, TEXT("AttackSphereOnOverlapEnd %s"), *this->GetName());	
 
+			for (int i = 0; i < CombatTargets.Num(); i++)
+			{
+				if (Enemy == CombatTargets[i]) //already exist
+				{
+					CombatTargets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
+				}
+			}
+
 			if (Enemy == CombatTarget)
 			{
-
 				//if (bAttacking) AttackEnd();
-				CombatTarget = nullptr;
-
-				for (int i = 0; i < CombatTargets.Num(); i++)
-				{
-					if (Enemy == CombatTargets[i]) //already exist
-					{
-						CombatTargets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
-					}
-				}
+				CombatTarget = nullptr;			
 
 				if (CombatTargets.Num() != 0)
 				{
-					UE_LOG(LogTemp, Log, TEXT("%s, combattaerget tes"), *this->GetName());
+					UE_LOG(LogTemp, Log, TEXT("I Have CombatTargets %s"), *this->GetName());
 
 					CombatTarget = CombatTargets[0];
-
 					Attack();
 				}
 				else
@@ -433,10 +445,14 @@ void AYaroCharacter::AttackSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCom
 
 					if (AgroTargets.Num() != 0)
 					{
-						UE_LOG(LogTemp, Log, TEXT("%s, no combat but agro yes"), *this->GetName());
+						UE_LOG(LogTemp, Log, TEXT("No CombatTargets but AgroTargets Move %s"), *this->GetName());
 
-						CombatTarget = AgroTargets[0];
-						Attack();
+						MoveToTarget(AgroTargets[0]);
+
+					}
+					else
+					{
+						UE_LOG(LogTemp, Log, TEXT("Nothing %s"), *this->GetName());
 
 					}
 
@@ -636,6 +652,9 @@ void AYaroCharacter::AttackEnd()
 	{
 		if (CombatTarget && CombatTarget->EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead)
 		{
+			UE_LOG(LogTemp, Log, TEXT("CombatTarget died %s"), *this->GetName());
+
+
 			for (int i = 0; i < CombatTargets.Num(); i++)
 			{
 				if (CombatTarget == CombatTargets[i]) //already exist
@@ -658,13 +677,14 @@ void AYaroCharacter::AttackEnd()
 			if (CombatTargets.Num() == 0)
 			{
 				bOverlappingAttackSphere = false;
-                UE_LOG(LogTemp, Log, TEXT("no monster combatargets %s"), *this->GetName());
+                UE_LOG(LogTemp, Log, TEXT("AttackEnd - No CombatTargets %s"), *this->GetName());
 				
 				if (AgroTargets.Num() != 0)
 				{
-					CombatTarget = AgroTargets[0];
-					Attack();
-					UE_LOG(LogTemp, Log, TEXT("but agro yes %s"), *this->GetName());
+					MoveToTarget(AgroTargets[0]);
+
+					//Attack();
+					UE_LOG(LogTemp, Log, TEXT("AttackEnd - but havve AgroTargets %s"), *this->GetName());
 
 				}
 				else
@@ -673,19 +693,17 @@ void AYaroCharacter::AttackEnd()
 					{
 						if (Player->NPCList[i]->AgroTargets.Num() != 0 && !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) // 다른 npc의 인식 범위에 몬스터가 있으면 도와주러 감
 						{
-							UE_LOG(LogTemp, Log, TEXT("attack end go help %s"), *this->GetName());
+							UE_LOG(LogTemp, Log, TEXT("AttackEnd - Go Help %s"), *this->GetName());
 
 							MoveToTarget(Player->NPCList[i]->AgroTargets[0]);
 						}
 					}
 				}
-				
-				
 			}
 			else
 			{
 				CombatTarget = CombatTargets[0];
-                UE_LOG(LogTemp, Log, TEXT("CombatTarget set %s"), * this->GetName());
+                UE_LOG(LogTemp, Log, TEXT("AttackEnd - i have CombatTarget %s"), * this->GetName());
 			}
 		}
 
@@ -696,14 +714,26 @@ void AYaroCharacter::AttackEnd()
 	{
 		if (AgroTargets.Num() != 0)
 		{
-			UE_LOG(LogTemp, Log, TEXT("moveto %s"), *this->GetName());
+			UE_LOG(LogTemp, Log, TEXT("AttackEnd2 - No Combat Yes Agro %s"), *this->GetName());
 			for (int i = 0; i < AgroTargets.Num(); i++)
 			{
 				if (AgroTargets[i]->EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead)
 				{
-					CombatTarget = AgroTargets[i];
-					GetWorldTimerManager().SetTimer(AttackTimer, this, &AYaroCharacter::Attack, AttackDelay);
-					return;
+					if (GetDistanceTo(AgroTargets[i]) >= 450.f)
+					{
+						MoveToTarget(AgroTargets[i]);
+						UE_LOG(LogTemp, Log, TEXT("AttackEnd2 - Far Move %s"), *this->GetName());
+						return;
+
+					}
+					else
+					{
+						UE_LOG(LogTemp, Log, TEXT("AttackEnd2 - Close %s"), *this->GetName());
+
+						CombatTarget = AgroTargets[i];
+						GetWorldTimerManager().SetTimer(AttackTimer, this, &AYaroCharacter::Attack, AttackDelay);
+						return;
+					}
 				}
 			}
 
@@ -743,6 +773,7 @@ void AYaroCharacter::Spawn()
 				}		
 
 				MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);
+		
 				if (MagicAttack && CombatTarget)
 				{
 					MagicAttack->Target = CombatTarget;
