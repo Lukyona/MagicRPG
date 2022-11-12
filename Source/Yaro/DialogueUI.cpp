@@ -889,12 +889,168 @@ void UDialogueUI::DialogueEvents()
                     break;          
             }
         }
+
+        if (DNum == 18) // 보스 전투 끝
+        {
+            switch (RowIndex)
+            {
+                case 0:
+                    if (AfterAllCombat != nullptr)
+                        UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, AfterAllCombat);
+                    Main->CameraBoom->TargetArmLength = 170.f;
+                    RowIndex = 21;
+                    break;
+                case 23:
+                    Main->TargetNpc = Main->Vovo;
+                    Main->bInterpToNpc = true;
+                case 24:
+                    if (MessageIndex == 0)
+                    {
+                        Main->Zizi->TargetCharacter = Main->Vovo;
+                        Main->Zizi->bInterpToCharacter = true;
+                    }
+                    else
+                    {
+                        Main->Zizi->TargetCharacter = Main->Vivi;
+                    }
+                    break;
+                case 25:
+                    Main->Vovo->TargetCharacter = Main->Vivi;
+                    Main->Vovo->bInterpToCharacter = true;
+                    Main->TargetNpc = Main->Vivi;
+                    break;
+                case 26:
+                    Main->Momo->TargetCharacter = Main->Vivi;
+                    Main->Momo->bInterpToCharacter = true;
+                    break;
+            }
+        }
+
+        if (DNum == 19) // 동굴 복귀
+        {
+            switch (RowIndex)
+            {
+                case 3:
+                    MainPlayerController->RemoveSpeechBuubble();
+                    Main->Momo->AIController->MoveToLocation(FVector(-4660.f, 118.f, 393.f));
+                    Main->Luko->AIController->MoveToLocation(FVector(-4545.f, -241.f, 401.f));
+                    Main->Vovo->AIController->MoveToLocation(FVector(-4429.f, 103.f, 396.f));
+                    Main->Vivi->AIController->MoveToLocation(FVector(-4355.f, -195.f, 405.f));
+                    Main->Zizi->AIController->MoveToLocation(FVector(-4695.f, -190.f, 394.f));
+                    AutoCloseDialogue();
+                    return;
+                    break;
+            }
+        }
+
+        if (DNum == 20) // 돌 발견, 챙기기
+        {
+            switch (RowIndex)
+            {
+            case 0:
+                RowIndex = 3;
+                Main->CameraBoom->TargetArmLength = 470.f;
+                break;
+            case 9:
+                if (SelectedReply == 1)
+                {
+                    AllNpcLookAtPlayer();
+                }
+                break;
+            case 10:
+                if (SelectedReply == 1)
+                {
+                    MainPlayerController->SetControlRotation(FRotator(0.f, 180.f, 0.f));
+                    AutoCloseDialogue();
+                    return;
+                }
+                else if (SelectedReply == 2)
+                {
+                    bDisableMouseAndKeyboard = true;
+                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
+                }
+                break;
+            case 11:
+                Main->Vivi->GetCharacterMovement()->MaxWalkSpeed = 250.f;
+                Main->Vivi->AIController->MoveToLocation(FVector(-4520.f, -50.f, 409.f));
+                AutoCloseDialogue();
+                return;
+                break;
+            }
+        }
+
+        if (DNum == 21) // 돌 챙기고 난 뒤
+        {
+            switch (RowIndex)
+            {
+                case 0:
+                    AllNpcDisableLookAt();
+                    RowIndex = 11;
+                    break;
+                case 12:
+                    if (GriffonSound != nullptr)
+                        UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, GriffonSound);
+                    SpawnGriffon();
+                    break;
+                case 13:
+                    bDisableMouseAndKeyboard = true;
+                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
+                    break;
+                case 14:
+                    MainPlayerController->RemoveSpeechBuubble();
+                    Main->Momo->GetCharacterMovement()->MaxWalkSpeed = 600.f;
+                    Main->Vivi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
+                    Main->Zizi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
+                    Main->Vovo->GetCharacterMovement()->MaxWalkSpeed = 450.f;
+                    Main->Luko->GetCharacterMovement()->MaxWalkSpeed = 450.f;
+                    Main->Momo->AIController->MoveToLocation(FVector(508.f, 120.f, 100.f));
+                    Main->Luko->AIController->MoveToLocation(FVector(311.f, -78.f, 103.f));
+                    Main->Vovo->AIController->MoveToLocation(FVector(469.f, -22.f, 103.f));
+                    Main->Vivi->AIController->MoveToLocation(FVector(267.f, 65.f, 101.f));
+                    Main->Zizi->AIController->MoveToLocation(FVector(591.f, 28.f, 104.f));
+                    AutoCloseDialogue();
+                    return;
+                    break;
+            }
+            
+        }
+
+        if (DNum == 22) // 그리폰 탈 차례
+        {
+            switch (RowIndex)
+            {
+                case 0:
+                    RowIndex = 14;
+                    break;
+                case 16:
+                    AllNpcLookAtPlayer();
+                    break;
+                case 22:
+                    AllNpcDisableLookAt();
+                    if (MessageIndex == 1)
+                    {
+                        Main->Zizi->AIController->MoveToLocation(FVector(2560.f, 320.f, 157.f));
+                        Main->Vovo->AIController->MoveToLocation(FVector(2570.f, 325.f, 154.f));
+                        Main->Luko->AIController->MoveToLocation(FVector(1517.f, 325.f, 155.f));
+                        Main->Momo->AIController->MoveToLocation(FVector(1530.f, 330.f, 150.f));
+                    }
+                    break;
+                case 23:
+                    AutoCloseDialogue();
+                    return;
+                    break;
+            }
+        }
+
+        if (DNum == 23)
+        {
+            RowIndex = 23;
+        }
+
     }
    
-
     //UE_LOG(LogTemp, Log, TEXT("pass77"));
     AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString());
-
 }
 
 void UDialogueUI::AutoCloseDialogue()

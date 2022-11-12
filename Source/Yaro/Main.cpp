@@ -376,6 +376,22 @@ void AMain::LMBDown() //Left Mouse Button Down
             }
         }
 	}
+
+	if (CurrentOverlappedActor && CurrentOverlappedActor->GetName().Contains("DivinumPraesidium"))
+	{
+		if (MainPlayerController->DialogueNum == 21 && MainAnimInstance && NormalMontage)
+		{
+			if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return;
+			if (MainPlayerController->DialogueUI->SelectedReply != 1 || MainPlayerController->bDialogueUIVisible) return;
+
+			bCanMove = false;
+			FRotator LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
+			SetActorRotation(LookAtYaw);
+
+			MainAnimInstance->Montage_Play(NormalMontage);
+			MainAnimInstance->Montage_JumpToSection(FName("PickStone"), NormalMontage); // 돌 챙기기
+		}
+	}
 }
 
 void AMain::LMBUp()
@@ -397,7 +413,7 @@ FRotator AMain::GetLookAtRotationYaw(FVector Target)
 
 void AMain::Attack()
 {
-	if (MainPlayerController->DialogueNum < 3) return;
+	if (MainPlayerController->DialogueNum < 3 || MainPlayerController->DialogueNum > 20 ) return;
 
 	if (EquippedWeapon && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead && !MainPlayerController->bDialogueUIVisible)
 	{
@@ -713,7 +729,8 @@ void AMain::ItemSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, A
 {
 	if (OtherActor)
 	{
-        if (auto actor = Cast<AItem>(OtherActor)) return; // 오버랩된 게 아이템이면 실행X
+		if (auto actor = Cast<AItem>(OtherActor)) return; // 오버랩된 게 아이템이면 실행X
+		if (auto actor = Cast<AYaroCharacter>(OtherActor)) return; // 오버랩된 게 npc면 실행X
 
 		CurrentOverlappedActor = OtherActor;
 		
@@ -731,7 +748,10 @@ void AMain::ItemSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AAc
 
 void AMain::SaveGame()
 {
-	if (MainPlayerController->bDialogueUIVisible || MainPlayerController->bFallenPlayer || MainAnimInstance->bIsInAir)
+	if (MainPlayerController->DialogueNum >= 23) return;
+
+	if (MainPlayerController->bDialogueUIVisible || MainPlayerController->bFallenPlayer || MainAnimInstance->bIsInAir
+		|| MainPlayerController->DialogueNum == 21)
 	{
 		GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 1.f, false);
 
@@ -759,11 +779,14 @@ void AMain::SaveGame()
 	SaveGameInstance->CharacterStats.Location = GetActorLocation();
 	SaveGameInstance->CharacterStats.Rotation = GetActorRotation();
 
-    SaveGameInstance->NpcInfo.MomoLocation = Momo->GetActorLocation();
-    SaveGameInstance->NpcInfo.LukoLocation = Luko->GetActorLocation();
-    SaveGameInstance->NpcInfo.VovoLocation = Vovo->GetActorLocation();
-    SaveGameInstance->NpcInfo.ViviLocation = Vivi->GetActorLocation();
-    SaveGameInstance->NpcInfo.ZiziLocation = Zizi->GetActorLocation();
+	if (MainPlayerController->DialogueNum < 23)
+	{
+		SaveGameInstance->NpcInfo.MomoLocation = Momo->GetActorLocation();
+		SaveGameInstance->NpcInfo.LukoLocation = Luko->GetActorLocation();
+		SaveGameInstance->NpcInfo.VovoLocation = Vovo->GetActorLocation();
+		SaveGameInstance->NpcInfo.ViviLocation = Vivi->GetActorLocation();
+		SaveGameInstance->NpcInfo.ZiziLocation = Zizi->GetActorLocation();
+	}
     
 	if (MainPlayerController->DialogueNum < 4)
 		SaveGameInstance->NpcInfo.TeamMoveIndex = Vivi->index;
@@ -845,6 +868,8 @@ void AMain::LoadGame()
 
 		SetActorLocation(LoadGameInstance->CharacterStats.Location);
 		SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
+
+		if (MainPlayerController->DialogueNum == 19) return;
 
 		Momo->SetActorLocation(LoadGameInstance->NpcInfo.MomoLocation);
 		Luko->SetActorLocation(LoadGameInstance->NpcInfo.LukoLocation);
@@ -943,7 +968,57 @@ void AMain::CheckDialogueRequirement()
 			 Vovo->AIController->MoveToLocation(FVector(-160.f, 2060.f, 182.f));
 			 Zizi->AIController->MoveToLocation(FVector(18.f, 2105.f, 184.f));
 			 break;
-
+		 case 18:
+			 if(Enemies.Num() == 5)
+				 MainPlayerController->DisplayDialogueUI();
+			 break;
+		 case 19:
+			 if (Enemies.Num() == 5)//보스맵, 포탈로 이동
+			 {
+				 Momo->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+				 Luko->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+				 Vovo->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+				 Vivi->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+				 Zizi->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+				 MainPlayerController->SystemMessageNum = 13;
+				 MainPlayerController->SetSystemMessage();
+			 }
+			 else if (Enemies.Num() == 0) //동굴
+			 {
+				 MainPlayerController->DisplayDialogueUI();
+			 }
+			 break;
+		case 20: // 돌 쪽으로 이동
+			Momo->AIController->MoveToLocation(FVector(-4660.f, 118.f, 393.f));
+			Luko->AIController->MoveToLocation(FVector(-4545.f, -241.f, 401.f));
+			Vovo->AIController->MoveToLocation(FVector(-4429.f, 103.f, 396.f));
+			Vivi->AIController->MoveToLocation(FVector(-4355.f, -195.f, 405.f));
+			Zizi->AIController->MoveToLocation(FVector(-4695.f, -190.f, 394.f));
+			Momo->SetActorRotation(FRotator(0.f, 296.f, 0.f));
+			Luko->SetActorRotation(FRotator(0.f, 97.f, 0.f));
+			Vovo->SetActorRotation(FRotator(0.f, 219.f, 0.f));
+			Vivi->SetActorRotation(FRotator(0.f, 145.f, 0.f));
+			Zizi->SetActorRotation(FRotator(0.f, 49.f, 0.f));
+			break;
+		case 22:
+			Momo->GetCharacterMovement()->MaxWalkSpeed = 600.f;
+			Vivi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
+			Zizi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
+			Vovo->GetCharacterMovement()->MaxWalkSpeed = 450.f;
+			Luko->GetCharacterMovement()->MaxWalkSpeed = 450.f;
+			Momo->AIController->MoveToLocation(FVector(508.f, 120.f, 100.f));
+			Luko->AIController->MoveToLocation(FVector(311.f, -78.f, 103.f));
+			Vovo->AIController->MoveToLocation(FVector(469.f, -22.f, 103.f));
+			Vivi->AIController->MoveToLocation(FVector(267.f, 65.f, 101.f));
+			Zizi->AIController->MoveToLocation(FVector(591.f, 28.f, 104.f));
+			break;
+		case 23:
+			Zizi->AIController->MoveToLocation(FVector(2560.f, 330.f, 157.f));
+			Vovo->AIController->MoveToLocation(FVector(2570.f, 335.f, 154.f));
+			Luko->AIController->MoveToLocation(FVector(1517.f, 335.f, 155.f));
+			Momo->AIController->MoveToLocation(FVector(1530.f, 330.f, 150.f));
+			Vivi->AIController->MoveToLocation(FVector(625.f, 330.f, 153.f));
+			break;
 
 	}
 
@@ -997,6 +1072,8 @@ void AMain::ESCUp()
 
 void AMain::GetExp(float exp)
 {
+	if (Level == 5) return;
+
 	Exp += exp;
 
 	if (Exp >= MaxExp)
@@ -1039,15 +1116,15 @@ void AMain::GetExp(float exp)
 				MaxExp = 400.f;
                 MainPlayerController->SystemMessageNum = 8;
                 MainPlayerController->SetSystemMessage();
-                MaxHP = 275.f;
-                MaxMP = 225.f;
+                MaxHP = 300.f;
+                MaxMP = 230.f;
                 MaxSP = 375.f;
 				break;
             case 5:
                 MainPlayerController->SystemMessageNum = 9;
                 MainPlayerController->SetSystemMessage();
-                MaxHP = 300.f;
-                MaxMP = 250.f;
+                MaxHP = 350.f;
+                MaxMP = 280.f;
                 MaxSP = 400.f;
                 break;
 		}

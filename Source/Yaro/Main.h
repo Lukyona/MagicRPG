@@ -342,4 +342,8 @@ public:
 	bool CanTalkWithNpc();
 
 	void AllNpcMoveToPlayer();
+
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
+	FDele_Dynamic Ending;
 };

@@ -11,6 +11,7 @@
 #include "YaroCharacter.h"
 #include "AIController.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Camera/CameraComponent.h"
 
 
 AMainPlayerController::AMainPlayerController()
@@ -169,10 +170,7 @@ void AMainPlayerController::Tick(float DeltaTime)
 
     if (bSpeechBuubbleVisible)
     {
-        FRotator LookAtYaw = UKismetMathLibrary::FindLookAtRotation(SpeechBubble->GetActorLocation(), Main->GetActorLocation());
-        FRotator InterpRotation = FMath::RInterpTo(SpeechBubble->GetActorRotation(), LookAtYaw, DeltaTime, 20.f); //smooth transition
-
-        SpeechBubble->SetActorRotation(InterpRotation);
+        SpeechBubble->SetActorRotation(Main->GetControlRotation() + FRotator(0.f, 180.f, 0.f));
     }
 
    if(Main == nullptr) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
@@ -334,17 +332,21 @@ void AMainPlayerController::DisplayDialogueUI()
                     break;
                 case 11: // discover food table trap
                 case 16: // move to the rocks
+                case 18:// after combat with boss
+                case 20: // discover divinum~, someone take the divinum~
                     if (!bFadeOn)
                     {
                         FadeAndDialogue();
+                        if (DialogueNum == 18) Main->SaveGame();
                         return;
                     }
                     bCanDisplaySpeechBubble = true;
                     if(DialogueNum == 11)
                         DialogueUI->InitializeDialogue(DungeonDialogue5);
-                    else if(DialogueNum == 16)
+                    else if(DialogueNum == 16 || DialogueNum == 18)
                         DialogueUI->InitializeDialogue(DungeonDialogue6);
-
+                    else if (DialogueNum == 20)
+                        DialogueUI->InitializeDialogue(FinalDialogue);
                     bFadeOn = false;
                     break;
                 case 12: // after combat with spiders
@@ -365,7 +367,14 @@ void AMainPlayerController::DisplayDialogueUI()
                     bCanDisplaySpeechBubble = true;
                     DialogueUI->InitializeDialogue(DungeonDialogue6);
                     break;
-             
+                case 19: // back to cave
+                case 21: // griffons come
+                case 22: // last talk
+                case 23:
+                    if(DialogueNum != 23)
+                        bCanDisplaySpeechBubble = true;
+                    DialogueUI->InitializeDialogue(FinalDialogue);
+                    break;
             }
             
         }
@@ -411,6 +420,8 @@ void AMainPlayerController::RemoveDialogueUI()
 
 void AMainPlayerController::DialogueEvents()
 {
+    RemoveSpeechBuubble();
+
     switch (DialogueNum)
     {
         case 1: // luko moves to player   
@@ -434,7 +445,6 @@ void AMainPlayerController::DialogueEvents()
             }
             break;
         case 3: // enter the first dungeon
-            RemoveSpeechBuubble();
             Main->Luko->bInterpToCharacter = false;
             Main->Luko->TargetCharacter = nullptr;
             Main->SaveGame();
@@ -442,7 +452,6 @@ void AMainPlayerController::DialogueEvents()
             SetSystemMessage();
             break;
         case 4: // move to boat
-            RemoveSpeechBuubble();
             SetCinematicMode(false, true, true);
             Main->Vovo->bInterpToCharacter = false;
             Main->Vovo->AIController->MoveToLocation(FVector(630.f, 970.f, 1840.f));
@@ -450,11 +459,9 @@ void AMainPlayerController::DialogueEvents()
             Main->TargetNpc = nullptr;
             break;
         case 5:
-            RemoveSpeechBuubble();
             GetWorld()->GetTimerManager().ClearTimer(DialogueUI->OnceTimer);
             break;
         case 6: // enter the second dungeon
-            RemoveSpeechBuubble();
             SetCinematicMode(false, true, true);
             for (int i = 0; i < Main->NPCList.Num(); i++)
             {
@@ -467,10 +474,8 @@ void AMainPlayerController::DialogueEvents()
         case 7:
         case 8:
             Main->bCanMove = true;
-            RemoveSpeechBuubble();
             break;
         case 9: // player go over the other side
-            RemoveSpeechBuubble();
             if (Main->Vivi->NormalMontage != nullptr)
             {
                 Main->Vivi->AnimInstance->Montage_Play(Main->Vivi->NormalMontage);
@@ -480,17 +485,27 @@ void AMainPlayerController::DialogueEvents()
             Main->TargetNpc = nullptr;
             break;
         case 10:
-            RemoveSpeechBuubble();
             Main->Zizi->bInterpToCharacter = false;
             Main->bInterpToNpc = false;
             Main->AllNpcMoveToPlayer();
             break;
         case 11: // npcs went over the other side
-            RemoveSpeechBuubble();
+        case 19: // after combat with boss
+            SetCinematicMode(false, true, true);
             Main->bCanMove = true;
             Main->bInterpToNpc = false;
             Main->TargetNpc = nullptr;
             DialogueUI->AllNpcDisableLookAt();
+            if (DialogueNum == 19)
+            {
+                Main->Momo->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+                Main->Luko->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+                Main->Vovo->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+                Main->Vivi->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+                Main->Zizi->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+                SystemMessageNum = 13;
+                SetSystemMessage();
+            }
             break;
         case 12:
             SetCinematicMode(false, true, true);
@@ -501,12 +516,10 @@ void AMainPlayerController::DialogueEvents()
             break;
         case 13:
         case 14:
-            RemoveSpeechBuubble();
             Main->bCanMove = true;
             Main->AllNpcMoveToPlayer();
             break;
         case 15:
-            RemoveSpeechBuubble();
             DialogueUI->bDisableMouseAndKeyboard = false;
             Main->bCanMove = true;
             SystemMessageNum = 11;
@@ -520,29 +533,41 @@ void AMainPlayerController::DialogueEvents()
             DialogueUI->bDisableMouseAndKeyboard = false;
             break;
         case 17:
-            RemoveSpeechBuubble();
+        case 22:
+        case 23:
             DialogueUI->bDisableMouseAndKeyboard = false;
+            SetCinematicMode(false, true, true);
             Main->bCanMove = true;
+            if(DialogueNum == 23)
+                Main->Vivi->AIController->MoveToLocation(FVector(625.f, 318.f, 153.f));
             break;
         case 18: // fog appear, boss combat soon
-            RemoveSpeechBuubble();
             DialogueUI->bDisableMouseAndKeyboard = false;
             Main->bCanMove = true;
             Main->AllNpcMoveToPlayer();
             SystemMessageNum = 12;
             SetSystemMessage();
             Main->SaveGame();
-            FTimerHandle Timer;
             GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]() {
 
                 RemoveSystemMessage();
 
                 }), 4.f, false);
             break;
-
+        case 20:
+            SetCinematicMode(false, true, true);
+            break;
+        case 21:
+            DialogueUI->bDisableMouseAndKeyboard = false;
+            if (DialogueUI->SelectedReply == 1)
+            {
+                SetCinematicMode(false, true, true);
+                Main->bCanMove = true;
+                SystemMessageNum = 14;
+                SetSystemMessage();
+            }
+            break;
     }
-
-
 }
 
 void AMainPlayerController::FadeAndDialogue()
@@ -561,12 +586,11 @@ void AMainPlayerController::FadeAndDialogue()
                     FallingCount += 1;
             }
 
-            if (DialogueNum == 11) // second dungeon food trap
+            if (DialogueNum == 11 || DialogueNum == 18 || DialogueNum == 20) // second dungeon food trap
             {
                 Main->bCanMove = false;
                 SetCinematicMode(true, true, true);
 
-                SetControlRotation(FRotator(0.f, 170.f, 0.f));
             }
             FadeOut();
         }
@@ -625,26 +649,26 @@ void AMainPlayerController::SetPositions()
         Main->Zizi->SetActorRotation(FRotator(0.f, 85.f, 0.f));
     }
 
-    if (DialogueNum == 12)
-    {
-        Main->SetActorLocation(FVector(-260.f, -1981.f, -117.f));
-        Main->SetActorRotation(FRotator(0.f, 99.f, 0.f)); // y(pitch), z(yaw), x(roll)
-       
-        Main->Momo->SetActorLocation(FVector(-301.f, -1663.f, -122.f));
-        Main->Momo->SetActorRotation(FRotator(0.f, 274.f, 0.f));
+    //if (DialogueNum == 12)
+    //{
+    //    Main->SetActorLocation(FVector(-260.f, -1981.f, -117.f));
+    //    Main->SetActorRotation(FRotator(0.f, 99.f, 0.f)); // y(pitch), z(yaw), x(roll)
+    //   
+    //    Main->Momo->SetActorLocation(FVector(-301.f, -1663.f, -122.f));
+    //    Main->Momo->SetActorRotation(FRotator(0.f, 274.f, 0.f));
  
-        Main->Luko->SetActorLocation(FVector(-379.f, -1811.f, -117.f));
-        Main->Luko->SetActorRotation(FRotator(0.f, 54.f, 0.f));
+    //    Main->Luko->SetActorLocation(FVector(-379.f, -1811.f, -117.f));
+    //    Main->Luko->SetActorRotation(FRotator(0.f, 54.f, 0.f));
 
-        Main->Vovo->SetActorLocation(FVector(-313.f, -2755.f, -117.5f));
-        Main->Vovo->SetActorRotation(FRotator(0.f, 140.f, 0.f));
-        
-        Main->Vivi->SetActorLocation(FVector(-416.f, -1945.f, -117.5f));
-        Main->Vivi->SetActorRotation(FRotator(0.f, 65.f, 0.f));
+    //    Main->Vovo->SetActorLocation(FVector(-313.f, -2755.f, -117.5f));
+    //    Main->Vovo->SetActorRotation(FRotator(0.f, 140.f, 0.f));
+    //    
+    //    Main->Vivi->SetActorLocation(FVector(-416.f, -1945.f, -117.5f));
+    //    Main->Vivi->SetActorRotation(FRotator(0.f, 65.f, 0.f));
 
-        Main->Zizi->SetActorLocation(FVector(-186.f, -1861.f, -115.f));
-        Main->Zizi->SetActorRotation(FRotator(0.f, 128.f, 0.f));
-    }
+    //    Main->Zizi->SetActorLocation(FVector(-186.f, -1861.f, -115.f));
+    //    Main->Zizi->SetActorRotation(FRotator(0.f, 128.f, 0.f));
+    //}
 
     if (DialogueNum == 16)
     {
@@ -667,6 +691,71 @@ void AMainPlayerController::SetPositions()
         Main->Zizi->SetActorRotation(FRotator(0.f, 268.f, 0.f));
 
     }
+
+    if (DialogueNum == 18)
+    {
+        Main->SetActorLocation(FVector(16.f, -2734.f, 582.f));
+        Main->SetActorRotation(FRotator(0.f, 270.f, 0.f)); // y(pitch), z(yaw), x(roll)
+
+        Main->Momo->SetActorLocation(FVector(-23.f, -3006.f, 603.f));
+        Main->Momo->SetActorRotation(FRotator(0.f, 82.f, 0.f));
+
+        Main->Luko->SetActorLocation(FVector(146.f, -2832.f, 582.f));
+        Main->Luko->SetActorRotation(FRotator(0.f, 187.f, 0.f));
+
+        Main->Vovo->SetActorLocation(FVector(-105.f, -2942.f, 581.f));
+        Main->Vovo->SetActorRotation(FRotator(0.f, 10.f, 0.f));
+
+        Main->Vivi->SetActorLocation(FVector(104.f, -2982.f, 581.f));
+        Main->Vivi->SetActorRotation(FRotator(0.f, 120.f, 0.f));
+
+        Main->Zizi->SetActorLocation(FVector(-125.f, -2804.f, 582.f));
+        Main->Zizi->SetActorRotation(FRotator(0.f, 0.f, 0.f));
+
+    }
+
+    if (DialogueNum == 19)
+    {
+        Main->SetActorLocation(FVector(4658.f, 41.f, 148.f));
+        Main->SetActorRotation(FRotator(-3.f, 180.f, 0.f)); // y(pitch), z(yaw), x(roll)
+
+        Main->Momo->SetActorLocation(FVector(4247.f, 94.f, 98.f));
+        Main->Momo->SetActorRotation(FRotator(0.f, 180.f, 0.f));
+
+        Main->Luko->SetActorLocation(FVector(4345.f, -119.f, 108.f));
+        Main->Luko->SetActorRotation(FRotator(0.f, 180.f, 0.f));
+
+        Main->Vovo->SetActorLocation(FVector(4633.f, 121.f, 151.f));
+        Main->Vovo->SetActorRotation(FRotator(0.f, 180.f, 0.f));
+
+        Main->Vivi->SetActorLocation(FVector(4634.f, -105.f, 152.f));
+        Main->Vivi->SetActorRotation(FRotator(0.f, 170.f, 0.f));
+
+        Main->Zizi->SetActorLocation(FVector(4493.f, -26.f, 156.f));
+        Main->Zizi->SetActorRotation(FRotator(0.f, 175.f, 0.f));
+    }
+
+    if (DialogueNum == 20)
+    {
+        Main->SetActorLocation(FVector(-4446.f, -20.f, 401.f));
+        Main->SetActorRotation(FRotator(2.f, 180.f, 0.f)); // y(pitch), z(yaw), x(roll)
+
+        Main->Momo->SetActorLocation(FVector(-4660.f, 118.f, 393.f));
+        Main->Momo->SetActorRotation(FRotator(0.f, 296.f, 0.f));
+
+        Main->Luko->SetActorLocation(FVector(-4545.f, -281.f, 401.f));
+        Main->Luko->SetActorRotation(FRotator(0.f, 97.f, 0.f));
+
+        Main->Vovo->SetActorLocation(FVector(-4429.f, 103.f, 396.f));
+        Main->Vovo->SetActorRotation(FRotator(0.f, 219.f, 0.f));
+
+        Main->Vivi->SetActorLocation(FVector(-4355.f, -195.f, 405.f));
+        Main->Vivi->SetActorRotation(FRotator(0.f, 145.f, 0.f));
+
+        Main->Zizi->SetActorLocation(FVector(-4695.f, -190.f, 394.f));
+        Main->Zizi->SetActorRotation(FRotator(0.f, 49.f, 0.f));
+    }
+
 }
 
 void AMainPlayerController::DisplaySystemMessage()
@@ -745,7 +834,12 @@ void AMainPlayerController::SetSystemMessage()
         case 12:
             text = FString(TEXT("지금부터 전투가 끝나는 시점까지\n저장이 되지 않습니다."));
             break;
-
+        case 13:
+            text = FString(TEXT("포탈을 이용해 던전 입구로 돌아가세요."));
+            break;
+        case 14:
+            text = FString(TEXT("마우스 왼쪽 버튼을 클릭하여\n디비눔 프레시디움을 챙기세요."));
+            break;
     }
     SystemMessageOn = true;
     //UE_LOG(LogTemp, Log, TEXT("SetSystemMessage"));
@@ -763,7 +857,6 @@ void AMainPlayerController::DisplayManual()
             DisplaySystemMessage();
             text = FString(TEXT("대화 중이거나 메뉴가 활성화된 상태에서는\n조작 매뉴얼을 볼 수 없습니다."));
             SystemText = FText::FromString(text);
-            FTimerHandle Timer;
             GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]() {
                 
                 if (SystemMessageOn) SetSystemMessage();

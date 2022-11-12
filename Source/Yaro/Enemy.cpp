@@ -186,13 +186,17 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 
 		if (target)
 		{
-			for (int i = 0; i < AgroTargets.Num(); i++) // Remove target in the target list
+			if (!UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss"))
 			{
-				if (target == AgroTargets[i])
+				for (int i = 0; i < AgroTargets.Num(); i++) // Remove target in the target list
 				{
-					AgroTargets.Remove(target);
+					if (target == AgroTargets[i])
+					{
+						AgroTargets.Remove(target);
+					}
 				}
 			}
+			
             //UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapEnd %s"), *target->GetName());
 
 			if (AgroTarget != Main) //npc를 쫓아가던 중이면(인식 범위 나간 것도 npc)
@@ -550,7 +554,7 @@ void AEnemy::DeathEnd()
 	GetMesh()->bPauseAnims = true;
 	GetMesh()->bNoSkeletonUpdate = true;
 
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first") && Main->Enemies.Num() == 9) // 첫번째 던전 클리어했는지
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first") && Main->Enemies.Num() == 9) // 첫번째 던전 클리어했는지, 골렘 이후 대화가 정상
 	{
 		Main->SaveGame();
 		if (Main->Momo->TeleportCount == 0) GetWorldTimerManager().ClearTimer(Main->Momo->MoveTimer);
@@ -558,6 +562,13 @@ void AEnemy::DeathEnd()
 
 		Main->MainPlayerController->DisplayDialogueUI();
 	}
+
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Main->Enemies.Num() == 5)
+	{
+		Main->SaveGame();
+		Main->MainPlayerController->DisplayDialogueUI();
+	}
+
 
 	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::Disappear, DeathDelay);
 }

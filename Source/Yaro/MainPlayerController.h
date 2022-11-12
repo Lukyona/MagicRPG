@@ -6,7 +6,6 @@
 #include "GameFramework/PlayerController.h"
 #include "MainPlayerController.generated.h"
 
-
 UCLASS()
 class YARO_API AMainPlayerController : public APlayerController
 {
@@ -169,6 +168,9 @@ public:
 
 	class AActor* SpeechBubble;
 
+	FTimerHandle Timer;
+
+
 protected:
 	// Dialogue data tables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
@@ -191,6 +193,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
     class UDataTable* DungeonDialogue6;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+	class UDataTable* FinalDialogue;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
     class UDataTable* SpawnDialogue;

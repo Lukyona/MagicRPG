@@ -67,6 +67,11 @@ protected:
 	UPROPERTY(EditAnywhere)
 	class USoundBase* ExplosionSound;
 
+	UPROPERTY(EditAnywhere)
+	class USoundBase* GriffonSound;
+
+	UPROPERTY(EditAnywhere)
+	class USoundBase* AfterAllCombat;
 
 public:
 
@@ -101,6 +106,10 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void SetSpeechBubbleLocation();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void SpawnGriffon();
+
 
 private:
 	
@@ -164,5 +173,9 @@ public:
 	void AllNpcStopFollowPlayer();
 
 	void AutoDialogue();
+
+
+	
+
 
 };
