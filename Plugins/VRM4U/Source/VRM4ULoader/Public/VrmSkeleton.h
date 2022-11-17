@@ -8,11 +8,11 @@
 //#include "VrmSkeleton.generated.h"
 
 class USkeletalMesh;
-
+class UVrmAssetListObject;
 
 class VRM4ULOADER_API VRMSkeleton {
 public:
-	static void readVrmBone(struct aiScene* scene, int& boneOffset, FReferenceSkeleton& RefSkeleton);
+	static void readVrmBone(struct aiScene* scene, int& boneOffset, FReferenceSkeleton& RefSkeleton, UVrmAssetListObject* assetList);
 
 	static void addIKBone(class UVrmAssetListObject* vrmAssetList, USkeletalMesh* sk);
 };

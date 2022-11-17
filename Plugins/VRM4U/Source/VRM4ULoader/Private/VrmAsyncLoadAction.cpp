@@ -17,6 +17,11 @@
 #include <assimp/GltfMaterial.h>
 #include <assimp/vrm/vrmmeta.h>
 
+#if	UE_VERSION_OLDER_THAN(4,23,0)
+#define TRACE_CPUPROFILER_EVENT_SCOPE(a)
+#define TRACE_CPUPROFILER_EVENT_SCOPE_TEXT(a)
+#else
+#endif
 
 namespace {
 	class VrmLocalAsyncAsset {
@@ -41,7 +46,7 @@ namespace {
 	VrmLocalAsyncAsset localAsset;
 }
 
-static bool ConvTex(UVrmAssetListObject* vrmAssetList, const aiScene* mScenePtr, const int TexCount, const int SubCount) {
+static bool ConvTex(UVrmAssetListObject* vrmAssetList, const aiScene* mScenePtr, const FImportOptionData* option, const int TexCount, const int SubCount) {
 	if (vrmAssetList == nullptr || mScenePtr == nullptr) {
 		return true;
 	}
@@ -122,13 +127,17 @@ static bool ConvTex(UVrmAssetListObject* vrmAssetList, const aiScene* mScenePtr,
 				}
 
 				if (NewTexture2D->SRGB) {
-					if (VRMConverter::Options::Get().IsBC7Mode()) {
+					if (option->bBC7Mode) {
 						NewTexture2D->CompressionSettings = TC_BC7;
 					}
 				}
+				if (option->bMipmapGenerateMode == false) {
+#if WITH_EDITORONLY_DATA
+					NewTexture2D->MipGenSettings = TMGS_NoMipmaps;
+#endif
+				}
 
-
-				//NewTexture2D->UpdateResource();
+				NewTexture2D->UpdateResource();
 #if WITH_EDITOR
 				//NewTexture2D->PostEditChange();
 #endif
@@ -153,6 +162,8 @@ FVrmAsyncLoadAction::FVrmAsyncLoadAction(const FLatentActionInfo& LatentInfo, FV
 
 void FVrmAsyncLoadAction::UpdateOperation(FLatentResponse& Response)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("VRMLoad UpdateOperation"))
+
 	enum class ESequenceNo : uint32{
 		Init,
 		FileWait,
@@ -177,6 +188,7 @@ void FVrmAsyncLoadAction::UpdateOperation(FLatentResponse& Response)
 
 	// async file load
 	if (SequenceCount == (int)ESequenceNo::Init) {
+		TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("VRMLoad UpdateOperation init"))
 		TexCount = 0;
 		SubCount = 0;
 		FrameCount = 0;
@@ -210,6 +222,7 @@ void FVrmAsyncLoadAction::UpdateOperation(FLatentResponse& Response)
 	}
 
 	if (SequenceCount == (int)ESequenceNo::AssImp) {
+		TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("VRMLoad UpdateOperation assimp"))
 		logFunc();
 		++SequenceCount;
 
@@ -221,6 +234,7 @@ void FVrmAsyncLoadAction::UpdateOperation(FLatentResponse& Response)
 	}
 
 	if (SequenceCount == (int)ESequenceNo::TextureLoop) {
+		TRACE_CPUPROFILER_EVENT_SCOPE_TEXT(*FString::Printf(TEXT("VRMLoad UpdateOperation texture %d"), SubCount))
 		if (localAsset.ScenePtr == nullptr) {
 			Response.FinishAndTriggerIf(true, ExecutionFunction, OutputLink, CallbackTarget);
 			localAsset.Reset();
@@ -230,10 +244,10 @@ void FVrmAsyncLoadAction::UpdateOperation(FLatentResponse& Response)
 		if (TexCount < (int)localAsset.ScenePtr->mNumTextures) {
 
 			if (SubCount == 0) {
-				ConvTex(param.OutVrmAsset, localAsset.ScenePtr, TexCount, 0);
+				ConvTex(param.OutVrmAsset, localAsset.ScenePtr, &param.OptionForRuntimeLoad, TexCount, 0);
 			}
 			if (SubCount == 2) {
-				ConvTex(param.OutVrmAsset, localAsset.ScenePtr, TexCount, 1);
+				ConvTex(param.OutVrmAsset, localAsset.ScenePtr, &param.OptionForRuntimeLoad, TexCount, 1);
 			}
 			++SubCount;
 
@@ -251,6 +265,7 @@ void FVrmAsyncLoadAction::UpdateOperation(FLatentResponse& Response)
 
 
 	if (SequenceCount == (int)ESequenceNo::AssetCreate) {
+		TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("VRMLoad UpdateOperation asset"))
 		logFunc();
 		++SequenceCount;
 		if (param.pData) {

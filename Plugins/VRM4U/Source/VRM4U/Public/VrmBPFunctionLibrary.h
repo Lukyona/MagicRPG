@@ -224,6 +224,13 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "VRM4U")
 	static void VRMGetPreviewMesh(UObject* target, USkeletalMesh*& mesh);
+
+	UFUNCTION(BlueprintPure, Category = "VRM4U", meta = (DynamicOutputParam = "skeletalmesh"))
+	static void VRMGetSkeletalMeshFromSkinnedMeshComponent(const USkinnedMeshComponent* target, USkeletalMesh*& skeletalmesh);
+
+	UFUNCTION(BlueprintPure, Category = "VRM4U", meta = (DynamicOutputParam = "AssetName"))
+	static void VRMGetTopLevelAssetName(const FAssetData& target, FName& AssetName);
+	
 };
 
 

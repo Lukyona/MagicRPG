@@ -110,7 +110,7 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
 {
     if (OtherActor)
     {
-        if (this->index != 10)
+        if (this->index < 10)
         {
             AEnemy* Enemy = Cast<AEnemy>(OtherActor);
             if (Enemy)
@@ -127,7 +127,6 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
                             Enemy->Main->Targeting();
                             Enemy->Main->bAutoTargeting = false;
                         }
-
                     }
                 }
 
@@ -145,7 +144,7 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
             }
         }
        
-        if (index == 10) // enemy's magic skill
+        if (index >= 10) // enemy's magic skill
         {
             if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
 

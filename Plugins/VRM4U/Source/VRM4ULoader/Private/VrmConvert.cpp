@@ -364,7 +364,13 @@ bool VRMConverter::Options::IsMipmapGenerateMode() const {
 	return ret;
 #endif
 }
-	
+
+bool VRMConverter::Options::IsGenerateOutlineMaterial() const {
+	bool ret = true;
+	if (ImportOption == nullptr) return true;
+	return ImportOption->bGenerateOutlineMaterial;
+}
+
 
 bool VRMConverter::Options::IsMergeMaterial() const {
 	bool ret = true;
@@ -380,6 +386,11 @@ bool VRMConverter::Options::IsMergePrimitive() const {
 bool VRMConverter::Options::IsOptimizeVertex() const {
 	if (ImportOption == nullptr) return true;
 	return ImportOption->bOptimizeVertex;
+}
+
+bool VRMConverter::Options::IsRemoveDegenerateTriangles() const {
+	if (ImportOption == nullptr) return true;
+	return ImportOption->bRemoveDegenerateTriangles;
 }
 
 static bool bbVRM0 = false;
@@ -399,12 +410,23 @@ bool VRMConverter::Options::IsVRM0Model() const {
 bool VRMConverter::Options::IsVRM10Model() const {
 	return bbVRM10;
 }
-bool VRMConverter::Options::IsVRM10Normalize() const {
+bool VRMConverter::Options::IsVRM10RemoveLocalRotation() const {
 	bool ret = true;
 #if WITH_EDITOR
 	if (ImportOption == nullptr) return ret;
 
-	return ImportOption->bVrm10Normalize;
+	return ImportOption->bVrm10RemoveLocalRotation;
+#else
+	return ret;
+#endif
+}
+
+bool VRMConverter::Options::IsVRM10Bindpose() const {
+	bool ret = true;
+#if WITH_EDITOR
+	if (ImportOption == nullptr) return ret;
+
+	return ImportOption->bVrm10Bindpose;
 #else
 	return ret;
 #endif

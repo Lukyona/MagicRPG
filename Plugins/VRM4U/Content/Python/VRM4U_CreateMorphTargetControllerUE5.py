@@ -91,7 +91,7 @@ for node in n:
         print(node)
         pin = node.find_pin('Count')
         print(pin)
-        c.set_pin_default_value(pin.get_pin_path(), str(len(morphList)))
+        c.set_pin_default_value(pin.get_pin_path(), str(len(morphList)), True, False)
 
     # curve name array pin
     if (node.get_node_title() == 'Select'):
@@ -104,16 +104,20 @@ for node in n:
         
     # items
     if (node.get_node_title() == 'Collection from Items'):
+
         if ("Type=Curve," in c.get_pin_default_value(node.find_pin('Items').get_pin_path())):
             items_forCurve.append(node.find_pin('Items'))
-        else:
+        
+        if (str(c.get_pin_default_value(node.find_pin('Items').get_pin_path())).find('_ALL_Angry_c') >= 0):
             items_forControl.append(node.find_pin('Items'))
     
-
+print(items_forControl)
 print(values_forCurve)
 
 # reset controller
 for e in reversed(hierarchy.get_controls()):
+    if (len(hierarchy.get_parents(e)) == 0):
+        continue
     if (hierarchy.get_parents(e)[0].name == 'MorphControlRoot_s'):
         #if (str(e.name).rstrip('_c') in morphList):
         #    continue
@@ -128,7 +132,7 @@ for  v in values_forCurve:
     c.clear_array_pin(v.get_pin_path())
     for morph in morphList:
         tmp = "{}".format(morph)
-        c.add_array_pin(v.get_pin_path(), default_value=tmp)
+        c.add_array_pin(v.get_pin_path(), default_value=tmp, setup_undo_redo=False)
 
 # curve controller
 for morph in morphListWithNo:
@@ -198,7 +202,7 @@ for  v in items_forControl:
         tmp = '(Type=Control,Name='
         tmp += "{}".format(morph)
         tmp += ')'
-        c.add_array_pin(v.get_pin_path(), default_value=tmp)
+        c.add_array_pin(v.get_pin_path(), default_value=tmp, setup_undo_redo=False)
 
 # curve Float array
 for  v in items_forCurve:
@@ -207,7 +211,7 @@ for  v in items_forCurve:
         tmp = '(Type=Curve,Name='
         tmp += "{}".format(morph)
         tmp += ')'
-        c.add_array_pin(v.get_pin_path(), default_value=tmp)
+        c.add_array_pin(v.get_pin_path(), default_value=tmp, setup_undo_redo=False)
 
 
 

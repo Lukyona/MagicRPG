@@ -103,9 +103,7 @@ void AEnemy::BeginPlay()
 
 	Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
-    AnimInstance = GetMesh()->GetAnimInstance();
-
-
+	AnimInstance = GetMesh()->GetAnimInstance();
 }
 
 // Called every frame
@@ -149,12 +147,23 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 
 	if (OtherActor && Alive()) //전투타겟이 없을 때 NPC에게도 유효, 전투타겟이 있어도 플레이어에게 반응
 	{
-		if (AgroSound && AgroTargets.Num() == 0) UGameplayStatics::PlaySound2D(this, AgroSound);
+		if (AgroSound && AgroTargets.Num() == 0)
+		{
+			if(!(UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Main->Enemies.Num() == 5))
+				UGameplayStatics::PlaySound2D(this, AgroSound);
+		}
 
 		ACharacter* target = Cast<ACharacter>(OtherActor);
 
 		if (!target) return;
 		//UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapBegin %s"), *target->GetName());
+
+
+		for (int i = 0; i < AgroTargets.Num(); i++)
+		{
+			if (target == AgroTargets[i]) return;
+		}
+		AgroTargets.Add(target); // Add to target list
 
 		if (target == Main)
 		{
@@ -167,12 +176,6 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 				MoveToTarget(target);
 			}				
 		}
-
-		for (int i = 0; i < AgroTargets.Num(); i++)
-		{
-			if (target == AgroTargets[i]) return;
-		}
-		AgroTargets.Add(target); // Add to target list
 	}
 }
 
@@ -268,7 +271,7 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 	if (OtherActor && Alive())
 	{
 		ACharacter* target = Cast<ACharacter>(OtherActor);
-		//UE_LOG(LogTemp, Log, TEXT("CombatSphere On Overlap End"));
+		////UE_LOG(LogTemp, Log, TEXT("CombatSphere On Overlap End"));
 		//UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapEnd %s"), *OtherActor->GetName());
 
 		if (!target) return;
@@ -292,7 +295,7 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 
 		if(target == Main && Main->MovementStatus != EMovementStatus::EMS_Dead) // 플레이어가 살아있는 상태로 전투범위를 나감 
 		{
-			//UE_LOG(LogTemp, Log, TEXT("main"));
+			//UE_LOG(LogTemp, Log, TEXT("main end move to main"));
 			MoveToTarget(target);
 		}
 
@@ -327,13 +330,17 @@ void AEnemy::MoveToTarget(ACharacter* Target)
 	{
 		if (Target == Main && Main->MovementStatus == EMovementStatus::EMS_Dead)
 		{
-			MoveToLocation();
-			return;
+			if (AgroTargets.Num() == 0)
+			{
+				MoveToLocation();
+				return;
+			}
+
 		}
 		SetEnemyMovementStatus(EEnemyMovementStatus::EMS_MoveToTarget);
 
 		GetWorldTimerManager().ClearTimer(CheckHandle);
-		//UE_LOG(LogTemp, Log, TEXT("move to target"));
+		//UE_LOG(LogTemp, Log, TEXT("move to target %s"), *this->GetName());
 
 		AgroTarget = Target;
 		FAIMoveRequest MoveRequest;
@@ -343,7 +350,7 @@ void AEnemy::MoveToTarget(ACharacter* Target)
 		FNavPathSharedPtr NavPath;
 
 		AIController->MoveTo(MoveRequest, &NavPath);
-
+		MovingNow();
 		/** 어그로(인식)범위(구 콜리전)에 충돌했을 때 어떤 경로를 따라서 몬스터가 따라오는지 확인 가능
 		auto PathPoints = NavPath->GetPathPoints();
 		for (auto Point : PathPoints)
@@ -406,7 +413,6 @@ void AEnemy::Attack()
 			{
 				AttackEnd();
 				return;
-
 			}
 
 			if (AIController)
@@ -417,7 +423,7 @@ void AEnemy::Attack()
 
 			bAttacking = true;
 			SetInterpToTarget(false);
-			//UE_LOG(LogTemp, Log, TEXT("attack"));
+			////UE_LOG(LogTemp, Log, TEXT("attack"));
 
 			if (AnimInstance)
 			{
@@ -452,6 +458,10 @@ void AEnemy::Attack()
 				}
 			}
 		}
+		else
+		{
+			if(bAttacking) AttackEnd();
+		}
 	}
 }
 
@@ -459,7 +469,7 @@ void AEnemy::AttackEnd()
 {
 	bAttacking = false;
 	SetInterpToTarget(true);
-	//UE_LOG(LogTemp, Log, TEXT("attack end"));
+	//UE_LOG(LogTemp, Log, TEXT("attack end %s"), *this->GetName());
 	if (bOverlappingCombatSphere && !AgroTarget)
 	{
 		if (CombatTarget)
@@ -523,7 +533,7 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 	}
 
 	MagicAttack = Cast<AMagicSkill>(DamageCauser);
-	//UE_LOG(LogTemp, Log, TEXT("attck %s"), *MagicAttack->GetName());
+	////UE_LOG(LogTemp, Log, TEXT("attck %s"), *MagicAttack->GetName());
 
 	return DamageAmount;
 }
@@ -536,9 +546,9 @@ void AEnemy::Die()
 		if (AIController) AIController->StopMovement();
 		SetInterpToTarget(false);
 
-		if (DeathSound) UGameplayStatics::PlaySound2D(this, DeathSound);
+		if (DeathSound && !Main->bSkip) UGameplayStatics::PlaySound2D(this, DeathSound);
 
-		if (AnimInstance)
+		if (AnimInstance && !Main->bSkip)
 		{
 			AnimInstance->Montage_Play(CombatMontage);
 			AnimInstance->Montage_JumpToSection(FName("Death"), CombatMontage);
@@ -553,7 +563,7 @@ void AEnemy::DeathEnd()
 {
 	GetMesh()->bPauseAnims = true;
 	GetMesh()->bNoSkeletonUpdate = true;
-
+	
 	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first") && Main->Enemies.Num() == 9) // 첫번째 던전 클리어했는지, 골렘 이후 대화가 정상
 	{
 		Main->SaveGame();
@@ -563,13 +573,34 @@ void AEnemy::DeathEnd()
 		Main->MainPlayerController->DisplayDialogueUI();
 	}
 
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Main->Enemies.Num() == 5)
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second") && Main->Enemies.Num() >= 15)
+	{
+		int count = 0;
+		for (int i = 0; i < Main->Enemies.Num(); i++)
+		{
+			if (Main->Enemies[i].Contains("monster"))
+			{
+				count++;
+			}
+		}
+		if (count == 3)
+		{
+			for (int i = 0; i < Main->NPCList.Num(); i++)
+			{
+				Main->NPCList[i]->GetWorldTimerManager().ClearTimer(Main->NPCList[i]->MoveTimer);
+				Main->NPCList[i]->AIController->StopMovement();
+			}
+			Main->SaveGame();
+			Main->MainPlayerController->DisplayDialogueUI();
+		}
+	}
+
+	if ((UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Main->Enemies.Num() == 5))
 	{
 		Main->SaveGame();
 		Main->MainPlayerController->DisplayDialogueUI();
 	}
-
-
+	
 	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::Disappear, DeathDelay);
 }
 
@@ -601,14 +632,14 @@ void AEnemy::HitGround() //Golem's third skill
 
 void AEnemy::HitEnd()
 {
-	//UE_LOG(LogTemp, Log, TEXT("hit end"));
+	//UE_LOG(LogTemp, Log, TEXT("hit end %s"), *this->GetName());
 
 	if (!Main) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
 	if (AgroTarget) // 누군가를 쫓아가고 있었으면 다시 쫓아가기
 	{
 		MoveToTarget(AgroTarget);
-		//UE_LOG(LogTemp, Log, TEXT("move to target again"));
+		//UE_LOG(LogTemp, Log, TEXT("move to target again %s"), *this->GetName());
 	}
 	
 
@@ -663,7 +694,7 @@ void AEnemy::MoveToLocation()
 	{
 		GetWorldTimerManager().SetTimer(CheckHandle, this, &AEnemy::CheckLocation, 0.5f);
 
-		SetEnemyMovementStatus(EEnemyMovementStatus::EMS_MoveToTarget);
+		//SetEnemyMovementStatus(EEnemyMovementStatus::EMS_MoveToTarget);
 		AIController->MoveToLocation(InitialLocation);
 	}
 }
@@ -681,7 +712,7 @@ void AEnemy::CheckLocation()
 		Count += 1;
 		if (Count >= 20) SetActorLocation(InitialLocation);
 		float distance = (GetActorLocation() - InitialLocation).Size();
-		//UE_LOG(LogTemp, Log, TEXT("%f"), distance);
+		////UE_LOG(LogTemp, Log, TEXT("%f"), distance);
 
 		if (distance <= 70.f)
 		{
@@ -708,5 +739,53 @@ void AEnemy::CheckLocation()
 	else
 	{
 		GetWorldTimerManager().ClearTimer(CheckHandle);
+	}
+}
+
+
+void AEnemy::MovingNow()
+{
+	if (AgroTarget == Main && EnemyMovementStatus == EEnemyMovementStatus::EMS_MoveToTarget)
+	{
+		MovingCount += 1;
+		if (MovingCount > 6)
+		{
+			if (CombatTargets.Num() != 0)
+			{
+				//UE_LOG(LogTemp, Log, TEXT("change target and attack"));
+
+				AgroTarget = nullptr;
+				CombatTarget = CombatTargets[0];
+				bOverlappingCombatSphere = true;
+				Attack();
+			}
+			else if(AgroTargets.Num() != 0)
+			{
+				//UE_LOG(LogTemp, Log, TEXT("change agro"));
+
+				AgroTarget = nullptr;
+				for (int i = 0; i < AgroTargets.Num(); i++)
+				{
+					if (AgroTargets[i] != Main)
+					{
+						MoveToTarget(AgroTargets[i]);
+						//UE_LOG(LogTemp, Log, TEXT("cachangehnge agro and move"));
+
+						break;
+					}
+				}
+			}
+		}
+		//UE_LOG(LogTemp, Log, TEXT("movingcount %d"), MovingCount);
+
+		GetWorldTimerManager().SetTimer(MovingTimer, this, &AEnemy::MovingNow, 0.5f);
+
+	}
+	else
+	{
+		//UE_LOG(LogTemp, Log, TEXT("movingcount reset "));
+
+		MovingCount = 0;
+		GetWorldTimerManager().ClearTimer(MovingTimer);
 	}
 }

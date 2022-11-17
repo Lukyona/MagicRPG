@@ -235,6 +235,7 @@ namespace {
 	}
 #endif
 #endif
+
 }
 
 
@@ -903,7 +904,7 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 			}
 			{
 				auto s = VRMGetRefSkeleton(sk).GetBoneName(0);
-				rigcon->AddRetargetChain(TEXT("root"), s, s);
+				VRMAddRetargetChain(rigcon, TEXT("root"), s, s);
 			}
 			for (auto& modelName : vrmAssetList->VrmMetaObject->humanoidBoneTable) {
 				if (modelName.Key == "" || modelName.Value == "") {
@@ -921,7 +922,7 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 
 				switch (type) {
 				case 0:
-					rigcon->AddRetargetChain(*modelName.Key, *modelName.Value, *modelName.Value);
+					VRMAddRetargetChain(rigcon, *modelName.Key, *modelName.Value, *modelName.Value);
 					break;
 				case 1:
 				{
@@ -932,7 +933,7 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 
 					if (s) {
 						// spine chain
-						rigcon->AddRetargetChain(*modelName.Key, *modelName.Value, **s);
+						VRMAddRetargetChain(rigcon, *modelName.Key, *modelName.Value, **s);
 					}
 				}
 					break;
@@ -958,7 +959,7 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 
 			{
 				auto s = VRMGetRefSkeleton(sk).GetBoneName(0);
-				rigcon->AddRetargetChain(TEXT("root"), s, s);
+				VRMAddRetargetChain(rigcon, TEXT("root"), s, s);
 			}
 			for (auto& modelName : vrmAssetList->VrmMetaObject->humanoidBoneTable) {
 				if (modelName.Key == "" || modelName.Value == "") {
@@ -969,7 +970,7 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 						continue;
 					}
 					if (a.BoneVRM.ToLower() == modelName.Key.ToLower()) {
-						rigcon->AddRetargetChain(*a.BoneUE4, *modelName.Value, *modelName.Value);
+						VRMAddRetargetChain(rigcon, *a.BoneUE4, *modelName.Value, *modelName.Value);
 						if (modelName.Key == TEXT("hips")) {
 							rigcon->SetRetargetRoot(*modelName.Value);
 						}
@@ -990,7 +991,7 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 
 			{
 				auto s = VRMGetRefSkeleton(sk).GetBoneName(0);
-				rigcon->AddRetargetChain(TEXT("Root"), s, s);
+				VRMAddRetargetChain(rigcon, TEXT("Root"), s, s);
 			}
 			struct TT {
 				FString chain;
@@ -1057,7 +1058,7 @@ bool VRMConverter::ConvertRig(UVrmAssetListObject *vrmAssetList) {
 							}
 						}
 					}
-					rigcon->AddRetargetChain(*t.chain, *conv.s1, *s2);
+					VRMAddRetargetChain(rigcon, *t.chain, *conv.s1, *s2);
 				}
 			}
 			LocalSolverSetup(rigcon, vrmAssetList);

@@ -293,11 +293,13 @@ static bool readMorph2(TArray<FMorphTargetDelta> &MorphDeltas, aiString targetNa
 				v.SourceIdx = VertexCount + currentVertex;
 				++VertexCount;
 
-				v.PositionDelta.Set(
-					-aiA.mVertices[i][0] * 100.f,
-					aiA.mVertices[i][2] * 100.f,
-					aiA.mVertices[i][1] * 100.f
-				);
+				if (aiA.mVertices) {
+					v.PositionDelta.Set(
+						-aiA.mVertices[i][0] * 100.f,
+						aiA.mVertices[i][2] * 100.f,
+						aiA.mVertices[i][1] * 100.f
+					);
+				}
 
 				v.PositionDelta *= VRMConverter::Options::Get().GetModelScale();
 

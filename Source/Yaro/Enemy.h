@@ -161,7 +161,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void DeactivateCollision();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	bool bAttacking;
 
 	UFUNCTION(BlueprintCallable)
@@ -172,6 +172,7 @@ public:
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
+	UFUNCTION(BlueprintCallable)
 	void Die();
 
 	UFUNCTION(BlueprintCallable)
@@ -196,4 +197,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Name;
+
+
+	int MovingCount = 0;
+
+	FTimerHandle MovingTimer;
+
+	void MovingNow();
 };

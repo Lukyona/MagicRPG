@@ -158,7 +158,7 @@ public:
 
 	void RemoveSpeechBuubble();
 
-	FVector NpcLocation;
+	FVector SBLocation;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bCanDisplaySpeechBubble = false;

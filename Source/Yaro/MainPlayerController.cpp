@@ -125,9 +125,9 @@ void AMainPlayerController::DisplaySpeechBuubble(class AYaroCharacter* npc)
 {
     if (SpeechBubble && bCanDisplaySpeechBubble)
     {
-        NpcLocation = npc->GetActorLocation() + FVector(0.f, 0.f, 93.f);
+        SBLocation = npc->GetActorLocation() + FVector(0.f, 0.f, 93.f);
 
-        SpeechBubble->SetActorLocation(NpcLocation);
+        SpeechBubble->SetActorLocation(SBLocation);
         SpeechBubble->SetActorHiddenInGame(false);
 
         bSpeechBuubbleVisible = true;
@@ -414,6 +414,7 @@ void AMainPlayerController::RemoveDialogueUI()
 
         DialogueUI->OnAnimationHideMessageUI();
 
+        if (Main->bSkip) Main->bSkip = false;
     }
 }
 

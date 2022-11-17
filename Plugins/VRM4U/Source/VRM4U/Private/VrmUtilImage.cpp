@@ -469,7 +469,8 @@ UTexture2D* VRMUtil::CreateTextureFromImage(FString name, UPackage* package, con
 	tex->AddressY = TA_Wrap;
 
 	if (bRuntimeMode) {
-		tex->UpdateResource();
+		// skip updateresource. call manuary
+		//tex->UpdateResource();
 		return tex;
 	}
 

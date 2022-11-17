@@ -15,6 +15,7 @@
 #include "Animation/Rig.h"
 #include "Animation/PoseAsset.h"
 #include "Animation/Skeleton.h"
+#include "Animation/SkeletalMeshActor.h"
 #include "Components/SkeletalMeshComponent.h"
 
 #if WITH_EDITOR
@@ -45,7 +46,18 @@ namespace {
 		bool b = GIsGameThreadIdInitialized;
 		//GIsGameThreadIdInitialized = false;
 #endif
+#if	UE_VERSION_OLDER_THAN(5,1,0)
 		auto PersonaToolkit = PersonaModule.CreatePersonaToolkit(sk);
+#else
+
+		static auto f = [](const TSharedRef<IPersonaPreviewScene>& InPersonaPreviewScene) {
+		};
+
+		FPersonaToolkitArgs args;
+		args.OnPreviewSceneCreated = FOnPreviewSceneCreated::FDelegate::CreateStatic(f);
+		//args.OnPreviewSceneCreated = FOnPreviewSceneCreated::FDelegate::CreateSP(this, &FControlRigEditor::HandlePreviewSceneCreated);
+		auto PersonaToolkit = PersonaModule.CreatePersonaToolkit(sk, args);
+#endif
 
 #if	UE_VERSION_OLDER_THAN(5,0,0)
 #else
@@ -53,6 +65,23 @@ namespace {
 #endif
 		return PersonaToolkit;
 	}
+
+	class AutoDestroy {
+	public:
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+		AActor *actor = nullptr;
+#else
+		TObjectPtr<AActor> actor;
+#endif
+		AutoDestroy(AActor* a) {
+			actor = a;
+		}
+		~AutoDestroy() {
+			if (actor) {
+				actor->Destroy();
+			}
+		}
+	};
 }
 
 #endif
@@ -189,12 +218,23 @@ namespace {
 		}
 
 		{
+#if	UE_VERSION_OLDER_THAN(5,0,0)
 			auto PersonaToolkit = LocalCreatePersonaToolkit(sk);
 			UDebugSkelMeshComponent* PreviewComponent = PersonaToolkit->GetPreviewMeshComponent();
+			auto* skc = Cast<USkeletalMeshComponent>(PreviewComponent);
 
-			auto* kk = Cast<USkeletalMeshComponent>(PreviewComponent);
-			kk->SetComponentSpaceTransformsDoubleBuffering(false);
-
+#elif	UE_VERSION_OLDER_THAN(5,1,0)
+			ASkeletalMeshActor* ska = GWorld->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), FTransform::Identity);
+			AutoDestroy autoDestroy(ska);
+			auto skc = Cast<USkeletalMeshComponent>(ska->GetRootComponent());
+			skc->SetSkeletalMesh(sk);
+#else
+			ASkeletalMeshActor* ska = GWorld->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), FTransform::Identity);
+			AutoDestroy autoDestroy(ska);
+			auto skc = Cast<USkeletalMeshComponent>(ska->GetRootComponent());
+			skc->SetSkeletalMeshAsset(sk);
+#endif
+			skc->SetComponentSpaceTransformsDoubleBuffering(false);
 		}
 
 		TArray < FSmartName > SmartNamePoseList;
@@ -632,12 +672,26 @@ bool VRMConverter::ConvertPose(UVrmAssetListObject *vrmAssetList) {
 					break;
 				}
 
+#if	UE_VERSION_OLDER_THAN(5,0,0)
 				auto PersonaToolkit = LocalCreatePersonaToolkit(sk);
-
 				UDebugSkelMeshComponent* PreviewComponent = PersonaToolkit->GetPreviewMeshComponent();
+				auto* skc = Cast<USkeletalMeshComponent>(PreviewComponent);
 
-				auto *kk = Cast<USkeletalMeshComponent>(PreviewComponent);
-				kk->SetComponentSpaceTransformsDoubleBuffering(false);
+#elif	UE_VERSION_OLDER_THAN(5,1,0)
+				ASkeletalMeshActor *ska = GWorld->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), FTransform::Identity);
+				AutoDestroy autoDestroy(ska);
+				auto skc = Cast<USkeletalMeshComponent>(ska->GetRootComponent());
+				skc->SetSkeletalMesh(sk);
+#else
+				ASkeletalMeshActor* ska = GWorld->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), FTransform::Identity);
+				AutoDestroy autoDestroy(ska);
+				auto skc = Cast<USkeletalMeshComponent>(ska->GetRootComponent());
+				skc->SetSkeletalMeshAsset(sk);
+#endif
+
+
+
+				skc->SetComponentSpaceTransformsDoubleBuffering(false);
 
 				{
 					struct RetargetParts {
@@ -920,7 +974,7 @@ bool VRMConverter::ConvertPose(UVrmAssetListObject *vrmAssetList) {
 					}
 
 					auto &rk = k->GetReferenceSkeleton();
-					auto &dstTrans = kk->GetEditableComponentSpaceTransforms();
+					auto &dstTrans = skc->GetEditableComponentSpaceTransforms();
 
 					// init retarget pose
 					for (int i = 0; i < dstTrans.Num(); ++i) {
@@ -1026,7 +1080,8 @@ bool VRMConverter::ConvertPose(UVrmAssetListObject *vrmAssetList) {
 					//pose->AddOrUpdatePose(PoseName, Cast<USkeletalMeshComponent>(PreviewComponent));
 
 					FSmartName newName;
-					pose->AddOrUpdatePoseWithUniqueName(Cast<USkeletalMeshComponent>(PreviewComponent), &newName);
+					//pose->AddOrUpdatePoseWithUniqueName(Cast<USkeletalMeshComponent>(PreviewComponent), &newName);
+					pose->AddOrUpdatePoseWithUniqueName(skc, &newName);
 					pose->ModifyPoseName(newName.DisplayName, PoseName.DisplayName, nullptr);
 				}
 			}

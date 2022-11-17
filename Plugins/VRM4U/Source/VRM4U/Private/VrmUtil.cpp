@@ -523,3 +523,44 @@ const TArray<FName> VRMUtil::ue4_humanoid_bone_list_name = {
 	"Custom_4",
 	"Custom_5",
 };
+
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
+#include "IKRigDefinition.h"
+#include "IKRigSolver.h"
+#if WITH_EDITOR
+#include "RigEditor/IKRigController.h"
+#include "RetargetEditor/IKRetargeterController.h"
+#include "Retargeter/IKRetargeter.h"
+#include "Solvers/IKRig_PBIKSolver.h"
+#endif
+#endif
+
+
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
+
+void VRMAddRetargetChain(UIKRigController* con, FName name, FName begin, FName end) {
+#if WITH_EDITOR
+#if	UE_VERSION_OLDER_THAN(5,1,0)
+	con->AddRetargetChain(name, begin, end);
+#else
+	FBoneChain c;
+	FBoneReference r1, r2;
+	r1.BoneName = begin;
+	r2.BoneName = end;
+
+	auto k = con->GetAsset()->GetPreviewMesh()->GetSkeleton();
+
+	r1.Initialize(k);
+	r2.Initialize(k);
+
+	c.ChainName = name;
+	c.StartBone = r1;
+	c.EndBone = r2;
+	con->AddRetargetChain(c);
+#endif
+#endif
+}
+
+#endif

@@ -46,11 +46,29 @@ struct VRM4U_API FVRMSpringColliderData {
 	GENERATED_BODY()
 		
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rendering)
+	FName shapeType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rendering)
 	FVector offset = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rendering)
 	float radius = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rendering)
+	FVector tail = FVector::ZeroVector;
 };
+
+USTRUCT(Blueprintable, BlueprintType)
+struct VRM4U_API FVRMColliderGroupMeta {
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rendering)
+	FString groupName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rendering)
+	TArray<int> colliderGroup;
+};
+
 
 USTRUCT(Blueprintable, BlueprintType)
 struct VRM4U_API FVRMColliderMeta {
@@ -150,6 +168,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rendering)
 	TArray<FVRMColliderMeta> VRMColliderMeta;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rendering)
+	TArray<FVRMColliderGroupMeta> VRMColliderGroupMeta;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rendering)
 	class USkeletalMesh *SkeletalMesh;

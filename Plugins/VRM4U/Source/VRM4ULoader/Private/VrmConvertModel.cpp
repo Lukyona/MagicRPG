@@ -146,12 +146,12 @@ static int GetChildBoneLocal(const USkeleton *skeleton, const int32 ParentBoneIn
 	return Children.Num();
 }
 
-static void FindMeshInfo(const aiScene* scene, aiNode* node, FReturnedData& result)
+static void FindMeshInfo(const aiScene* scene, aiNode* node, FReturnedData& result, UVrmAssetListObject *vrmAssetList)
 {
-	for (uint32 i = 0; i < node->mNumMeshes; i++)
+	for (uint32 MeshNo = 0; MeshNo < node->mNumMeshes; MeshNo++)
 	{
 		FString Fs = UTF8_TO_TCHAR(node->mName.C_Str());
-		int meshidx = node->mMeshes[i];
+		int meshidx = node->mMeshes[MeshNo];
 		aiMesh *mesh = scene->mMeshes[meshidx];
 		FMeshInfo_VRM4U &mi = result.meshInfo[meshidx];
 
@@ -213,6 +213,7 @@ static void FindMeshInfo(const aiScene* scene, aiNode* node, FReturnedData& resu
 				}
 			}
 
+			bool hasSkipVertex = false;
 			// optimize table
 			TArray<uint32_t> useTable;
 			useTable.AddZeroed(useFlag.Num());
@@ -222,29 +223,32 @@ static void FindMeshInfo(const aiScene* scene, aiNode* node, FReturnedData& resu
 					useTable[t] = t - c;
 					if (useFlag[t] == false) {
 						++c;
+						hasSkipVertex = true;
 					}
 				}
 			}
 
-			// replace face index
-			for (uint32_t f = 0; f < mesh->mNumFaces; ++f) {
-				auto &face = mesh->mFaces[f];
-				for (uint32_t d = 0; d < face.mNumIndices; ++d) {
-					auto &ind = face.mIndices[d];
-					face.mIndices[d] = useTable[face.mIndices[d]];
+			if (hasSkipVertex) {
+				// replace face index
+				for (uint32_t f = 0; f < mesh->mNumFaces; ++f) {
+					auto& face = mesh->mFaces[f];
+					for (uint32_t d = 0; d < face.mNumIndices; ++d) {
+						auto& ind = face.mIndices[d];
+						face.mIndices[d] = useTable[face.mIndices[d]];
+					}
 				}
-			}
 
-			// replace weight index
-			for (uint32_t b = 0; b < mesh->mNumBones; ++b) {
-				auto &bone = mesh->mBones[b];
-				for (uint32_t w = 0; w < bone->mNumWeights; ++w) {
-					auto &weight = bone->mWeights[w];
+				// replace weight index
+				for (uint32_t b = 0; b < mesh->mNumBones; ++b) {
+					auto& bone = mesh->mBones[b];
+					for (uint32_t w = 0; w < bone->mNumWeights; ++w) {
+						auto& weight = bone->mWeights[w];
 
-					uint32_t ind = weight.mVertexId;
-					weight.mVertexId = useTable[ind];
-					if (useFlag[ind] == 0) {
-						weight.mWeight = 0.f;
+						uint32_t ind = weight.mVertexId;
+						weight.mVertexId = useTable[ind];
+						if (useFlag[ind] == 0) {
+							weight.mWeight = 0.f;
+						}
 					}
 				}
 			}
@@ -325,19 +329,18 @@ static void FindMeshInfo(const aiScene* scene, aiNode* node, FReturnedData& resu
 				);
 				mi.VertexColors.Push(color);
 			}
-
 		}
 	}
 }
 
 
-static void FindMesh(const aiScene* scene, aiNode* node, FReturnedData& retdata)
+static void FindMesh(const aiScene* scene, aiNode* node, FReturnedData& retdata, UVrmAssetListObject *vrmAssetList)
 {
-	FindMeshInfo(scene, node, retdata);
+	FindMeshInfo(scene, node, retdata, vrmAssetList);
 
 	for (uint32 m = 0; m < node->mNumChildren; ++m)
 	{
-		FindMesh(scene, node->mChildren[m], retdata);
+		FindMesh(scene, node->mChildren[m], retdata, vrmAssetList);
 	}
 }
 
@@ -575,7 +578,7 @@ bool VRMConverter::ConvertModel(UVrmAssetListObject *vrmAssetList) {
 	{
 		result.meshInfo.SetNum(aiData->mNumMeshes, false);
 
-		FindMesh(aiData, aiData->mRootNode, result);
+		FindMesh(aiData, aiData->mRootNode, result, vrmAssetList);
 
 		for (uint32 i = 0; i < aiData->mNumMeshes; ++i)
 		{
@@ -585,9 +588,34 @@ bool VRMConverter::ConvertModel(UVrmAssetListObject *vrmAssetList) {
 				for (uint32 m = 0; m < aiData->mMeshes[i]->mFaces[l].mNumIndices; ++m)
 				{
 					if (m >= 3) {
-						UE_LOG(LogVRM4ULoader, Warning, TEXT("FindMeshInfo. %d\n"), m);
+						//UE_LOG(LogVRM4ULoader, Warning, TEXT("FindMeshInfo. %d\n"), m);
+					}
+
+					if (Options::Get().IsRemoveDegenerateTriangles()) {
+						if ((m % 3 == 0) && (m + 2 < aiData->mMeshes[i]->mFaces[l].mNumIndices)) {
+							const unsigned int tmpIndex[] = {
+								aiData->mMeshes[i]->mFaces[l].mIndices[m],
+								aiData->mMeshes[i]->mFaces[l].mIndices[m + 1],
+								aiData->mMeshes[i]->mFaces[l].mIndices[m + 2],
+							};
+							aiVector3D v[] = {
+								aiData->mMeshes[i]->mVertices[tmpIndex[0]],
+								aiData->mMeshes[i]->mVertices[tmpIndex[1]],
+								aiData->mMeshes[i]->mVertices[tmpIndex[2]],
+							};
+							v[0] -= v[2];
+							v[1] -= v[2];
+							if ((v[0] ^ v[1]).SquareLength() == 0.f) {
+								UE_LOG(LogVRM4ULoader, Warning, TEXT("degenerate triangle %d"), m);
+
+								m += 2;
+								continue;
+							}
+						}
 					}
 					result.meshInfo[i].Triangles.Push(aiData->mMeshes[i]->mFaces[l].mIndices[m]);
+
+
 				}
 			}
 		}
@@ -734,7 +762,7 @@ bool VRMConverter::ConvertModel(UVrmAssetListObject *vrmAssetList) {
 			USkeletalMesh* sk_tmp = VRM4U_NewObject<USkeletalMesh>(GetTransientPackage(), NAME_None, EObjectFlags::RF_Public | RF_Transient);
 			//USkeleton *k_tmp = VRM4U_NewObject<USkeleton>(GetTransientPackage(), NAME_None, EObjectFlags::RF_Public | RF_Transient);
 
-			VRMSkeleton::readVrmBone(const_cast<aiScene*>(aiData), boneOffset, VRMGetRefSkeleton(sk_tmp));
+			VRMSkeleton::readVrmBone(const_cast<aiScene*>(aiData), boneOffset, VRMGetRefSkeleton(sk_tmp), vrmAssetList);
 
 
 			// force set PMX bonetable for addIK
@@ -873,6 +901,83 @@ bool VRMConverter::ConvertModel(UVrmAssetListObject *vrmAssetList) {
 			FSkeletalMeshLODInfo& info = sk->AddLODInfo();
 #endif
 		}
+
+
+		if (VRMConverter::Options::Get().IsVRM10Model() && VRMConverter::Options::Get().IsVRM10Bindpose() == false) {
+			if (vrmAssetList->Pose_bind.Num() == 0 || vrmAssetList->Pose_tpose.Num() == 0) {
+				UE_LOG(LogVRM4ULoader, Warning, TEXT("no bindpose array!"));
+			}else{
+				auto& info = vrmAssetList->MeshReturnedData->meshInfo;
+				struct WeightData {
+					int boneNo = 0;
+					FString boneName;
+					float weight = 0;
+				};
+				TMap<int, TArray<WeightData> > weightTable;
+				auto* scene = const_cast<aiScene*>(aiData);
+
+				int vertexOffset = 0;
+				for (uint32_t meshNo = 0; meshNo < scene->mNumMeshes; ++meshNo) {
+					auto* mesh = scene->mMeshes[meshNo];
+					for (uint32_t boneNo = 0; boneNo < mesh->mNumBones; ++boneNo) {
+						auto* bone = mesh->mBones[boneNo];
+						for (uint32_t weightNo = 0; weightNo < bone->mNumWeights; ++weightNo) {
+							auto weight = bone->mWeights[weightNo];
+
+							WeightData d;
+							d.boneNo = boneNo;
+							d.boneName = UTF8_TO_TCHAR(bone->mName.C_Str());
+							d.weight = weight.mWeight;
+							weightTable.FindOrAdd(vertexOffset + weight.mVertexId).Add(d);
+						}
+					}
+					vertexOffset += mesh->mNumVertices;
+					for (auto w : weightTable) {
+						float f = 0.f;
+						for (auto data : w.Value) {
+							f += data.weight;
+						}
+						if (fabs(f - 1.f) > 0.01f) {
+							UE_LOG(LogVRM4ULoader, Warning, TEXT("bad weight!"));
+						}
+					}
+
+					for (int vertexNo = 0; vertexNo < info[meshNo].Vertices.Num(); ++vertexNo) {
+						FVector v_orig = info[meshNo].Vertices[vertexNo];
+						FVector v(0, 0, 0);
+
+						for (auto a : weightTable[vertexNo]) {
+							auto tpose = vrmAssetList->Pose_tpose.Find(a.boneName);
+							auto bpose = vrmAssetList->Pose_bind.Find(a.boneName);
+							//auto tpose = vrmAssetList->Pose_tpose.Find(UTF8_TO_TCHAR(mesh->mBones[a.boneNo]->mName.C_Str()));
+							//auto bpose = vrmAssetList->Pose_bind.Find(UTF8_TO_TCHAR(mesh->mBones[a.boneNo]->mName.C_Str()));
+
+							if (tpose && bpose) {
+								//FVector v_diff = (tpose->GetTranslation() - bpose->GetTranslation());
+								FVector v_diff = ((*tpose) * bpose->Inverse()).TransformFVector4(v_orig);
+								//FVector v_diff = (*tpose).TransformPosition(bpose->InverseTransformPosition(v_orig));
+								//FVector v_diff = (*tpose).TransformVector(bpose->InverseTransformVector(v_orig));
+								v += v_diff * a.weight;
+#if	UE_VERSION_OLDER_THAN(5,1,0)
+								float len = v.Size();
+#else
+								float len = v.Length();
+#endif
+								if (len >= 100000) {
+									UE_LOG(LogVRM4ULoader, Warning, TEXT("bad weight!"));
+								}
+							} else {
+								UE_LOG(LogVRM4ULoader, Warning, TEXT("no bindpose!"));
+							}
+						}
+						//info[meshNo].Vertices[vertexNo] = v;
+					}
+				}
+			}
+		}
+
+		// begin vertex
+
 
 		//sk->CacheDerivedData();
 		if (bReimportMode == false) {

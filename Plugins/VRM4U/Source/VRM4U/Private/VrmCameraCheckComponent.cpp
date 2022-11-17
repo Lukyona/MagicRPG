@@ -23,31 +23,21 @@ void UVrmCameraCheckComponent::OnUnregister() {
 	Super::OnUnregister();
 }
 
+#if WITH_EDITOR
 void UVrmCameraCheckComponent::OnCameraTransformChanged(const FVector&, const FRotator&, ELevelViewportType, int32) {
 	OnCameraMove.Broadcast();
 }
+#endif
 
 void UVrmCameraCheckComponent::SetCameraCheck(bool bCheckOn) {
 #if WITH_EDITOR
 	if (bCheckOn) {
-		//GEditor->OnEndCameraMovement.Assign(OnCameraMove)
-		//if (GEditor->GetActiveViewport()) {
-		//	FEditorViewportClient* ViewportClient = StaticCast<FEditorViewportClient*>(GEditor->GetActiveViewport()->GetClient());
-		//	if (ViewportClient) {
-		//		ViewportClient->SetActorLock(this->GetOwner());
-		//	}
-		//}
-		//GCurrentLevelEditingViewportClient->SetActorLock(this->GetOwner());
-		//GEditor->OnEndCameraMovement().AddUObject(this, &UVrmCameraCheckComponent::OnCameraTransformChanged);
-		//GEditor->OnBeginCameraMovement().AddUObject(this, &UVrmCameraCheckComponent::OnCameraTransformChanged);
 		handle = FEditorDelegates::OnEditorCameraMoved.AddUObject(this, &UVrmCameraCheckComponent::OnCameraTransformChanged);
 	} else {
 		if (handle.IsValid()) {
 			FEditorDelegates::OnEditorCameraMoved.Remove(handle);
 		}
-		//GEditor->OnEndCameraMovement().Remove
 	}
-	//FOnEndTransformCamera& () { return OnEndCameraTransformEvent; }
 #endif
 }
 

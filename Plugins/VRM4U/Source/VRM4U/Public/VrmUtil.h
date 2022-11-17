@@ -15,7 +15,7 @@ class UMorphTarget;
 class UPhysicsAsset;
 struct FSkeletalMaterial;
 
-// skeleton
+// skeleton begin
 
 template<typename T>
 USkeleton* VRMGetSkeleton(T* t){
@@ -60,8 +60,9 @@ void VRMSetSkeleton(TObjectPtr<T> t, USkeleton* sk) {
 }
 #endif
 
+//skeleton end
 
-// refskeleton
+// refskeleton begin
 
 template<typename T>
 FReferenceSkeleton& VRMGetRefSkeleton(T* t) {
@@ -105,6 +106,8 @@ void VRMSetRefSkeleton(TObjectPtr<T> t, const FReferenceSkeleton& refsk) {
 	t->SetRefSkeleton(refsk);
 }
 #endif
+
+//refskeleton end
 
 // morph targets
 template<typename T>
@@ -220,6 +223,11 @@ void VRMSetUseLegacyMeshDerivedDataKey(T* t, bool b) {
 }
 
 
+#if	UE_VERSION_OLDER_THAN(5,0,0)
+#else
+VRM4U_API void VRMAddRetargetChain(class UIKRigController* con, FName name, FName begin, FName end);
+#endif
+
 // 
 //
 
@@ -255,6 +263,12 @@ struct VRM4U_API FImportOptionData {
 public:
 	GENERATED_BODY()
 
+#if UE_VERSION_OLDER_THAN(4,26,0)
+	static const bool VRM4U_UseBC7 = false;
+#else
+	static const bool VRM4U_UseBC7 = true;
+#endif
+
 	void init();
 	bool bAPoseRetarget = true;
 
@@ -270,7 +284,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	float ModelScale = 1.0f;
 
-	bool bVrm10Normalize = true;
+	bool bVrm10RemoveLocalRotation = false;
+
+	bool bVrm10Bindpose = false;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bGenerateHumanoidRenamedMesh = false;
@@ -299,9 +315,13 @@ public:
 	bool bDefaultGridTextureMode = false;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
-	bool bBC7Mode = false;
+	bool bBC7Mode = VRM4U_UseBC7;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bMipmapGenerateMode = false;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
+	bool bGenerateOutlineMaterial = true;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bMergeMaterial = true;
@@ -311,6 +331,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
 	bool bOptimizeVertex = true;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "VRM4U")
+	bool bRemoveDegenerateTriangles = false;
 
 	bool bSimpleRoot = true;
 

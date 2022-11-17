@@ -35,6 +35,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
 	EVRMImportMaterialType MaterialType;
 
+	/** Outline Material*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName = "GenerateOutlineMaterial"))
+	bool bGenerateOutlineMaterial = true;
+
 	/** Force Override */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName = "Force Override (as New Asset)"))
 	bool bForceOverride = false;
@@ -42,9 +46,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName = "Model scale"))
 	float ModelScale = 1.0f;
 
-	/** Normalize axis for VRM10 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName = "NormalizeForVRM10"))
-	bool bVrm10Normalize = true;
+	/** Remove Local Rotation for VRM10 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName = "VRM10 Remove Local Rotation"))
+	bool bVrm10RemoveLocalRotation = false;
+
+	/** Use Bindpose for VRM10 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName = "VRM10 Bindpose"))
+	bool bVrm10Bindpose = false;
 
 	/** Duplicate mesh and renamed humanoid bone */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName="Generate renamed humanoid mesh"))
@@ -73,9 +81,9 @@ public:
 #define VRM4U_MorphStrictMode false
 
 #if UE_VERSION_OLDER_THAN(4,26,0)
-#define VRM4U_UseBC7 false
+	static const bool VRM4U_UseBC7 = false;
 #else
-#define VRM4U_UseBC7 true
+	static const bool VRM4U_UseBC7 = true;
 #endif
 
 
@@ -122,6 +130,10 @@ public:
 	/** Remove unused vertex */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName = "[Optimize] vertex"))
 	bool bOptimizeVertex = true;
+
+	/** Remove degenerate triangles */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName = "[Optimize] remove degenerate triangles"))
+	bool bRemoveDegenerateTriangles = false;
 
 	/** BoneWeight influence */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName = "[Optimize] Bone Weight Influence Num"))

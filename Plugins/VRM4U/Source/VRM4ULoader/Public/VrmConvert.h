@@ -93,7 +93,9 @@ public:
 
 		bool IsStrictMorphTargetNameMode() const;
 
-		bool IsVRM10Normalize() const;
+		bool IsVRM10RemoveLocalRotation() const;
+		bool IsVRM10Bindpose() const;
+
 		bool IsGenerateHumanoidRenamedMesh() const;
 
 		bool IsGenerateIKBone() const;
@@ -114,6 +116,7 @@ public:
 		bool IsBC7Mode() const;
 		bool IsMipmapGenerateMode() const;
 
+		bool IsGenerateOutlineMaterial() const;
 		bool IsMergeMaterial() const;
 
 		bool IsMergePrimitive() const;
@@ -121,6 +124,8 @@ public:
 		bool IsOptimizeMaterial() const;
 
 		bool IsOptimizeVertex() const;
+
+		bool IsRemoveDegenerateTriangles() const;
 
 		void ClearModelType();
 

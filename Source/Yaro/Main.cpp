@@ -10,7 +10,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Weapon.h"
-//#include "Animation/AnimInstance.h"
 #include "Components/SphereComponent.h"
 #include "Enemy.h"
 #include "Components/ArrowComponent.h"
@@ -52,8 +51,8 @@ AMain::AMain()
 	FollowCamera->bUsePawnControlRotation = false;
 
 	// Set out turn rates for input
-	BaseTurnRate = 65.f;
-	BaseLookUpRate = 65.f;
+	BaseTurnRate = 30.f;
+	BaseLookUpRate = 45.f;
 
 	// Don't rotate when the controller rotates.
 	// Let that just affect the camera.
@@ -110,7 +109,7 @@ AMain::AMain()
 
     ItemSphere = CreateDefaultSubobject<USphereComponent>(TEXT("ItemSphere"));
 	ItemSphere->SetupAttachment(GetRootComponent());
-	ItemSphere->InitSphereRadius(130.f);
+	ItemSphere->InitSphereRadius(80.f);
 	ItemSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 
 }
@@ -203,6 +202,8 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAction("Targeting", IE_Pressed, this, &AMain::Targeting);
 
+	PlayerInputComponent->BindAction("SkipCombat", IE_Pressed, this, &AMain::SkipCombat);
+
 	PlayerInputComponent->BindAction("ESC", IE_Pressed, this, &AMain::ESCDown);
 	PlayerInputComponent->BindAction("ESC", IE_Released, this, &AMain::ESCUp);
 
@@ -219,10 +220,8 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("MoveRight", this, &AMain::MoveRight);
 	PlayerInputComponent->BindAxis("Run", this, &AMain::Run);
 
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("TurnRate", this, &AMain::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &AMain::LookUpAtRate);
+	PlayerInputComponent->BindAxis("Turn", this, &AMain::TurnAtRate);
+	PlayerInputComponent->BindAxis("LookUp", this, &AMain::LookUpAtRate);
 
 	PlayerInputComponent->BindAxis("CameraZoom", this, &AMain::CameraZoom);
 
@@ -302,6 +301,8 @@ void AMain::CameraZoom(const float Value)
 	if (Value == 0.f || !Controller) return;
 
 	if (MainPlayerController->DialogueNum == 0) return;
+
+	if (MainPlayerController->bDialogueUIVisible && MainPlayerController->DialogueNum == 11) return;
 
 	const float NewTargetArmLength = CameraBoom->TargetArmLength + Value * ZoomStep;
 	CameraBoom->TargetArmLength = FMath::Clamp(NewTargetArmLength, MinZoomLength, MaxZoomLength);
@@ -645,6 +646,29 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 		GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);	
 	}
 
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss"))
+	{
+		MagicAttack = Cast<AMagicSkill>(DamageCauser);
+
+		int TargetIndex = MagicAttack->index;
+
+		if (TargetIndex == 11)
+		{
+			for (int i = 0; i < NPCList.Num(); i++)
+			{
+				if (NPCList[i]->AgroTargets.Num() == 0)
+				{
+					AEnemy* BossEnemy = Cast<AEnemy>(UGameplayStatics::GetActorOfClass(GetWorld(), NPCList[i]->Boss));
+					NPCList[i]->MoveToTarget(BossEnemy);
+					GetWorldTimerManager().ClearTimer(NPCList[i]->MoveTimer);
+					NPCList[i]->AIController->StopMovement();
+					UE_LOG(LogTemp, Log, TEXT("yesyesyes main %s"), *NPCList[i]->GetName());
+
+				}
+			}
+		}
+	}
+
 	return DamageAmount;
 }
 
@@ -732,8 +756,7 @@ void AMain::ItemSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, A
 		if (auto actor = Cast<AItem>(OtherActor)) return; // 오버랩된 게 아이템이면 실행X
 		if (auto actor = Cast<AYaroCharacter>(OtherActor)) return; // 오버랩된 게 npc면 실행X
 
-		CurrentOverlappedActor = OtherActor;
-		
+		CurrentOverlappedActor = OtherActor;	
 	}
 }
 
@@ -888,7 +911,7 @@ void AMain::CheckDialogueRequirement()
 		case 3: // after golem died
 			for (int i = 0; i < Enemies.Num(); i++)
 			{
-				if (Enemies[i].Contains("Golem"))
+				if (Enemies[i].Contains("Golem") && Enemies.Num() == 9)
 				{
 					Momo->AIController->MoveToLocation(FVector(594.f, -1543.f, 2531.f));
 					Luko->AIController->MoveToLocation(FVector(494.f, -1629.f, 2561.f));
@@ -1113,7 +1136,7 @@ void AMain::GetExp(float exp)
                 MaxSP = 350.f;
 				break;
 			case 4:
-				MaxExp = 400.f;
+				MaxExp = 360.f;
                 MainPlayerController->SystemMessageNum = 8;
                 MainPlayerController->SetSystemMessage();
                 MaxHP = 300.f;
@@ -1194,4 +1217,38 @@ void AMain::AllNpcMoveToPlayer()
 	{
 		NPCList[i]->MoveToPlayer();
 	}
+}
+
+void AMain::SkipCombat()
+{
+	if (MainPlayerController->bDialogueUIVisible || !bCanSkip || bSkip) return;
+
+	if (MainPlayerController->DialogueNum < 4) // first dungeon
+	{
+		if (MainPlayerController->DialogueNum <= 2) return;
+		SkipFirstDungeon.Broadcast();
+	}
+	else if (MainPlayerController->DialogueNum < 15)
+	{
+		if (MainPlayerController->DialogueNum <= 10) return;
+		SkipSecondDungeon.Broadcast();
+	}
+	else if (MainPlayerController->DialogueNum < 19)
+	{
+		if (MainPlayerController->DialogueNum <= 17) return;
+		SkipFinalDungeon.Broadcast();
+	}
+	else return;
+}
+
+
+void AMain::RecoverWithLogo()
+{
+	HP += 50.f;
+	MP += 50.f;
+	SP += 50.f;
+
+	if (HP >= MaxHP) HP = MaxHP;
+	if (MP >= MaxMP) MP = MaxMP;
+	if (SP >= MaxSP) SP = MaxSP;
 }

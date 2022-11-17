@@ -34,6 +34,12 @@
 #include <assimp/GltfMaterial.h>
 #include <assimp/vrm/vrmmeta.h>
 
+#if	UE_VERSION_OLDER_THAN(4,23,0)
+#define TRACE_CPUPROFILER_EVENT_SCOPE(a)
+#else
+#endif
+
+
 namespace {
 
 	bool bDefaultVrmMaterial = false;
@@ -485,11 +491,22 @@ namespace {
 			{
 #if WITH_EDITORONLY_DATA
 				UMaterialExpressionTextureSampleParameter2D* UnrealTextureExpression = NewObject<UMaterialExpressionTextureSampleParameter2D>(UnrealMaterial);
+
+#if	UE_VERSION_OLDER_THAN(5,1,0)
 				UnrealMaterial->Expressions.Add(UnrealTextureExpression);
+#else
+				UnrealMaterial->GetEditorOnlyData()->ExpressionCollection.Expressions.Add(UnrealTextureExpression);
+#endif
+				
 				UnrealTextureExpression->SamplerType = SAMPLERTYPE_Color;
 				UnrealTextureExpression->ParameterName = TEXT("gltf_tex_diffuse");
 
+#if	UE_VERSION_OLDER_THAN(5,1,0)
 				UnrealMaterial->BaseColor.Expression = UnrealTextureExpression;
+#else
+				UnrealMaterial->GetEditorOnlyData()->BaseColor.Expression = UnrealTextureExpression;
+#endif
+
 #endif
 			}
 
@@ -916,36 +933,45 @@ bool VRMConverter::ConvertTextureAndMaterial(UVrmAssetListObject *vrmAssetList) 
 				continue;
 			}
 
-			aiString texName;
-			int index = -1;
+			TArray<int> TextureTypeToIndex;
 			{
+				TextureTypeToIndex.SetNum(AI_TEXTURE_TYPE_MAX);
+				for (auto& a : TextureTypeToIndex) {
+					a = -1;
+				}
+
+				TArray<aiString> texName;
+				texName.SetNum(AI_TEXTURE_TYPE_MAX);
+
 				for (uint32_t t = 0; t < AI_TEXTURE_TYPE_MAX; ++t) {
 					uint32_t n = aiMat.GetTextureCount((aiTextureType)t);
-					for (uint32_t y = 0; y < n; ++y) {
-						aiMat.GetTexture((aiTextureType)t, y, &texName);
-						//UE_LOG(LogVRM4ULoader, Warning, TEXT("R--%s\n"), texName.C_Str());
+					for (uint32_t y = 0; y < FMath::Min((uint32_t)1, n); ++y) {
+						aiMat.GetTexture((aiTextureType)t, y, &texName[t]);
 					}
 				}
 
 				for (uint32_t i = 0; i < aiData->mNumTextures; ++i) {
-					if (aiData->mTextures[i]->mFilename == texName) {
-						index = i;
-						break;
+					for (int32_t t = 0; t < texName.Num(); ++t) {
+						if (aiData->mTextures[i]->mFilename == texName[t]) {
+							TextureTypeToIndex[t] = i;
+							break;
+						}
 					}
 				}
 			}
-			{
+
+			for (uint32_t t = 0; t < AI_TEXTURE_TYPE_MAX; ++t) {
 				aiString path;
-				aiReturn r = aiMat.GetTexture(aiTextureType::aiTextureType_DIFFUSE, 0, &path);
+				aiReturn r = aiMat.GetTexture(aiTextureType(t), 0, &path);
 				if (r == AI_SUCCESS) {
 					std::string s = path.C_Str();
 					s = s.substr(s.find_last_of('*') + 1);
-					index = atoi(s.c_str());
+					TextureTypeToIndex[t] = atoi(s.c_str());
 
 					if (Options::Get().IsPMXModel()) {
 						for (int i = 0; i < pmxTexNameList.Num(); ++i) {
 							if (pmxTexNameList[i] == UTF8_TO_TCHAR(path.C_Str())) {
-								index = i;
+								TextureTypeToIndex[t] = i;
 								break;
 							}
 						}
@@ -963,8 +989,8 @@ bool VRMConverter::ConvertTextureAndMaterial(UVrmAssetListObject *vrmAssetList) 
 			//MyComponent2->SetMaterial(0, DynMaterial);
 
 			// ALL!! no texture material.
-			//if (index >= 0 && index < vrmAssetList->Textures.Num()) {
-			//if (index >= 0) {
+			//if (indexDiffuse >= 0 && indexDiffuse < vrmAssetList->Textures.Num()) {
+			//if (indexDiffuse >= 0) {
 			{
 				UMaterialInstanceConstant* dm = nullptr;
 				{
@@ -1033,8 +1059,9 @@ bool VRMConverter::ConvertTextureAndMaterial(UVrmAssetListObject *vrmAssetList) 
 							v->ParameterValue = FLinearColor(f[0], f[1], 0, 0);
 						}
 					}
-					if (index >= 0 && index < vrmAssetList->Textures.Num()) {
-						LocalTextureSet(dm, TEXT("gltf_tex_diffuse"), vrmAssetList->Textures[index]);
+					int indexDiffuse = TextureTypeToIndex[aiTextureType::aiTextureType_DIFFUSE];
+					if (indexDiffuse >= 0 && indexDiffuse < vrmAssetList->Textures.Num()) {
+						LocalTextureSet(dm, TEXT("gltf_tex_diffuse"), vrmAssetList->Textures[indexDiffuse]);
 						{
 							FString str = TEXT("mtoon_tex_ShadeTexture");
 							bool bFindShadeTex = false;
@@ -1042,11 +1069,22 @@ bool VRMConverter::ConvertTextureAndMaterial(UVrmAssetListObject *vrmAssetList) 
 								if (str.Compare(t.ParameterInfo.Name.ToString(), ESearchCase::IgnoreCase) == 0) {
 									if (t.ParameterValue) {
 										bFindShadeTex = true;
+
+										if (IsValid(vrmAssetList->Textures[indexDiffuse]) == false) {
+#if UE_VERSION_OLDER_THAN(5,0,0)
+											UTexture2D *tmp = Cast<UTexture2D>(t.ParameterValue);
+#else
+											UTexture2D* tmp = Cast<UTexture2D>(t.ParameterValue.Get());
+#endif
+											if (tmp) {
+												LocalTextureSet(dm, TEXT("gltf_tex_diffuse"), tmp);
+											}
+										}
 									}
 								}
 							}
 							if (bFindShadeTex == false) {
-								LocalTextureSet(dm, *str, vrmAssetList->Textures[index]);
+								LocalTextureSet(dm, *str, vrmAssetList->Textures[indexDiffuse]);
 							}
 						}
 					} else {
@@ -1071,15 +1109,6 @@ bool VRMConverter::ConvertTextureAndMaterial(UVrmAssetListObject *vrmAssetList) 
 								}
 							}
 						}
-						/*
-						{
-							float f = 0;
-							aiReturn result = aiMat.Get(AI_MATKEY_TWOSIDED, f);
-							if (result == AI_SUCCESS){
-								//if (f) bTwoSided = true;
-							}
-						}
-						*/
 					}
 
 
@@ -1089,6 +1118,28 @@ bool VRMConverter::ConvertTextureAndMaterial(UVrmAssetListObject *vrmAssetList) 
 
 						if (matFlagOpaqueArray[iMat]) {
 							LocalScalarParameterSet(dm, TEXT("bOpaque"), 1.f);
+						}
+					} else {
+						// gltf texture
+						TArray<FString> materialParamName;
+						materialParamName.SetNum(AI_TEXTURE_TYPE_MAX);
+						materialParamName[aiTextureType::aiTextureType_DIFFUSE] = TEXT("gltf_tex_diffuse");
+						materialParamName[aiTextureType::aiTextureType_NORMALS] = TEXT("gltf_tex_normal");
+						materialParamName[aiTextureType::aiTextureType_EMISSIVE] = TEXT("gltf_tex_Emission");
+
+						materialParamName[aiTextureType::aiTextureType_BASE_COLOR] = TEXT("gltf_tex_diffuse");
+						materialParamName[aiTextureType::aiTextureType_EMISSION_COLOR] = TEXT("gltf_tex_Emission");
+						materialParamName[aiTextureType::aiTextureType_METALNESS] = TEXT("gltf_tex_metalness");
+						materialParamName[aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS] = TEXT("gltf_tex_roughness");
+
+						for (uint32_t t = 0; t < AI_TEXTURE_TYPE_MAX; ++t) {
+							if (materialParamName[t] == "") continue;
+
+							int index = TextureTypeToIndex[t];
+							if (index < 0) continue;
+							if (IsValid(vrmAssetList->Textures[index]) == false) continue;
+
+							LocalTextureSet(dm, *(materialParamName[t]), vrmAssetList->Textures[index]);
 						}
 					}
 
@@ -1166,7 +1217,7 @@ bool VRMConverter::ConvertTextureAndMaterial(UVrmAssetListObject *vrmAssetList) 
 		}
 
 		// ouline Material
-		{
+		if (VRMConverter::Options::Get().IsGenerateOutlineMaterial()) {
 			if (vrmAssetList->OptMToonOutlineMaterial){
 				for (const auto aa : vrmAssetList->Materials) {
 					const UMaterialInstanceConstant *a = Cast<UMaterialInstanceConstant>(aa);

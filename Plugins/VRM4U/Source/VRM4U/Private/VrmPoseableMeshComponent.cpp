@@ -19,7 +19,13 @@ void UVrmPoseableMeshComponent::TickComponent(float DeltaTime, enum ELevelTick T
 
 #if	UE_VERSION_OLDER_THAN(4,20,0)
 #else
+
+#if	UE_VERSION_OLDER_THAN(5,1,0)
 	USkinnedMeshComponent* MPCPtr = MasterPoseComponent.Get();
+#else
+	USkinnedMeshComponent* MPCPtr = LeaderPoseComponent.Get();
+#endif
+
 	if (MPCPtr) {
 		MorphTargetWeights = MPCPtr->MorphTargetWeights;
 		ActiveMorphTargets = MPCPtr->ActiveMorphTargets;
@@ -54,7 +60,11 @@ void UVrmPoseableMeshComponent::RefreshBoneTransforms(FActorComponentTickFunctio
 {
 	Super::RefreshBoneTransforms(TickFunction);
 
+#if	UE_VERSION_OLDER_THAN(5,1,0)
 	USkinnedMeshComponent* MPCPtr = MasterPoseComponent.Get();
+#else
+	USkinnedMeshComponent* MPCPtr = LeaderPoseComponent.Get();
+#endif
 	if (MPCPtr) {
 		MorphTargetWeights = MPCPtr->MorphTargetWeights;
 		ActiveMorphTargets = MPCPtr->ActiveMorphTargets;

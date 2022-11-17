@@ -8,12 +8,6 @@
 
 #if WITH_EDITOR
 #include "Editor/UnrealEdTypes.h"
-#else
-
-#if PLATFORM_ANDROID || PLATFORM_IOS || PLATFORM_LINUX
-enum ELevelViewportType {};
-#endif
-
 #endif
 
 
@@ -42,7 +36,9 @@ public:
 	void OnUnregister() override;
 
 private:
-	void OnCameraTransformChanged(const FVector&, const FRotator&, enum ELevelViewportType, int32);
+#if WITH_EDITOR
+	void OnCameraTransformChanged(const FVector&, const FRotator&, ELevelViewportType, int32);
+#endif
 
 	FDelegateHandle handle;
 };

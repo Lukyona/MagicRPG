@@ -59,7 +59,7 @@ public:
 	/*
 	*/
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category  = "Player Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category  = "Player Stats")
 	float MaxHP;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
@@ -346,4 +346,25 @@ public:
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
 	FDele_Dynamic Ending;
+
+
+	void SkipCombat();
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
+	FDele_Dynamic SkipFirstDungeon;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
+	FDele_Dynamic SkipSecondDungeon;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
+	FDele_Dynamic SkipFinalDungeon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bSkip = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bCanSkip = false;
+
+	UFUNCTION(BlueprintCallable)
+	void RecoverWithLogo();
 };

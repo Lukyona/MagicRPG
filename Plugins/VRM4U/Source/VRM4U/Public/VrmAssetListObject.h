@@ -161,6 +161,12 @@ public:
 
 	// no uproperty
 	TArray<bool> MaterialFlag_Opaque;
+	TMap<FString, FTransform> Pose_bind;
+	TMap<FString, FTransform> Pose_tpose;
+
+	//TArray<FTransform> poseGlobal_bindpose;	// bone
+	//TArray<FTransform> poseGlobal_tpose;	// node
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Out")
 	EVRMImportTextureCompressType Texture_CompressType = EVRMImportTextureCompressType::VRMITC_Auto;

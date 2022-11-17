@@ -862,7 +862,7 @@ void UVrmBPFunctionLibrary::VRMChangeMaterialVectorParameter(UMaterialInstanceCo
 void UVrmBPFunctionLibrary::VRMChangeMaterialStaticSwitch(UMaterialInstanceConstant *material, FName paramName, bool bEnable) {
 	if (material == nullptr) return;
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	if (GIsEditor == false) {
 		return;
 	}
@@ -881,8 +881,12 @@ void UVrmBPFunctionLibrary::VRMChangeMaterialStaticSwitch(UMaterialInstanceConst
 		FGuid guid;
 		material->GetStaticSwitchParameterDefaultValue(info, bDef, guid);
 
-		auto &params = paramSet.StaticSwitchParameters;
 
+#if	UE_VERSION_OLDER_THAN(5,1,0)
+		auto &params = paramSet.StaticSwitchParameters;
+#else
+		auto& params = paramSet.EditorOnly.StaticSwitchParameters;
+#endif
 		int i = 0;
 		for (i = 0; i < params.Num(); ++i) {
 			if (params[i].ParameterInfo.Name == info.Name) {
@@ -903,7 +907,7 @@ void UVrmBPFunctionLibrary::VRMChangeMaterialStaticSwitch(UMaterialInstanceConst
 		}
 
 		if (bEnable == bDef) {
-			paramSet.StaticSwitchParameters.RemoveAt(i);
+			params.RemoveAt(i);
 			i = -1;
 		} else {
 			params[i].bOverride = true;
@@ -988,6 +992,7 @@ UTextureRenderTarget2D* UVrmBPFunctionLibrary::VRMCreateRenderTarget2D(UObject* 
 }
 
 bool UVrmBPFunctionLibrary::VRMRenderingThreadEnable(bool bEnable) {
+#if	UE_VERSION_OLDER_THAN(5,1,0)
 	if (GIsThreadedRendering)
 	{
 		if (bEnable == false) {
@@ -1001,6 +1006,8 @@ bool UVrmBPFunctionLibrary::VRMRenderingThreadEnable(bool bEnable) {
 			StartRenderingThread();
 		}
 	}
+#else
+#endif
 	return true;
 }
 
@@ -1672,7 +1679,7 @@ bool UVrmBPFunctionLibrary::VRMBakeAnim(const USkeletalMeshComponent* skc, const
 	} else {
 		ase->PostProcessSequence();
 	}
-#else
+#elif	UE_VERSION_OLDER_THAN(5,1,0)
 	const bool bSourceDataExists = ase->HasSourceRawData();
 	if (bSourceDataExists)
 	{
@@ -1680,6 +1687,8 @@ bool UVrmBPFunctionLibrary::VRMBakeAnim(const USkeletalMeshComponent* skc, const
 	} else {
 		ase->PostProcessSequence();
 	}
+#else
+		// todo
 #endif
 
 #endif // editor
@@ -1741,4 +1750,28 @@ void UVrmBPFunctionLibrary::VRMGetPreviewMesh(UObject* target, USkeletalMesh*& m
 	if (p == nullptr) return;
 
 	mesh = p->GetPreviewMesh();
+}
+
+void UVrmBPFunctionLibrary::VRMGetSkeletalMeshFromSkinnedMeshComponent(const USkinnedMeshComponent* target, USkeletalMesh*& skeletalmesh) {
+	if (target == nullptr) {
+		skeletalmesh = nullptr;
+		return;
+	}
+#if	UE_VERSION_OLDER_THAN(5,1,0)
+	skeletalmesh = target->SkeletalMesh;
+#else
+	skeletalmesh = Cast<USkeletalMesh>(target->GetSkinnedAsset());
+#endif
+}
+
+void UVrmBPFunctionLibrary::VRMGetTopLevelAssetName(const FAssetData& target, FName& AssetName) {
+	AssetName = NAME_None;
+
+
+#if	UE_VERSION_OLDER_THAN(5,1,0)
+	AssetName = target.AssetClass;
+#else
+	AssetName = target.AssetClassPath.GetAssetName();
+#endif
+
 }
