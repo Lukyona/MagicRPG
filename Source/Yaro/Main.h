@@ -40,7 +40,7 @@ public:
 	class UCameraComponent* FollowCamera;
 
 	// Base turn rates to scale turning functions for the camera
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
 	float BaseTurnRate;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	float BaseLookUpRate;
@@ -347,8 +347,8 @@ public:
 	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
 	FDele_Dynamic Ending;
 
-
 	void SkipCombat();
+	void SetLevel5();
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
 	FDele_Dynamic SkipFirstDungeon;

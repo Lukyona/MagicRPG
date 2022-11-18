@@ -51,8 +51,8 @@ AMain::AMain()
 	FollowCamera->bUsePawnControlRotation = false;
 
 	// Set out turn rates for input
-	BaseTurnRate = 30.f;
-	BaseLookUpRate = 45.f;
+	BaseTurnRate = 20.f;
+	BaseLookUpRate = 40.f;
 
 	// Don't rotate when the controller rotates.
 	// Let that just affect the camera.
@@ -172,6 +172,14 @@ void AMain::Tick(float DeltaTime)
 
         if (CombatTarget->EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead)
         {
+			for (int i = 0; i < Targets.Num(); i++)
+			{
+				if (CombatTarget == Targets[i]) //already exist
+				{
+					Targets.Remove(CombatTarget); //타겟팅 가능 몹 배열에서 제거
+
+				}
+			}
             CombatTarget = nullptr;
             bHasCombatTarget = false;
             if (MainPlayerController->bTargetArrowVisible)
@@ -211,7 +219,8 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
     PlayerInputComponent->BindAction("ShowManual", IE_Pressed, this, &AMain::ShowManual);
 
-    PlayerInputComponent->BindAction("Escape", IE_Pressed, this, &AMain::Escape);
+	PlayerInputComponent->BindAction("Escape", IE_Pressed, this, &AMain::Escape);
+	PlayerInputComponent->BindAction("LevelCheat", IE_Pressed, this, &AMain::SetLevel5);
 
 
 	// Axis는 매 프레임마다 호출
@@ -288,7 +297,6 @@ void AMain::Run(float Value)
 void AMain::TurnAtRate(float Rate)
 {
 	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
-
 }
 
 void AMain::LookUpAtRate(float Rate)
@@ -502,7 +510,6 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 				if (Enemy == Targets[i]) //already exist
 				{
 					Targets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
-
 				}
 			}
 			if (Targets.Num() == 0)
@@ -533,7 +540,6 @@ void AMain::Targeting() //Targeting using Tap key
 		//There is already exist targeted enemy, then targetArrow remove
 		if (MainPlayerController->bTargetArrowVisible)
 		{
-
 			MainPlayerController->RemoveTargetArrow();
 			MainPlayerController->RemoveEnemyHPBar();
 		}
@@ -923,7 +929,12 @@ void AMain::CheckDialogueRequirement()
 					return;
 				}
 			}
-			NpcGo = true;
+			Luko->MoveToPlayer();
+			Momo->MoveToPlayer();
+			Vovo->MoveToLocation();
+			Vivi->MoveToLocation();
+			Zizi->MoveToLocation();
+			//NpcGo = true;
 			break;
 		case 4: // npc move to boat and wait player
             Momo->SetActorRotation(FRotator(0.f, 85.f, 0.f));
@@ -1251,4 +1262,19 @@ void AMain::RecoverWithLogo()
 	if (HP >= MaxHP) HP = MaxHP;
 	if (MP >= MaxMP) MP = MaxMP;
 	if (SP >= MaxSP) SP = MaxSP;
+}
+
+void AMain::SetLevel5()
+{
+	if (MainPlayerController->DialogueNum < 3) return;
+	Level = 5;
+	Exp = MaxExp;
+
+	MaxHP = 350.f;
+	MaxMP = 280.f;
+	MaxSP = 400.f;
+
+	HP = MaxHP;
+	MP = MaxMP;
+	SP = MaxSP;
 }

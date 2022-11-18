@@ -134,19 +134,18 @@ void AYaroCharacter::Tick(float DeltaTime)
 	}
 
 
-	if (!canGo && Player && Player->NpcGo)
-	{
-		canGo = true;
-		if (this->GetName().Contains("Momo") || this->GetName().Contains("Luko"))
-		{
-            GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 1.f);
-		}
-		else // 비비, 지지, 보보
-		{
-
-			MoveToLocation();
-		}
-	}
+	//if (!canGo && Player && Player->NpcGo)
+	//{
+	//	canGo = true;
+	//	if (this->GetName().Contains("Momo") || this->GetName().Contains("Luko"))
+	//	{
+ //           GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 1.f);
+	//	}
+	//	else // 비비, 지지, 보보
+	//	{
+	//		MoveToLocation();
+	//	}
+	//}
 
     if(!AnimInstance) AnimInstance = GetMesh()->GetAnimInstance();
 
@@ -168,7 +167,7 @@ void AYaroCharacter::MoveToPlayer()
 			}
 		}
 
-		if (Player->MainPlayerController->DialogueNum < 5 && Player->NpcGo == false)
+		if (Player->MainPlayerController->DialogueNum < 3)
 		{
 			// 대화 넘버 1에서 루코가 이동하는 것 허용
 			if (!(Player->MainPlayerController->DialogueNum == 1 && this->GetName().Contains("Luko")))
