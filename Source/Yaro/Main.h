@@ -129,10 +129,6 @@ public:
 	EMovementStatus MovementStatus;
 
 	FORCEINLINE void SetMovementStatus(EMovementStatus Status) { MovementStatus = Status; }
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool NpcGo = false;
-
 
 	FTimerHandle HPTimer;
 

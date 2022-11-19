@@ -872,3 +872,14 @@ float AYaroCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& 
 
 	return DamageAmount;
 }
+
+void AYaroCharacter::Smile()
+{
+	this->bSmile = true;
+}
+
+void AYaroCharacter::UsualFace()
+{
+	this->bSmile = false;
+}
+

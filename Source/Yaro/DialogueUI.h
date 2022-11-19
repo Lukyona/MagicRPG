@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Engine/DataTable.h" // generated.h 위에 써야함
-
+#include "YaroCharacter.h"
 #include "DialogueUI.generated.h"
 
 
@@ -174,8 +174,8 @@ public:
 
 	void AutoDialogue();
 
+	UFUNCTION(BlueprintCallable)
+	void OpenMouth(AYaroCharacter* npc);
 
-	
-
-
+	void CloseAllMouth();
 };

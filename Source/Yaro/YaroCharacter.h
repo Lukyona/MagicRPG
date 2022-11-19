@@ -142,6 +142,15 @@ public:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AActor> Boss;
 
+	UPROPERTY(BlueprintReadWrite)
+	bool bSmile;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool bSpeaking;
+
+	void Smile();
+	void UsualFace();
+
 protected:
 
 	virtual void BeginPlay() override;

@@ -65,7 +65,10 @@ void UDialogueUI::OnAnimationTimerCompleted()
     }
     else
     {
+        CloseAllMouth();
         CurrentState = 2;
+        UE_LOG(LogTemp, Log, TEXT("clsod"));
+
     }
 }
 
@@ -118,19 +121,19 @@ void UDialogueUI::Interact()
         GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
         NPCText->SetText(FText::FromString(InitialMessage));
        // UE_LOG(LogTemp, Log, TEXT("Interact-1"));
+        CloseAllMouth();
+        UE_LOG(LogTemp, Log, TEXT("clsod22"));
 
         CurrentState = 2;
     }
     else if (CurrentState == 2) // Text completed
     {
-
         // Get next message
         if ((MessageIndex + 1) < Dialogue[RowIndex]->Messages.Num()) // 같은 npc의 다음 대사
         {
             MessageIndex += 1;
             DialogueEvents();
            // UE_LOG(LogTemp, Log, TEXT("Interact-2-1"));
-
         }
         else
         {
@@ -257,89 +260,94 @@ void UDialogueUI::DialogueEvents()
 
                 switch (RowIndex)
                 {
-                case 1:
-                    if (MessageIndex > 0)
+                    case 1:
+                        if (MessageIndex > 0)
+                            MainPlayerController->DisplaySpeechBuubble(Main->Momo);
+                        break;
+                    case 7:
                         MainPlayerController->DisplaySpeechBuubble(Main->Momo);
-                    break;
-                case 7:
-                    MainPlayerController->DisplaySpeechBuubble(Main->Momo);
-                    break;
-                case 2:
-                case 6:
-                    MainPlayerController->DisplaySpeechBuubble(Main->Vivi);
-                    break;
-                case 3:
-                case 8:
-                    MainPlayerController->DisplaySpeechBuubble(Main->Luko);
-                    break;
-                case 4:
-                    MainPlayerController->DisplaySpeechBuubble(Main->Zizi);
-                    break;
-                case 5:
-                case 9:
-                    MainPlayerController->DisplaySpeechBuubble(Main->Vovo);
-                    break;
-                case 10:
-                    MainPlayerController->RemoveSpeechBuubble();
-                }
-                return;
+                        break;
+                    case 2:
+                    case 6:
+                        MainPlayerController->DisplaySpeechBuubble(Main->Vivi);
+                        break;
+                    case 3:
+                    case 8:
+                        MainPlayerController->DisplaySpeechBuubble(Main->Luko);
+                        break;
+                    case 4:
+                        MainPlayerController->DisplaySpeechBuubble(Main->Zizi);
+                        break;
+                    case 5:
+                    case 9:
+                        MainPlayerController->DisplaySpeechBuubble(Main->Vovo);
+                        break;
+                    case 10:
+                        MainPlayerController->RemoveSpeechBuubble();
+                    }
+                    return;
             }
 
             switch (RowIndex) // 1인칭 시점일 때
             {
-            case 1: // Momo, Set FollowCamera's Z value of Rotation
-            case 7:
-                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, -15.f, 0.f));
-                bDisableMouseAndKeyboard = false;
-                MainPlayerController->DisplaySpeechBuubble(Main->Momo);
-                break;
-            case 2: // Vivi
-            case 6:
-                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
-                MainPlayerController->DisplaySpeechBuubble(Main->Vivi);
-                break;
-            case 3: // Luko
-            case 8:
-                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, -25.f, 0.f));
-                MainPlayerController->DisplaySpeechBuubble(Main->Luko);
-                break;
-            case 4: // Zizi
-                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 13.f, 0.f));
-                MainPlayerController->DisplaySpeechBuubble(Main->Zizi);
-                break;
-            case 5: // Vovo
-            case 9:
-                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 30.f, 0.f));
-                MainPlayerController->DisplaySpeechBuubble(Main->Vovo);
-                if (RowIndex == 5 && MessageIndex == 2)
-                    Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 5.f, 0.f));
-                break;
-            case 10: // npc go
-                Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
-                Main->CameraBoom->TargetArmLength = 500.f;
-                MainPlayerController->RemoveSpeechBuubble();
+                case 1: // Momo, Set FollowCamera's Z value of Rotation
+                case 7:
+                    OpenMouth(Main->Momo);
+                    Main->FollowCamera->SetRelativeRotation(FRotator(0.f, -15.f, 0.f));
+                    bDisableMouseAndKeyboard = false;
+                    MainPlayerController->DisplaySpeechBuubble(Main->Momo);
+                    break;
+                case 2: // Vivi
+                case 6:
+                    OpenMouth(Main->Vivi);
+                    Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
+                    MainPlayerController->DisplaySpeechBuubble(Main->Vivi);
+                    break;
+                case 3: // Luko
+                case 8:
+                    OpenMouth(Main->Luko);
+                    Main->FollowCamera->SetRelativeRotation(FRotator(0.f, -25.f, 0.f));
+                    MainPlayerController->DisplaySpeechBuubble(Main->Luko);
+                    break;
+                case 4: // Zizi
+                    OpenMouth(Main->Zizi);
+                    Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 13.f, 0.f));
+                    MainPlayerController->DisplaySpeechBuubble(Main->Zizi);
+                    break;
+                case 5: // Vovo
+                case 9:
+                    OpenMouth(Main->Vovo);
+                    Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 30.f, 0.f));
+                    MainPlayerController->DisplaySpeechBuubble(Main->Vovo);
+                    if (RowIndex == 5 && MessageIndex == 2)
+                        Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 5.f, 0.f));
+                    break;
+                case 10: // npc go
+                    Main->FollowCamera->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
+                    Main->CameraBoom->TargetArmLength = 500.f;
+                    MainPlayerController->RemoveSpeechBuubble();
 
-                // npc move except luko              
-                Main->Momo->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
-                Main->Vovo->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
-                Main->Vivi->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
-                Main->Zizi->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
-                bDisableMouseAndKeyboard = true;
-                GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 2.f, false);
-                break;
-            case 11:
-                Main->bCanMove = false;
-                GetWorld()->GetTimerManager().SetTimer(OnceTimer, FTimerDelegate::CreateLambda([&]()
-                    {
-                        MainPlayerController->DisplayDialogueUI();
-                        Main->bInterpToNpc = true;
-                        Main->TargetNpc = Main->Luko;
-                        GetWorld()->GetTimerManager().ClearTimer(OnceTimer);
+                    // npc move except luko              
+                    Main->Momo->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
+                    Main->Vovo->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
+                    Main->Vivi->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
+                    Main->Zizi->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
+                    bDisableMouseAndKeyboard = true;
+                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 2.f, false);
+                    break;
+                case 11:
+                    Main->bCanMove = false;
+                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, FTimerDelegate::CreateLambda([&]()
+                        {
+                            MainPlayerController->DisplayDialogueUI();
+                            Main->bInterpToNpc = true;
+                            Main->TargetNpc = Main->Luko;
+                            GetWorld()->GetTimerManager().ClearTimer(OnceTimer);
 
-                    }), 2.f, false); // 2초 뒤 루코 대화
-                AutoCloseDialogue();
-                return;
-                break;
+                        }), 2.f, false); // 2초 뒤 루코 대화
+                    AutoCloseDialogue();
+                    return;
+                    break;
             }
         }
 
@@ -438,48 +446,54 @@ void UDialogueUI::DialogueEvents()
         {
             switch (RowIndex)
             {
-            case 0:
-                MainPlayerController->bCanDisplaySpeechBubble = true;
-                break;
-            case 2:
-                Main->Momo->TargetCharacter = Main->Vivi;
-                Main->Momo->bInterpToCharacter = true;
-                Main->Zizi->TargetCharacter = Main->Vivi;
-                Main->Zizi->bInterpToCharacter = true;
-                Main->TargetNpc = Main->Vivi;
-                Main->bInterpToNpc = true;
-                break;
-            case 6:
-                if (MessageIndex == 2)
-                {
-                    Main->Zizi->TargetCharacter = Main;
-                    Main->TargetNpc = Main->Zizi;
-                }
-                break;
-            case 7:
-                Main->Momo->TargetCharacter = Main;
-                Main->Vivi->TargetCharacter = Main;
-                Main->Vivi->bInterpToCharacter = true;
-                Main->Luko->TargetCharacter = Main;
-                Main->Luko->bInterpToCharacter = true;
-                Main->Vovo->TargetCharacter = Main;
-                Main->Vovo->bInterpToCharacter = true;
-                Main->TargetNpc = Main->Momo;
-                break;
-            case 10:
-                Main->Zizi->TargetCharacter = Main->Vivi;
-                break;
-            case 13:
-                if (MessageIndex == 0)
-                {
-                    Main->Momo->MoveToPlayer();
-                }
-                else
-                {
-                    AllNpcDisableLookAt();
-                    Main->bInterpToNpc = false;
-                }
-                break;
+                case 0:
+                    MainPlayerController->bCanDisplaySpeechBubble = true;
+                    break;
+                case 2:
+                    Main->Momo->TargetCharacter = Main->Vivi;
+                    Main->Momo->bInterpToCharacter = true;
+                    Main->Zizi->TargetCharacter = Main->Vivi;
+                    Main->Zizi->bInterpToCharacter = true;
+                    Main->TargetNpc = Main->Vivi;
+                    Main->bInterpToNpc = true;
+                    break;
+                case 6:
+                    if (MessageIndex == 2)
+                    {
+                        Main->Zizi->TargetCharacter = Main;
+                        Main->TargetNpc = Main->Zizi;
+                    }
+                    break;
+                case 7:
+                    Main->Momo->TargetCharacter = Main;
+                    Main->Vivi->TargetCharacter = Main;
+                    Main->Vivi->bInterpToCharacter = true;
+                    Main->Luko->TargetCharacter = Main;
+                    Main->Luko->bInterpToCharacter = true;
+                    Main->Vovo->TargetCharacter = Main;
+                    Main->Vovo->bInterpToCharacter = true;
+                    Main->TargetNpc = Main->Momo;
+                    break;
+                case 8:
+                    Main->Momo->Smile();
+                    break;
+                case 9:
+                    Main->Momo->UsualFace();
+                case 10:
+                    Main->Zizi->TargetCharacter = Main->Vivi;
+                    break;
+                case 13:
+                    if (MessageIndex == 0)
+                    {
+                        Main->Momo->Smile();
+                        Main->Momo->MoveToPlayer();
+                    }
+                    else
+                    {
+                        AllNpcDisableLookAt();
+                        Main->bInterpToNpc = false;
+                    }
+                    break;
             }
         }
 
@@ -578,22 +592,26 @@ void UDialogueUI::DialogueEvents()
             switch (RowIndex)
             {
                 case 0:
+                    Main->Momo->Smile();
                     RowIndex = 13;
                     Main->TargetNpc = Main->Momo;
                     Main->Momo->TargetCharacter = Main;
                     Main->Momo->bInterpToCharacter = true;
                     break;
                 case 14:
+                    Main->Vovo->Smile();
                     Main->Vovo->TargetCharacter = Main;
                     Main->Vovo->bInterpToCharacter = true;
                     Main->TargetNpc = Main->Vovo;
                     break;
                 case 15:
+                    Main->Vivi->Smile();
                     Main->Vivi->TargetCharacter = Main;
                     Main->Vivi->bInterpToCharacter = true;
                     Main->TargetNpc = Main->Vivi;
                     break;
                 case 16:
+                    Main->Zizi->Smile();
                     Main->Zizi->TargetCharacter = Main;
                     Main->Zizi->bInterpToCharacter = true;
                     Main->TargetNpc = Main->Zizi;
@@ -601,7 +619,7 @@ void UDialogueUI::DialogueEvents()
             }
         }
 
-        if (DNum == 11)
+        if (DNum == 11) // food table event
         {
             switch (RowIndex)
             {
@@ -662,10 +680,11 @@ void UDialogueUI::DialogueEvents()
             }
         }
 
-        if (DNum == 12)
+        if (DNum == 12) // all spider died
         {
             if (RowIndex == 0)
             {
+                Main->Momo->Smile();
                 Main->bCanMove = false;
                 RowIndex = 10;
                 Main->Momo->TargetCharacter = Main;
@@ -717,6 +736,7 @@ void UDialogueUI::DialogueEvents()
                         Main->Momo->TargetCharacter = Main;
                     break;
                 case 16:
+                    Main->Zizi->Smile();
                     Main->Zizi->TargetCharacter = Main;
                     Main->TargetNpc = Main->Zizi;
                     break;
@@ -725,6 +745,7 @@ void UDialogueUI::DialogueEvents()
                     AllNpcDisableLookAt();
                     Main->bInterpToNpc = false;
                     AutoCloseDialogue();
+                    Main->Zizi->UsualFace();
                     return;
                     break;
             }
@@ -801,60 +822,64 @@ void UDialogueUI::DialogueEvents()
             }
         }
 
-        if (DNum == 16) // 돌 치우기 직전
+        if (DNum == 16) // 돌 치우기
         {
             switch (RowIndex)
             {
-            case 0:
-                Main->bCanMove = false;
-                RowIndex = 7;
-                break;
-            case 8:
-                Main->Momo->TargetCharacter = Main->Zizi;
-                Main->Momo->bInterpToCharacter = true;
-                Main->Luko->TargetCharacter = Main->Zizi;
-                Main->Luko->bInterpToCharacter = true;
-                Main->Vovo->TargetCharacter = Main->Zizi;
-                Main->Vovo->bInterpToCharacter = true;
-                Main->Vivi->TargetCharacter = Main->Zizi;
-                Main->Vivi->bInterpToCharacter = true;
-                Main->TargetNpc = Main->Zizi;
-                Main->bInterpToNpc = true;
-                break;
-            case 10:
-                Main->Zizi->AIController->MoveToLocation(FVector(18, 3090, 182.f));
-                bDisableMouseAndKeyboard = true;
+                case 0:
+                    Main->bCanMove = false;
+                    RowIndex = 7;
+                    break;
+                case 8:
+                    Main->Momo->TargetCharacter = Main->Zizi;
+                    Main->Momo->bInterpToCharacter = true;
+                    Main->Luko->TargetCharacter = Main->Zizi;
+                    Main->Luko->bInterpToCharacter = true;
+                    Main->Vovo->TargetCharacter = Main->Zizi;
+                    Main->Vovo->bInterpToCharacter = true;
+                    Main->Vivi->TargetCharacter = Main->Zizi;
+                    Main->Vivi->bInterpToCharacter = true;
+                    Main->TargetNpc = Main->Zizi;
+                    Main->bInterpToNpc = true;
+                    break;
+                case 10:
+                    Main->Zizi->AIController->MoveToLocation(FVector(18, 3090, 182.f));
+                    bDisableMouseAndKeyboard = true;
 
-                GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
-                break;
-            case 11:
-                Main->Zizi->SetActorRotation(FRotator(0.f, 260.f, 0.f));
-                if (Main->Zizi->CombatMontage != nullptr)
-                {
-                    Main->Zizi->AnimInstance->Montage_Play(Main->Zizi->CombatMontage);
-                    Main->Zizi->AnimInstance->Montage_JumpToSection(FName("Attack"));
-                }
-                bDisableMouseAndKeyboard = true;
-                GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.6f, false);
-                break;
-            case 12:
-                bDisableMouseAndKeyboard = false;
-                break;
-            case 16:
-                bDisableMouseAndKeyboard = true;
-                GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.4f, false);
-                break;
-            case 17:
-                Main->bInterpToNpc = false;
-                AllNpcDisableLookAt();
-                Main->Vivi->AIController->MoveToLocation(FVector(100.f, 1997.f, 182.f));
-                Main->Momo->AIController->MoveToLocation(FVector(-86.f, 2150.f, 177.f));
-                Main->Luko->AIController->MoveToLocation(FVector(171.f, 2130.f, 182.f));
-                Main->Vovo->AIController->MoveToLocation(FVector(-160.f, 2060.f, 182.f));
-                Main->Zizi->AIController->MoveToLocation(FVector(18.f, 2105.f, 184.f));
-                AutoCloseDialogue();
-                return;
-                break;
+                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
+                    break;
+                case 11:
+                    Main->Zizi->SetActorRotation(FRotator(0.f, 260.f, 0.f));
+                    if (Main->Zizi->CombatMontage != nullptr)
+                    {
+                        Main->Zizi->AnimInstance->Montage_Play(Main->Zizi->CombatMontage);
+                        Main->Zizi->AnimInstance->Montage_JumpToSection(FName("Attack"));
+                    }
+                    bDisableMouseAndKeyboard = true;
+                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.6f, false);
+                    break;
+                case 12:
+                    bDisableMouseAndKeyboard = false;
+                    break;
+                case 15:
+                    Main->Vovo->Smile();
+                    break;
+                case 16:
+                    bDisableMouseAndKeyboard = true;
+                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.4f, false);
+                    break;
+                case 17:
+                    Main->Vovo->UsualFace();
+                    Main->bInterpToNpc = false;
+                    AllNpcDisableLookAt();
+                    Main->Vivi->AIController->MoveToLocation(FVector(100.f, 1997.f, 182.f));
+                    Main->Momo->AIController->MoveToLocation(FVector(-86.f, 2150.f, 177.f));
+                    Main->Luko->AIController->MoveToLocation(FVector(171.f, 2130.f, 182.f));
+                    Main->Vovo->AIController->MoveToLocation(FVector(-160.f, 2060.f, 182.f));
+                    Main->Zizi->AIController->MoveToLocation(FVector(18.f, 2105.f, 184.f));
+                    AutoCloseDialogue();
+                    return;
+                    break;
             }
         }
 
@@ -947,35 +972,35 @@ void UDialogueUI::DialogueEvents()
         {
             switch (RowIndex)
             {
-            case 0:
-                RowIndex = 3;
-                Main->CameraBoom->TargetArmLength = 470.f;
-                break;
-            case 9:
-                if (SelectedReply == 1)
-                {
-                    AllNpcLookAtPlayer();
-                }
-                break;
-            case 10:
-                if (SelectedReply == 1)
-                {
-                    MainPlayerController->SetControlRotation(FRotator(0.f, 180.f, 0.f));
+                case 0:
+                    RowIndex = 3;
+                    Main->CameraBoom->TargetArmLength = 470.f;
+                    break;
+                case 9:
+                    if (SelectedReply == 1)
+                    {
+                        AllNpcLookAtPlayer();
+                    }
+                    break;
+                case 10:
+                    if (SelectedReply == 1)
+                    {
+                        MainPlayerController->SetControlRotation(FRotator(0.f, 180.f, 0.f));
+                        AutoCloseDialogue();
+                        return;
+                    }
+                    else if (SelectedReply == 2)
+                    {
+                        bDisableMouseAndKeyboard = true;
+                        GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
+                    }
+                    break;
+                case 11:
+                    Main->Vivi->GetCharacterMovement()->MaxWalkSpeed = 250.f;
+                    Main->Vivi->AIController->MoveToLocation(FVector(-4520.f, -50.f, 409.f));
                     AutoCloseDialogue();
                     return;
-                }
-                else if (SelectedReply == 2)
-                {
-                    bDisableMouseAndKeyboard = true;
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
-                }
-                break;
-            case 11:
-                Main->Vivi->GetCharacterMovement()->MaxWalkSpeed = 250.f;
-                Main->Vivi->AIController->MoveToLocation(FVector(-4520.f, -50.f, 409.f));
-                AutoCloseDialogue();
-                return;
-                break;
+                    break;
             }
         }
 
@@ -1023,7 +1048,21 @@ void UDialogueUI::DialogueEvents()
                     RowIndex = 14;
                     break;
                 case 16:
+                    Main->Zizi->Smile();
                     AllNpcLookAtPlayer();
+                    break;
+                case 17:
+                    Main->Momo->Smile();
+                    break;
+                case 18:
+                    Main->Vovo->Smile();
+                    break;
+                case 19:
+                    Main->Vivi->Smile();
+                    break;
+                case 20:
+                    if (MessageIndex == 1)
+                        Main->Luko->Smile();
                     break;
                 case 22:
                     AllNpcDisableLookAt();
@@ -1093,3 +1132,26 @@ void UDialogueUI::AutoDialogue()
 {
     Interact();
 }
+
+void UDialogueUI::OpenMouth(AYaroCharacter* npc)
+{
+    if (!npc) return;
+
+    for (int i = 0; i < Main->NPCList.Num(); i++)
+    {
+        if (!Main->NPCList[i]) continue;
+        Main->NPCList[i]->bSpeaking = false;
+    }
+    npc->bSpeaking = true;
+}
+
+void UDialogueUI::CloseAllMouth()
+{
+    for (int i = 0; i < Main->NPCList.Num(); i++) // 대사 다 나오면 입 모양 멈추기
+    {
+        if (!Main->NPCList[i]) continue;
+        Main->NPCList[i]->bSpeaking = false;
+    }
+}
+
+

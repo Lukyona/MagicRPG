@@ -310,6 +310,8 @@ void AMain::CameraZoom(const float Value)
 
 	if (MainPlayerController->DialogueNum == 0) return;
 
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("cave") && MainPlayerController->DialogueNum == 19) return;
+
 	if (MainPlayerController->bDialogueUIVisible && MainPlayerController->DialogueNum == 11) return;
 
 	const float NewTargetArmLength = CameraBoom->TargetArmLength + Value * ZoomStep;

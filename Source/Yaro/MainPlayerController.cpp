@@ -464,6 +464,7 @@ void AMainPlayerController::DialogueEvents()
             break;
         case 6: // enter the second dungeon
             SetCinematicMode(false, true, true);
+            Main->Momo->UsualFace();
             for (int i = 0; i < Main->NPCList.Num(); i++)
             {
                 if (Main->NPCList[i] != Main->Momo) // momo's already follwing to player
@@ -507,6 +508,13 @@ void AMainPlayerController::DialogueEvents()
                 SystemMessageNum = 13;
                 SetSystemMessage();
             }
+            if (DialogueNum == 11)
+            {
+                for (int i = 0; i < Main->NPCList.Num(); i++)
+                {
+                    Main->NPCList[i]->UsualFace();
+                }
+            }
             break;
         case 12:
             SetCinematicMode(false, true, true);
@@ -517,6 +525,7 @@ void AMainPlayerController::DialogueEvents()
             break;
         case 13:
         case 14:
+            Main->Momo->UsualFace();
             Main->bCanMove = true;
             Main->AllNpcMoveToPlayer();
             break;
