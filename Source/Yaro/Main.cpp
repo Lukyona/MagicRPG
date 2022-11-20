@@ -1269,6 +1269,10 @@ void AMain::RecoverWithLogo()
 void AMain::SetLevel5()
 {
 	if (MainPlayerController->DialogueNum < 3) return;
+
+	if (LevelUpSound != nullptr)
+		UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
+
 	Level = 5;
 	Exp = MaxExp;
 
@@ -1279,4 +1283,14 @@ void AMain::SetLevel5()
 	HP = MaxHP;
 	MP = MaxMP;
 	SP = MaxSP;
+
+	if (!MainPlayerController->bSystemMessageVisible)
+	{
+		MainPlayerController->SystemMessageNum = 15;
+		MainPlayerController->SetSystemMessage();
+		FTimerHandle Timer;
+		GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]() {
+			MainPlayerController->RemoveSystemMessage();
+			}), 3.f, false);
+	}
 }

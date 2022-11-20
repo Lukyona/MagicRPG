@@ -151,6 +151,22 @@ public:
 	void Smile();
 	void UsualFace();
 
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	class USphereComponent* NotAllowSphere;
+
+	UFUNCTION()
+	virtual void NotAllowSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION()
+	virtual void NotAllowSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	FTimerHandle SafeDistanceTimer;
+
+	void MoveToSafeLocation();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TArray<AEnemy*> DangerousTargets;
+
 protected:
 
 	virtual void BeginPlay() override;

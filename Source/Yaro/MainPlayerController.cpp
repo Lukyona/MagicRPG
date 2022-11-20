@@ -850,6 +850,9 @@ void AMainPlayerController::SetSystemMessage()
         case 14:
             text = FString(TEXT("마우스 왼쪽 버튼을 클릭하여\n디비눔 프레시디움을 챙기세요."));
             break;
+        case 15:
+            text = FString(TEXT("레벨 5가 되었습니다!\n숫자키 1~5로 모든 마법을 쓸 수 있습니다."));
+            break;
     }
     SystemMessageOn = true;
     //UE_LOG(LogTemp, Log, TEXT("SetSystemMessage"));

@@ -47,6 +47,13 @@ AYaroCharacter::AYaroCharacter()
     AttackSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
     AttackSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 
+	NotAllowSphere = CreateDefaultSubobject<USphereComponent>(TEXT("NotAllowSphere"));
+	NotAllowSphere->SetupAttachment(GetRootComponent());
+	NotAllowSphere->InitSphereRadius(100.f);
+	NotAllowSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	NotAllowSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
+	NotAllowSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+
 	bOverlappingAttackSphere = false;
 
 	AttackArrow = CreateAbstractDefaultSubobject<UArrowComponent>(TEXT("AttackArrow"));
@@ -78,6 +85,9 @@ void AYaroCharacter::BeginPlay()
 
     AttackSphere->OnComponentBeginOverlap.AddDynamic(this, &AYaroCharacter::AttackSphereOnOverlapBegin);
     AttackSphere->OnComponentEndOverlap.AddDynamic(this, &AYaroCharacter::AttackSphereOnOverlapEnd);
+
+	NotAllowSphere->OnComponentBeginOverlap.AddDynamic(this, &AYaroCharacter::NotAllowSphereOnOverlapBegin);
+	NotAllowSphere->OnComponentEndOverlap.AddDynamic(this, &AYaroCharacter::NotAllowSphereOnOverlapEnd);
 
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
@@ -306,7 +316,6 @@ void AYaroCharacter::MoveToTarget(AEnemy* Target)
 
 void AYaroCharacter::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-
 	if (OtherActor)
 	{
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
@@ -883,3 +892,67 @@ void AYaroCharacter::UsualFace()
 	this->bSmile = false;
 }
 
+void AYaroCharacter::NotAllowSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor)
+	{
+		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
+		if (Enemy)
+		{
+			for (int i = 0; i < DangerousTargets.Num(); i++)
+			{
+				if (Enemy == DangerousTargets[i]) //already exist
+				{
+					return;
+				}
+			}
+			DangerousTargets.Add(Enemy);
+
+			if (GetWorldTimerManager().IsTimerActive(SafeDistanceTimer)) return;
+
+			GetWorldTimerManager().SetTimer(SafeDistanceTimer, this, &AYaroCharacter::MoveToSafeLocation, 2.f);
+
+		}
+	}
+}
+
+
+
+void AYaroCharacter::NotAllowSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (OtherActor)
+	{
+		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
+		if (Enemy)
+		{
+			for (int i = 0; i < DangerousTargets.Num(); i++)
+			{
+				if (Enemy == DangerousTargets[i]) //already exist
+				{
+					DangerousTargets.Remove(Enemy);
+				}
+			}
+
+
+		}
+	}
+}
+
+void AYaroCharacter::MoveToSafeLocation()
+{
+	if (DangerousTargets.Num() != 0)
+	{
+		GetWorldTimerManager().SetTimer(SafeDistanceTimer, this, &AYaroCharacter::MoveToSafeLocation, 3.f);
+	}
+	else
+	{
+		GetWorldTimerManager().ClearTimer(SafeDistanceTimer);
+		return;
+	}
+	float value = FMath::RandRange(-200.f, 200.f);
+
+	FVector SafeLocation = GetActorLocation() + FVector(value, value, 0.f);
+	AIController->MoveToLocation(SafeLocation);
+	UE_LOG(LogTemp, Log, TEXT("movwsafeg %s"), *this->GetName());
+
+}

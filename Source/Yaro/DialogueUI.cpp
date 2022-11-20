@@ -67,7 +67,6 @@ void UDialogueUI::OnAnimationTimerCompleted()
     {
         CloseAllMouth();
         CurrentState = 2;
-        UE_LOG(LogTemp, Log, TEXT("clsod"));
 
     }
 }
@@ -122,7 +121,6 @@ void UDialogueUI::Interact()
         NPCText->SetText(FText::FromString(InitialMessage));
        // UE_LOG(LogTemp, Log, TEXT("Interact-1"));
         CloseAllMouth();
-        UE_LOG(LogTemp, Log, TEXT("clsod22"));
 
         CurrentState = 2;
     }
