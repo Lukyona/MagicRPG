@@ -349,11 +349,15 @@ void UDialogueUI::DialogueEvents()
             }
         }
 
-        if (DNum == 1 && RowIndex == 0) // 루코 대화
+        if (DNum == 1) // 루코 대화
         {
-            bDisableMouseAndKeyboard = false;
-            RowIndex = 11;
-            Main->CameraBoom->TargetArmLength = 500.f;
+            if (RowIndex == 0)
+            {
+                bDisableMouseAndKeyboard = false;
+                RowIndex = 11;
+                Main->CameraBoom->TargetArmLength = 500.f;
+            }
+
         }
 
         if (DNum == 2) // enter first dungeon

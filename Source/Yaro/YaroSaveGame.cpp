@@ -8,5 +8,4 @@ UYaroSaveGame::UYaroSaveGame()
     SaveName = TEXT("Default");
     UserIndex = 0;
 
-
 }

@@ -46,6 +46,9 @@ struct FCharacterStats
 
     UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
 	int FallingCount;
+
+	UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
+	int PotionNum;
 };
 
 USTRUCT(BlueprintType)

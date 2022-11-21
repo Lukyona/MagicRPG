@@ -42,7 +42,7 @@ public:
 	// Base turn rates to scale turning functions for the camera
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
 	float BaseTurnRate;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
 	float BaseLookUpRate;
 
 	//플레이어 성별
@@ -363,4 +363,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void RecoverWithLogo();
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int PotionNum;
+
+	void UsePotion();
 };

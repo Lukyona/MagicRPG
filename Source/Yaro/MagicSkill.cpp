@@ -56,7 +56,7 @@ void AMagicSkill::BeginPlay()
     GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]() {
         if (this->IsValidLowLevel())
         {
-            if (this->GetName().Contains("Tornado") || this->GetName().Contains("Laser")) return;
+            if (this->GetName().Contains("Tornado") || this->GetName().Contains("Laser") || this->GetName().Contains("Healing")) return;
             Destroy(true);
         }
 
@@ -110,6 +110,20 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
 {
     if (OtherActor)
     {
+        if (this->GetName().Contains("Healing"))
+        {
+            AMain* Main = Cast<AMain>(OtherActor);
+            if (Main)
+            {
+                Main->HP += 150.f;
+                if (Main->HP >= Main->MaxHP) Main->HP = Main->MaxHP;
+
+
+            }
+            return;
+
+        }
+
         if (this->index < 10)
         {
             AEnemy* Enemy = Cast<AEnemy>(OtherActor);

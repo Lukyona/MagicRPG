@@ -28,9 +28,6 @@ AYaroCharacter::AYaroCharacter()
 	GetCharacterMovement()->AirControl = 0.2f;
 	GetCharacterMovement()->MaxStepHeight = 55.f;
 
-	Wand = CreateDefaultSubobject<UBoxComponent>(TEXT("WandMesh"));
-	Wand->SetupAttachment(GetMesh(), FName("RightHandSocket"));
-
 	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
 	CombatSphere->SetupAttachment(GetRootComponent());
 	CombatSphere->InitSphereRadius(550.f);
@@ -481,6 +478,13 @@ void AYaroCharacter::Attack()
 	if ((!bAttacking) && (CombatTarget) && (CombatTarget->EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead))
 	{
         //UE_LOG(LogTemp, Log, TEXT("Attack,  %s"), *this->GetName());
+		if (this->GetName().Contains("Vovo") && bIsHealTime)
+		{
+			GetWorldTimerManager().SetTimer(AttackTimer, this, &AYaroCharacter::Attack, 2.f);
+			UE_LOG(LogTemp, Log, TEXT("vovovovovoo"));
+
+			return;
+		}
 
 		if (bCanCastStrom) //npc can cast strom magic
 		{

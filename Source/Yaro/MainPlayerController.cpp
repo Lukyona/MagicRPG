@@ -435,8 +435,14 @@ void AMainPlayerController::DialogueEvents()
                 Main->TargetNpc = nullptr;
                 GetWorldTimerManager().ClearTimer(Main->Luko->MoveTimer);
                 Main->Luko->AIController->MoveToLocation(FVector(5200.f, 35.f, 100.f));
-                SystemMessageNum = 2;
+                SystemMessageNum = 16;
                 SetSystemMessage();
+                GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]() {
+
+                    SystemMessageNum = 2;
+                    SetSystemMessage();
+
+                    }), 2.5f, false);
                 return;
             }
             SetCinematicMode(false, true, true);   
@@ -659,27 +665,6 @@ void AMainPlayerController::SetPositions()
         Main->Zizi->SetActorRotation(FRotator(0.f, 85.f, 0.f));
     }
 
-    //if (DialogueNum == 12)
-    //{
-    //    Main->SetActorLocation(FVector(-260.f, -1981.f, -117.f));
-    //    Main->SetActorRotation(FRotator(0.f, 99.f, 0.f)); // y(pitch), z(yaw), x(roll)
-    //   
-    //    Main->Momo->SetActorLocation(FVector(-301.f, -1663.f, -122.f));
-    //    Main->Momo->SetActorRotation(FRotator(0.f, 274.f, 0.f));
- 
-    //    Main->Luko->SetActorLocation(FVector(-379.f, -1811.f, -117.f));
-    //    Main->Luko->SetActorRotation(FRotator(0.f, 54.f, 0.f));
-
-    //    Main->Vovo->SetActorLocation(FVector(-313.f, -2755.f, -117.5f));
-    //    Main->Vovo->SetActorRotation(FRotator(0.f, 140.f, 0.f));
-    //    
-    //    Main->Vivi->SetActorLocation(FVector(-416.f, -1945.f, -117.5f));
-    //    Main->Vivi->SetActorRotation(FRotator(0.f, 65.f, 0.f));
-
-    //    Main->Zizi->SetActorLocation(FVector(-186.f, -1861.f, -115.f));
-    //    Main->Zizi->SetActorRotation(FRotator(0.f, 128.f, 0.f));
-    //}
-
     if (DialogueNum == 16)
     {
         Main->SetActorLocation(FVector(-35.f, 3549.f, 184.f));
@@ -852,6 +837,9 @@ void AMainPlayerController::SetSystemMessage()
             break;
         case 15:
             text = FString(TEXT("레벨 5가 되었습니다!\n숫자키 1~5로 모든 마법을 쓸 수 있습니다."));
+            break;
+        case 16:
+            text = FString(TEXT("전체 회복 포션을 받았습니다!\n필요할 때 P키를 눌러 사용하세요."));
             break;
     }
     SystemMessageOn = true;

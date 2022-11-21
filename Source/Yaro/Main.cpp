@@ -112,6 +112,7 @@ AMain::AMain()
 	ItemSphere->InitSphereRadius(80.f);
 	ItemSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
 
+	PotionNum = 0;
 }
 
 
@@ -220,7 +221,10 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
     PlayerInputComponent->BindAction("ShowManual", IE_Pressed, this, &AMain::ShowManual);
 
 	PlayerInputComponent->BindAction("Escape", IE_Pressed, this, &AMain::Escape);
+
 	PlayerInputComponent->BindAction("LevelCheat", IE_Pressed, this, &AMain::SetLevel5);
+
+	PlayerInputComponent->BindAction("UsePotion", IE_Pressed, this, &AMain::UsePotion);
 
 
 	// Axis는 매 프레임마다 호출
@@ -546,13 +550,16 @@ void AMain::Targeting() //Targeting using Tap key
 			MainPlayerController->RemoveEnemyHPBar();
 		}
 
-		if (Targets.Num() != 0 && !bAutoTargeting)
+		if (Targets.Num() == 0) return;
+
+		if (!bAutoTargeting)
 		{
 			//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("noautotargt"));
 			if (Targets[targetIndex]->EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead) return;
             CombatTarget = Targets[targetIndex];
             targetIndex++;
 		}
+		
 		bHasCombatTarget = true;
 		//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("displaye"));
 
@@ -803,6 +810,7 @@ void AMain::SaveGame()
 	SaveGameInstance->CharacterStats.Level = Level;
 	SaveGameInstance->CharacterStats.Exp = Exp;
 	SaveGameInstance->CharacterStats.MaxExp = MaxExp;
+	SaveGameInstance->CharacterStats.PotionNum = PotionNum;
 
     SaveGameInstance->DialogueNum = MainPlayerController->DialogueNum;
     SaveGameInstance->CharacterStats.FallingCount = MainPlayerController->FallingCount;
@@ -855,6 +863,8 @@ void AMain::LoadGame()
 	Level = LoadGameInstance->CharacterStats.Level;
 	Exp = LoadGameInstance->CharacterStats.Exp;
 	MaxExp = LoadGameInstance->CharacterStats.MaxExp;
+	PotionNum = LoadGameInstance->CharacterStats.PotionNum;
+
 
 	Enemies = LoadGameInstance->DeadEnemyList;
 	
@@ -1234,7 +1244,7 @@ void AMain::AllNpcMoveToPlayer()
 
 void AMain::SkipCombat()
 {
-	if (MainPlayerController->bDialogueUIVisible || !bCanSkip || bSkip) return;
+	if (MainPlayerController->bDialogueUIVisible || !bCanSkip || bSkip || MovementStatus == EMovementStatus::EMS_Dead) return;
 
 	if (MainPlayerController->DialogueNum < 4) // first dungeon
 	{
@@ -1254,7 +1264,6 @@ void AMain::SkipCombat()
 	else return;
 }
 
-
 void AMain::RecoverWithLogo()
 {
 	HP += 50.f;
@@ -1268,7 +1277,7 @@ void AMain::RecoverWithLogo()
 
 void AMain::SetLevel5()
 {
-	if (MainPlayerController->DialogueNum < 3) return;
+	if (MainPlayerController->DialogueNum < 3 || Level == 5) return;
 
 	if (LevelUpSound != nullptr)
 		UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
@@ -1293,4 +1302,15 @@ void AMain::SetLevel5()
 			MainPlayerController->RemoveSystemMessage();
 			}), 3.f, false);
 	}
+}
+
+void AMain::UsePotion()
+{
+	if (PotionNum <= 0 || MainPlayerController->DialogueNum < 3) return;
+
+	PotionNum--;
+
+	HP = MaxHP;
+	MP = MaxMP;
+	SP = MaxSP;
 }

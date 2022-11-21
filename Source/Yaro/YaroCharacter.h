@@ -27,9 +27,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void MoveToPlayer();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	class UBoxComponent* Wand;
-
 	// When character attck enemy, character look at enemy
 	float InterpSpeed;
 	bool bInterpToEnemy;
@@ -64,7 +61,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float AttackDelay;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
     bool bAttacking;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
@@ -166,6 +163,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<AEnemy*> DangerousTargets;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	bool bIsHealTime;
 
 protected:
 
