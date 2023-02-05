@@ -70,8 +70,8 @@ AMain::AMain()
 	GetCharacterMovement()->SetWalkableFloorAngle(50.f);
 	GetCharacterMovement()->MaxWalkSpeed = 350.f;
 
-	MaxHP = 200.f;
-	HP = 200.f;
+	MaxHP = 300.f;
+	HP = 300.f;
 	MaxMP = 150.f;
 	MP = 150.f;
 	MaxSP = 300.f;
@@ -1146,7 +1146,7 @@ void AMain::GetExp(float exp)
 				MaxExp = 150.f;
 				MainPlayerController->SystemMessageNum = 6;
 				MainPlayerController->SetSystemMessage();
-				MaxHP = 225.f;
+				MaxHP = 350.f;
 				MaxMP = 175.f;
 				MaxSP = 325.f;
 				break;
@@ -1154,7 +1154,7 @@ void AMain::GetExp(float exp)
 				MaxExp = 250.f;
                 MainPlayerController->SystemMessageNum = 7;
                 MainPlayerController->SetSystemMessage();
-                MaxHP = 250.f;
+                MaxHP = 450.f;
                 MaxMP = 200.f;
                 MaxSP = 350.f;
 				break;
@@ -1162,14 +1162,14 @@ void AMain::GetExp(float exp)
 				MaxExp = 360.f;
                 MainPlayerController->SystemMessageNum = 8;
                 MainPlayerController->SetSystemMessage();
-                MaxHP = 300.f;
+                MaxHP = 600.f;
                 MaxMP = 230.f;
                 MaxSP = 375.f;
 				break;
             case 5:
                 MainPlayerController->SystemMessageNum = 9;
                 MainPlayerController->SetSystemMessage();
-                MaxHP = 350.f;
+                MaxHP = 700.f;
                 MaxMP = 280.f;
                 MaxSP = 400.f;
                 break;
@@ -1266,7 +1266,7 @@ void AMain::SkipCombat()
 
 void AMain::RecoverWithLogo()
 {
-	HP += 50.f;
+	HP += 150.f;
 	MP += 50.f;
 	SP += 50.f;
 
@@ -1285,7 +1285,7 @@ void AMain::SetLevel5()
 	Level = 5;
 	Exp = MaxExp;
 
-	MaxHP = 350.f;
+	MaxHP = 700.f;
 	MaxMP = 280.f;
 	MaxSP = 400.f;
 
