@@ -7,7 +7,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "Sound/SoundCue.h"
-#include "Main.h"
+#include "Yaro/Character/Main.h"
 #include "Engine/SkeletalMeshSocket.h"
 
 
@@ -66,7 +66,6 @@ void AItem::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* Oth
         {
             Main->SetActiveOverlappingItem(this);
         }
-
     }
 }
 
@@ -97,7 +96,7 @@ void AItem::PickUp(AMain* Char)
     {
         LeftHandSocket->AttachActor(this, Char->GetMesh());
         bRotate = false;
-        Char->ItemInHand = this;
+        Char->SetItemInHand(this);
         Char->SetActiveOverlappingItem(nullptr);
 
     }

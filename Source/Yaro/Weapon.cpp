@@ -3,9 +3,9 @@
 
 #include "Weapon.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Main.h"
+#include "Yaro/Character/Main.h"
 #include "Engine/SkeletalMeshSocket.h"
-#include "YaroCharacter.h"
+#include "Yaro/Character/YaroCharacter.h"
 //#include "Components/SphereComponent.h"
 
 
@@ -61,7 +61,7 @@ void AWeapon::Equip(AMain* Char)
         {
             RightHandSocket->AttachActor(this, Char->GetMesh());
             bRotate = false;
-            Char->EquippedWeapon = this;
+            Char->SetEquippedWeapon(this);
             SetWeaponState(EWeaponState::EWS_Equipped);
         }
     }

@@ -51,7 +51,9 @@ public:
 	int index;
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Combat")
-	class ACharacter* Caster; // who cast this spell(magic)
+	class AStudent* Caster; // who cast this spell(magic)
+
+	class AMain* Main;
 
 protected:
 	// Called when the game starts or when spawned
@@ -71,4 +73,7 @@ public:
 	virtual void OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	void SetLocation(); //Move magic to the target
+
+	void SetMain();
+
 };

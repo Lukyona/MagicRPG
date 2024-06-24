@@ -1,7 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "YaroGameMode.h"
-#include "YaroCharacter.h"
+#include "Yaro/Character/Main.h"
+#include "Yaro/Character/YaroCharacter.h"
 #include "UObject/ConstructorHelpers.h"
 
 AYaroGameMode::AYaroGameMode()

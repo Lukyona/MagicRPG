@@ -4,20 +4,20 @@
 #include "Enemy.h"
 #include "Components/SphereComponent.h"
 #include "AIController.h"
-#include "Main.h"
+#include "Yaro/Character/Main.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/BoxComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "MagicSkill.h"
+#include "Yaro/MagicSkill.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Components/CapsuleComponent.h"
 #include "Sound/SoundCue.h"
-#include "MainPlayerController.h"
+#include "Yaro/System/MainPlayerController.h"
 #include "Engine/EngineTypes.h"
-#include "YaroCharacter.h"
+#include "Yaro/Character/YaroCharacter.h"
 
 // Sets default values
 AEnemy::AEnemy()
@@ -25,40 +25,13 @@ AEnemy::AEnemy()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	AgroSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AgroSphere"));
-	AgroSphere->SetupAttachment(GetRootComponent());
-	AgroSphere->InitSphereRadius(500.f);
-	AgroSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	AgroSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
-	AgroSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-
-
-	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
-	CombatSphere->SetupAttachment(GetRootComponent());
-	CombatSphere->InitSphereRadius(170.f);
-	CombatSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
-	CombatSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	CombatSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-
-
-	CombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision"));
-	CombatCollision->SetupAttachment(GetMesh(), FName("EnemySocket_1"));
-
-	//여기서 두번째 소켓이 있는지 확인해봤자 블루프린트에선 적용이 안 된다.
-	CombatCollision2 = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision2"));
-	CombatCollision2->SetupAttachment(GetMesh(), FName("EnemySocket_2"));
-
 	bOverlappingCombatSphere = false;
-
-	//This is the default value, each enemy has different health.
-	Health = 100.f;
-	MaxHealth = 100.f;
 
 	EnemyMovementStatus = EEnemyMovementStatus::EMS_Idle;
 
 	DeathDelay = 3.f;
 
-	InterpSpeed = 10.f; //(플레이어 바라볼 때)회전 속도
+	InterpSpeed = 10.f; //(캐릭터 바라볼 때)회전 속도
 	bInterpToTarget = false;
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
@@ -71,47 +44,72 @@ void AEnemy::BeginPlay()
 
 	AIController = Cast<AAIController>(GetController());
 
+	SetMain();
+
+	AnimInstance = GetMesh()->GetAnimInstance();
+
 	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapBegin);
 	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapEnd);
 
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatSphereOnOverlapBegin);
 	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatSphereOnOverlapEnd);
 
-	CombatCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapBegin);
-	CombatCollision->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapEnd);
-
-	CombatCollision2->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapBegin);
-	CombatCollision2->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapEnd);
-
-
-	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CombatCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	CombatCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-
-	CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CombatCollision2->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	CombatCollision2->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	CombatCollision2->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-
-
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 
 	InitialLocation = GetActorLocation(); // Set initial enemy location
 	InitialRotation = GetActorRotation();
-
-	Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
-
-	AnimInstance = GetMesh()->GetAnimInstance();
 }
+
+void AEnemy::SetAgroSphere(float value)
+{
+	AgroSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AgroSphere"));
+	AgroSphere->SetupAttachment(GetRootComponent());
+	AgroSphere->InitSphereRadius(value);
+	AgroSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	AgroSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	AgroSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
+}
+
+void AEnemy::SetCombatSphere(float value)
+{
+	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
+	CombatSphere->SetupAttachment(GetRootComponent());
+	CombatSphere->InitSphereRadius(value);
+	CombatSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	CombatSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
+	CombatSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+}
+
+void AEnemy::EnableFirstWeaponCollision()
+{
+	CombatCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapBegin);
+	CombatCollision->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapEnd);
+
+	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CombatCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	CombatCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+}
+
+void AEnemy::EnableSecondWeaponCollision()
+{
+	CombatCollision2->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapBegin);
+	CombatCollision2->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapEnd);
+
+	CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CombatCollision2->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	CombatCollision2->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	CombatCollision2->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+}
+
 
 // Called every frame
 void AEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-    if (!Main) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    if (!Main) SetMain();
 
 	if (bInterpToTarget && bOverlappingCombatSphere && CombatTarget)
 	{
@@ -119,6 +117,11 @@ void AEnemy::Tick(float DeltaTime)
 		FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed); //smooth transition
 		SetActorRotation(InterpRotation);
 	}
+}
+
+void AEnemy::SetMain()
+{
+	Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
 }
 
 void AEnemy::SetInterpToTarget(bool Interp)
@@ -139,25 +142,22 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-
 void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
 
-
 	if (OtherActor && Alive()) //전투타겟이 없을 때 NPC에게도 유효, 전투타겟이 있어도 플레이어에게 반응
 	{
-		if (AgroSound && AgroTargets.Num() == 0)
+		if (AgroSound && AgroTargets.Num() == 0) // 인식 범위에 아무도 없었으면 인식 사운드 재생
 		{
-			if(!(UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Main->Enemies.Num() == 5))
+			if(!(UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Main->GetEnemies().Num() == 5))
 				UGameplayStatics::PlaySound2D(this, AgroSound);
 		}
 
-		ACharacter* target = Cast<ACharacter>(OtherActor);
+		AStudent* target = Cast<AStudent>(OtherActor);
 
 		if (!target) return;
 		//UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapBegin %s"), *target->GetName());
-
 
 		for (int i = 0; i < AgroTargets.Num(); i++)
 		{
@@ -185,7 +185,7 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 
 	if (OtherActor && Alive())
 	{
-		ACharacter* target = Cast<ACharacter>(OtherActor);
+		AStudent* target = Cast<AStudent>(OtherActor);
 
 		if (target)
 		{
@@ -202,7 +202,7 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 			
             //UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapEnd %s"), *target->GetName());
 
-			if (AgroTarget != Main) //npc를 쫓아가던 중이면(인식 범위 나간 것도 npc)
+			if (AgroTarget != nullptr && AgroTarget != Main) //npc를 쫓아가던 중이면(인식 범위 나간 것도 npc)
 			{
 				AgroTarget = nullptr;
 				if (CombatTargets.Num() != 0) //전투 범위에 다른 누군가가(npc) 있으면
@@ -239,7 +239,7 @@ void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent
 
 	if (OtherActor && Alive()) //전투타겟이 없을 때 NPC에게도 유효, 전투타겟이 있어도 플레이어에게 반응
 	{
-		ACharacter* target = Cast<ACharacter>(OtherActor);
+		AStudent* target = Cast<AStudent>(OtherActor);
 
 		if (target)
 		{			
@@ -270,7 +270,7 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 
 	if (OtherActor && Alive())
 	{
-		ACharacter* target = Cast<ACharacter>(OtherActor);
+		AStudent* target = Cast<AStudent>(OtherActor);
 		////UE_LOG(LogTemp, Log, TEXT("CombatSphere On Overlap End"));
 		//UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapEnd %s"), *OtherActor->GetName());
 
@@ -293,7 +293,7 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 			}
 		}
 
-		if(target == Main && Main->MovementStatus != EMovementStatus::EMS_Dead) // 플레이어가 살아있는 상태로 전투범위를 나감 
+		if(target == Main && Main->GetMovementStatus() != EMovementStatus::EMS_Dead) // 플레이어가 살아있는 상태로 전투범위를 나감 
 		{
 			//UE_LOG(LogTemp, Log, TEXT("main end move to main"));
 			MoveToTarget(target);
@@ -324,18 +324,17 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 	}
 }
 
-void AEnemy::MoveToTarget(ACharacter* Target)
+void AEnemy::MoveToTarget(AStudent* Target)
 {
 	if (AIController && Alive())
 	{
-		if (Target == Main && Main->MovementStatus == EMovementStatus::EMS_Dead)
+		if (Target == Main && Main->GetMovementStatus() == EMovementStatus::EMS_Dead)
 		{
 			if (AgroTargets.Num() == 0)
 			{
 				MoveToLocation();
 				return;
 			}
-
 		}
 		SetEnemyMovementStatus(EEnemyMovementStatus::EMS_MoveToTarget);
 
@@ -368,14 +367,14 @@ void AEnemy::CombatOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAct
 
 	if (OtherActor)
 	{
-		ACharacter* target;
+		AStudent* target;
 		if (OtherActor == Main)
 		{
 			target = Main;
 		}
 		else
 		{
-			target = Cast<ACharacter>(OtherActor);
+			target = Cast<AStudent>(OtherActor);
 		}
 		if (target)
 		{
@@ -394,12 +393,22 @@ void AEnemy::CombatOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor
 void AEnemy::ActivateCollision()
 {
 	CombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	CombatCollision2->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 }
 
 void AEnemy::DeactivateCollision()
 {
 	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void AEnemy::ActivateCollisions()
+{
+	ActivateCollision();
+	CombatCollision2->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+}
+
+void AEnemy::DeactivateCollisions()
+{
+	DeactivateCollision();
 	CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
@@ -409,7 +418,7 @@ void AEnemy::Attack()
 	{
 		if (!bAttacking && CombatTarget)
 		{
-			if (CombatTarget == Main && Main->MovementStatus == EMovementStatus::EMS_Dead)
+			if (CombatTarget == Main && Main->GetMovementStatus() == EMovementStatus::EMS_Dead)
 			{
 				AttackEnd();
 				return;
@@ -423,13 +432,12 @@ void AEnemy::Attack()
 
 			bAttacking = true;
 			SetInterpToTarget(false);
-			////UE_LOG(LogTemp, Log, TEXT("attack"));
 
 			if (AnimInstance)
 			{
 				AnimInstance->Montage_Play(CombatMontage);
 
-				if (this->GetName().Contains("Grux") || this->GetName().Contains("LizardMan") || this->GetName().Contains("LizardMan")
+				if (this->GetName().Contains("Grux") || this->GetName().Contains("LizardMan")
 					|| this->GetName().Contains("Archer") || this->GetName().Contains("Spider"))
 				{
 					AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
@@ -476,7 +484,7 @@ void AEnemy::AttackEnd()
 		{
 			if (CombatTarget == Main)
 			{
-				if (Main->MovementStatus == EMovementStatus::EMS_Dead)
+				if (Main->GetMovementStatus() == EMovementStatus::EMS_Dead)
 				{
 					AgroTargets.Remove(Main);
 					CombatTargets.Remove(Main);
@@ -493,21 +501,14 @@ void AEnemy::AttackEnd()
 					}
 					else //전투범위 내에 다른 누군가가 있으면
 					{
-						
 						CombatTarget = CombatTargets[0];
 						bOverlappingCombatSphere = true;
-						
 					}
 				}
-
 			}
 			else
 			{
 				AYaroCharacter* npc = Cast<AYaroCharacter>(CombatTarget);
-				/*if (npc->MovementStatus == EMovementStatus::EMS_Dead)
-				{
-
-				}*/
 			}
 		}
 
@@ -542,13 +543,13 @@ void AEnemy::Die()
 {
 	if (EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead)
 	{
-		Main->Enemies.Add(Name);
+		Main->AddEnemies(Name);
 		if (AIController) AIController->StopMovement();
 		SetInterpToTarget(false);
 
-		if (DeathSound && !Main->bSkip) UGameplayStatics::PlaySound2D(this, DeathSound);
+		if (DeathSound && !Main->GetSkipStatus()) UGameplayStatics::PlaySound2D(this, DeathSound);
 
-		if (AnimInstance && !Main->bSkip)
+		if (AnimInstance && !Main->GetSkipStatus())
 		{
 			AnimInstance->Montage_Play(CombatMontage);
 			AnimInstance->Montage_JumpToSection(FName("Death"), CombatMontage);
@@ -564,41 +565,41 @@ void AEnemy::DeathEnd()
 	GetMesh()->bPauseAnims = true;
 	GetMesh()->bNoSkeletonUpdate = true;
 	
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first") && Main->Enemies.Num() == 9) // 첫번째 던전 클리어했는지, 골렘 이후 대화가 정상
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first") && Main->GetEnemies().Num() == 9) // 첫번째 던전 클리어했는지, 골렘 이후 대화가 정상
 	{
 		Main->SaveGame();
-		if (Main->Momo->TeleportCount == 0) GetWorldTimerManager().ClearTimer(Main->Momo->MoveTimer);
-		if (Main->Luko->TeleportCount == 0) GetWorldTimerManager().ClearTimer(Main->Luko->MoveTimer);
+		if (Main->Momo->GetTeleportCount() == 0) GetWorldTimerManager().ClearTimer(Main->Momo->GetMoveTimer());
+		if (Main->Luko->GetTeleportCount() == 0) GetWorldTimerManager().ClearTimer(Main->Luko->GetMoveTimer());
 
-		Main->MainPlayerController->DisplayDialogueUI();
+		Main->GetMainPlayerController()->DisplayDialogueUI();
 	}
 
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second") && Main->Enemies.Num() >= 15)
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second") && Main->GetEnemies().Num() >= 15)
 	{
 		int count = 0;
-		for (int i = 0; i < Main->Enemies.Num(); i++)
+		for (int i = 0; i < Main->GetEnemies().Num(); i++)
 		{
-			if (Main->Enemies[i].Contains("monster"))
+			if (Main->GetEnemies()[i].Contains("monster"))
 			{
 				count++;
 			}
 		}
 		if (count == 3)
 		{
-			for (int i = 0; i < Main->NPCList.Num(); i++)
+			for (int i = 0; i < Main->GetNPCList().Num(); i++)
 			{
-				Main->NPCList[i]->GetWorldTimerManager().ClearTimer(Main->NPCList[i]->MoveTimer);
-				Main->NPCList[i]->AIController->StopMovement();
+				Main->GetNPCList()[i]->GetWorldTimerManager().ClearTimer(Main->GetNPCList()[i]->GetMoveTimer());
+				Main->GetNPCList()[i]->GetAIController()->StopMovement();
 			}
 			Main->SaveGame();
-			Main->MainPlayerController->DisplayDialogueUI();
+			Main->GetMainPlayerController()->DisplayDialogueUI();
 		}
 	}
 
-	if ((UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Main->Enemies.Num() == 5))
+	if ((UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Main->GetEnemies().Num() == 5))
 	{
 		Main->SaveGame();
-		Main->MainPlayerController->DisplayDialogueUI();
+		Main->GetMainPlayerController()->DisplayDialogueUI();
 	}
 	
 	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::Disappear, DeathDelay);
@@ -609,25 +610,28 @@ bool AEnemy::Alive()
 	return GetEnemyMovementStatus() != EEnemyMovementStatus::EMS_Dead;
 }
 
-void AEnemy::Disappear()
+void AEnemy::CombatCollisionDisabled()
 {
 	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (hasSecondCollision)
+		CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void AEnemy::SphereCollisionDisabled()
+{
 	AgroSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	CombatSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	Destroy();
 }
 
-void AEnemy::HitGround() //Golem's third skill
+void AEnemy::Disappear()
 {
-	if (SkillSound) UGameplayStatics::PlaySound2D(this, SkillSound);
+	CombatCollisionDisabled();
 
-	if (CombatTarget)
-	{
-		UGameplayStatics::ApplyDamage(CombatTarget, Damage, AIController, this, DamageTypeClass);
-	}
+	SphereCollisionDisabled();
+	
+	Destroy();
 }
 
 void AEnemy::HitEnd()
@@ -641,7 +645,7 @@ void AEnemy::HitEnd()
 		MoveToTarget(AgroTarget);
 		//UE_LOG(LogTemp, Log, TEXT("move to target again %s"), *this->GetName());
 	}
-	
+
 
 	int index = MagicAttack->index;
 	if (!CombatTarget && AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
@@ -653,6 +657,7 @@ void AEnemy::HitEnd()
 	*/
 	if (index == 0)
 	{
+		SetAttackFromPlayer(true);
 		if ((CombatTarget == nullptr || CombatTarget != Main))
 		{
 			if (CombatTarget)
@@ -662,14 +667,18 @@ void AEnemy::HitEnd()
 					AnimInstance->Montage_Stop(0.1f, CombatMontage);
 				}
 			}
-			if (Main->MovementStatus != EMovementStatus::EMS_Dead) MoveToTarget(Main);
+			if (Main->GetMovementStatus() != EMovementStatus::EMS_Dead) MoveToTarget(Main);
 		}
+	}
+	else
+	{
+		SetAttackFromPlayer(false);
 	}
 
 	// When enemy doesn't have any combat target and enemy doesn't follow player,  Ai(npc) attacks enemy
 	if (!CombatTarget && AgroTarget != Main && index != 0)
 	{
-		ACharacter* npc = MagicAttack->Caster;
+		AStudent* npc = MagicAttack->Caster;
 		if (CombatTargets.Contains(npc)) 
 		{
 			CombatTarget = npc;
@@ -694,7 +703,6 @@ void AEnemy::MoveToLocation()
 	{
 		GetWorldTimerManager().SetTimer(CheckHandle, this, &AEnemy::CheckLocation, 0.5f);
 
-		//SetEnemyMovementStatus(EEnemyMovementStatus::EMS_MoveToTarget);
 		AIController->MoveToLocation(InitialLocation);
 	}
 }
@@ -729,11 +737,6 @@ void AEnemy::CheckLocation()
 		else
 		{
 			GetWorldTimerManager().SetTimer(CheckHandle, this, &AEnemy::CheckLocation, 0.5f);
-			/*if (AgroTargets.Num() == 0)
-			{
-				AIController->StopMovement();
-				GetWorldTimerManager().ClearTimer(CheckHandle);
-			}*/
 		}
 	}
 	else
@@ -742,6 +745,20 @@ void AEnemy::CheckLocation()
 	}
 }
 
+void AEnemy::CreateFirstWeaponCollision()
+{
+	CombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision"));
+	CombatCollision->SetupAttachment(GetMesh(), FName("EnemySocket_1"));
+}
+
+void AEnemy::CreateSecondWeaponCollision()
+{
+	//무기 콜리전 2개인 적만 적용
+	CombatCollision2 = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision2"));
+	CombatCollision2->SetupAttachment(GetMesh(), FName("EnemySocket_2"));
+
+	hasSecondCollision = true;
+}
 
 void AEnemy::MovingNow()
 {
@@ -779,7 +796,6 @@ void AEnemy::MovingNow()
 		//UE_LOG(LogTemp, Log, TEXT("movingcount %d"), MovingCount);
 
 		GetWorldTimerManager().SetTimer(MovingTimer, this, &AEnemy::MovingNow, 0.5f);
-
 	}
 	else
 	{

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Main.h"
+#include "Yaro/Character/Main.h"
 
 #include "Item.generated.h"
 

@@ -2,14 +2,14 @@
 
 
 #include "MagicSkill.h"
-#include "Enemy.h"
+#include "Yaro/Character/Enemies/Enemy.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/SphereComponent.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Sound/SoundCue.h"
 #include "GameFramework/Controller.h"
-#include "Main.h"
+#include "Yaro/Character/Main.h"
 
 // Sets default values
 AMagicSkill::AMagicSkill()
@@ -93,6 +93,11 @@ void AMagicSkill::Tick(float DeltaTime)
     }
 }
 
+void AMagicSkill::SetMain()
+{
+    Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
+}
+
 void AMagicSkill::SetLocation()
 {
     if (Target != nullptr)
@@ -112,16 +117,16 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
     {
         if (this->GetName().Contains("Healing"))
         {
-            AMain* Main = Cast<AMain>(OtherActor);
-            if (Main)
+            //AMain* Main = Cast<AMain>(OtherActor);
+            if (!Main) SetMain();
+
+            if (Main == OtherActor)
             {
-                Main->HP += 150.f;
-                if (Main->HP >= Main->MaxHP) Main->HP = Main->MaxHP;
-
-
+                Main->AddHP(150.f);
+                if (Main->GetHP() >= Main->GetMaxHP()) 
+                    Main->SetHP(Main->GetMaxHP());
             }
             return;
-
         }
 
         if (this->index < 10)
@@ -131,15 +136,17 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
             {
                 if (index == 0)
                 {
-                    Enemy->bAttackFromPlayer = true;
-                    if (Enemy->Main->CombatTarget == nullptr)
+                    Enemy->SetAttackFromPlayer(true);
+
+                    if (!Main) SetMain();
+                    if (Main->GetCombatTarget() == nullptr)
                     {
-                        if (Enemy->Main->Targets.Contains(Enemy))
+                        if (Main->GetTargets().Contains(Enemy))
                         {
-                            Enemy->Main->bAutoTargeting = true;
-                            Enemy->Main->CombatTarget = Enemy; // 자동으로 타겟 지정
-                            Enemy->Main->Targeting();
-                            Enemy->Main->bAutoTargeting = false;
+                            Main->SetAutoTargeting(true);
+                            Main->SetCombatTarget(Enemy); // 자동으로 타겟 지정
+                            Main->Targeting();
+                            Main->SetAutoTargeting(false);
                         }
                     }
                 }

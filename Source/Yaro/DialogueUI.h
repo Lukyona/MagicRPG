@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Engine/DataTable.h" // generated.h 위에 써야함
-#include "YaroCharacter.h"
+#include "Yaro/Character/YaroCharacter.h"
 #include "DialogueUI.generated.h"
 
 
@@ -116,7 +116,7 @@ private:
 	FString InitialMessage;
 
 	FString OutputMessage;
-
+	
 	int32 iLetter;
 
 

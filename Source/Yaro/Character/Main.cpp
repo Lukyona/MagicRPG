@@ -9,28 +9,24 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
-#include "Weapon.h"
+#include "Yaro/Weapon.h"
 #include "Components/SphereComponent.h"
-#include "Enemy.h"
+#include "Yaro/Character/Enemies/Enemy.h"
 #include "Components/ArrowComponent.h"
-#include "MagicSkill.h"
-#include "Kismet/KismetMathLibrary.h"
-#include "MainPlayerController.h"
+#include "Yaro/MagicSkill.h"
+#include "Yaro/System/MainPlayerController.h"
 #include "Engine/BlueprintGeneratedClass.h"
-#include "YaroSaveGame.h"
-#include "ItemStorage.h"
-#include "DialogueUI.h"
-#include "YaroCharacter.h"
-#include "MainAnimInstance.h"
+#include "Yaro/System/YaroSaveGame.h"
+#include "Yaro/ItemStorage.h"
+#include "Yaro/DialogueUI.h"
+#include "Yaro/Character/YaroCharacter.h"
+#include "Yaro/Character/MainAnimInstance.h"
 #include "AIController.h"
 
 
 // Sets default values
 AMain::AMain()
-{
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
+{//고침 CreateAbstractDefaultSubobject
 	//Create CameraBoom (pulls towards the player if there's a collision), 콜리전이 있으면 카메라를 플레이어쪽으로 당김 
 	CameraBoom = CreateAbstractDefaultSubobject<USpringArmComponent>(TEXT("Camera"));
 	CameraBoom->SetupAttachment(GetRootComponent());
@@ -44,7 +40,7 @@ AMain::AMain()
 	CameraBoom->SocketOffset.Z = 70.f;
 
 	// Create FollowCamera
-	FollowCamera = CreateAbstractDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	// Attach the camera to the end of the boom and let the boom adjust to match
 	// the controller orientation
@@ -62,14 +58,28 @@ AMain::AMain()
 
 
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.f, 0.0f); //... at this rotation rate
 	GetCharacterMovement()->JumpZVelocity = 400.f;
-	GetCharacterMovement()->AirControl = 0.2f;
-	GetCharacterMovement()->MaxStepHeight = 50.f;
 	GetCharacterMovement()->SetWalkableFloorAngle(50.f);
 	GetCharacterMovement()->MaxWalkSpeed = 350.f;
 
+	// 공격 범위 설정
+	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
+	CombatSphere->SetupAttachment(GetRootComponent());
+	CombatSphere->InitSphereRadius(600.f);
+	CombatSphere->SetRelativeLocation(FVector(100.f, 0.f, 0.f));
+	CombatSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+
+	bHasCombatTarget = false;
+	targetIndex = 0;
+
+	// 아이템 상호작용 범위 설정
+	ItemSphere = CreateDefaultSubobject<USphereComponent>(TEXT("ItemSphere"));
+	ItemSphere->SetupAttachment(GetRootComponent());
+	ItemSphere->InitSphereRadius(80.f);
+	ItemSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+
+
+	//상태 정보 초기화
 	MaxHP = 300.f;
 	HP = 300.f;
 	MaxMP = 150.f;
@@ -85,36 +95,15 @@ AMain::AMain()
 	MPDelay = 2.f;
 	SPDelay = 0.5f;
 
-	InterpSpeed = 15.f;
-	bInterpToEnemy = false;
-
-	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
-	CombatSphere->SetupAttachment(GetRootComponent());
-	CombatSphere->InitSphereRadius(600.f);
-	CombatSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-
-	bOverlappingCombatSphere = false;
-	bHasCombatTarget = false;
-	targetIndex = 0;
-
-	AttackArrow = CreateAbstractDefaultSubobject<UArrowComponent>(TEXT("AttackArrow"));
-	AttackArrow->SetupAttachment(GetRootComponent());
-	AttackArrow->SetRelativeLocation(FVector(160.f, 4.f, 26.f));
+	DeathDelay = 3.f;
 
 	MovementStatus = EMovementStatus::EMS_Normal;
 
-	DeathDelay = 3.f;
+	PotionNum = 0;
 
 	bESCDown = false;
 
-    ItemSphere = CreateDefaultSubobject<USphereComponent>(TEXT("ItemSphere"));
-	ItemSphere->SetupAttachment(GetRootComponent());
-	ItemSphere->InitSphereRadius(80.f);
-	ItemSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-
-	PotionNum = 0;
 }
-
 
 // Called when the game starts or when spawned
 void AMain::BeginPlay()
@@ -124,15 +113,15 @@ void AMain::BeginPlay()
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapBegin);
 	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapEnd);
 
+	ItemSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapBegin);
+	ItemSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapEnd);
 
+	// 현재 캐릭터 성별 정보 저장
 	if (this->GetName().Contains("Boy")) Gender = 1;
 	if (this->GetName().Contains("Girl")) Gender = 2;
 
+	// 아이템 정보 관련
 	Storage = GetWorld()->SpawnActor<AItemStorage>(ObjectStorage);
-
-    ItemSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapBegin);
-    ItemSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapEnd);
-
 }
 
 // Called every frame
@@ -146,52 +135,34 @@ void AMain::Tick(float DeltaTime)
 	if(!MainAnimInstance)
 		MainAnimInstance = Cast<UMainAnimInstance>(GetMesh()->GetAnimInstance());
 
-
-	if (bInterpToEnemy && CombatTarget)
+	if (CombatTarget) 
 	{
-		FRotator LookAtYaw = GetLookAtRotationYaw(CombatTarget->GetActorLocation());
-		FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed); //smooth transition
-
-		SetActorRotation(InterpRotation);
-	}
-
-    if (bInterpToNpc && TargetNpc)
-    {
-        FRotator LookAtYaw = GetLookAtRotationYaw(TargetNpc->GetActorLocation());
-        FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed); //smooth transition
-
-        SetActorRotation(InterpRotation);
-    }
-
-	if (CombatTarget)
-	{
-		CombatTargetLocation = CombatTarget->GetActorLocation();
+		CombatTargetLocation = CombatTarget->GetActorLocation(); // 전투 타겟의 위치 정보 받아오기
 		if (MainPlayerController)
 		{
-			MainPlayerController->EnemyLocation = CombatTargetLocation;
+			MainPlayerController->EnemyLocation = CombatTargetLocation; // 화살표와 체력 정보 띄우기 위함
 		}
 
-        if (CombatTarget->EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead)
+        if (CombatTarget->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead) // 현재 전투 타겟이 죽었다면
         {
 			for (int i = 0; i < Targets.Num(); i++)
 			{
 				if (CombatTarget == Targets[i]) //already exist
 				{
 					Targets.Remove(CombatTarget); //타겟팅 가능 몹 배열에서 제거
-
 				}
 			}
+			// 전투 타겟 해제
             CombatTarget = nullptr;
             bHasCombatTarget = false;
-            if (MainPlayerController->bTargetArrowVisible)
-            {
+
+            if (MainPlayerController->bTargetArrowVisible) 
+            {// 화살표 및 몬스터 체력바 제거
                 MainPlayerController->RemoveTargetArrow();
                 MainPlayerController->RemoveEnemyHPBar();
             }
         }
 	}
-
-
 }
 
 // Called to bind functionality to input
@@ -204,7 +175,7 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AMain::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	PlayerInputComponent->BindAction("LMB", IE_Pressed, this, &AMain::LMBDown);
+	PlayerInputComponent->BindAction("LMB", IE_Pressed, this, &AMain::LMBDown); // 왼쪽 마우스 버튼 다운
 	PlayerInputComponent->BindAction("LMB", IE_Released, this, &AMain::LMBUp);
 
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AMain::Attack);
@@ -237,7 +208,6 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("LookUp", this, &AMain::LookUpAtRate);
 
 	PlayerInputComponent->BindAxis("CameraZoom", this, &AMain::CameraZoom);
-
 }
 
 // 매 프레임마다 키가 눌렸는지 안 눌렸는지 확인될 것
@@ -253,10 +223,8 @@ void AMain::MoveForward(float Value)
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 		AddMovementInput(Direction, Value);
 
-		if (bRunning && SP >= 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
-		{
+		if (bRunning && SP > 0.f) // 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
 			SP -= 1.f;
-		}
 	}
 }
 
@@ -272,29 +240,30 @@ void AMain::MoveRight(float Value)
 		AddMovementInput(Direction, Value);
 
 		if (bRunning && SP > 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
-		{
 			SP -= 1.f;
-		}
 	}
 }
 
 void AMain::Run(float Value)
 {
-	if (!Value || SP <= 0.f) //쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
+	if (!Value || SP <= 0.f) // 쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
 	{
 		bRunning = false;
 		GetCharacterMovement()->MaxWalkSpeed = 350.f; //속도 하향
 
-		if (SP < MaxSP && !recoverySP)
-		{
-			recoverySP = true;
-			GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
+		if (SP < MaxSP && !recoverySP) // 스태미나 Full 상태가 아니면
+		{ // 스태미나 자동 회복
+			if (!GetWorldTimerManager().IsTimerActive(SPTimer))
+			{
+				recoverySP = true;
+				GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
+			}
 		}
 	}
-	else if(!bRunning && SP >= 1.f) //쉬프트키가 눌려있고 달리는 상태가 아니면
+	else if(!bRunning && SP >= 5.f) // 쉬프트키가 눌려있고 스태미나 5 이상에 달리는 상태가 아니면
 	{
 		bRunning = true;
-		GetCharacterMovement()->MaxWalkSpeed = 600.f; //속도 상향		
+		GetCharacterMovement()->MaxWalkSpeed = 600.f; // 속도 상향		
 	}
 }
 
@@ -312,12 +281,19 @@ void AMain::CameraZoom(const float Value)
 {
 	if (Value == 0.f || !Controller) return;
 
-	if (MainPlayerController->DialogueNum == 0) return;
+	// 특정 시점에는 줌 불가능
+	{
+		if (MainPlayerController->DialogueNum == 0) return;
 
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("cave") && MainPlayerController->DialogueNum == 19) return;
+		if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("cave")
+			&& MainPlayerController->DialogueNum == 19)
+			return;
 
-	if (MainPlayerController->bDialogueUIVisible && MainPlayerController->DialogueNum == 11) return;
-
+		if (MainPlayerController->bDialogueUIVisible 
+			&& MainPlayerController->DialogueNum == 11) 
+			return;
+	}
+	
 	const float NewTargetArmLength = CameraBoom->TargetArmLength + Value * ZoomStep;
 	CameraBoom->TargetArmLength = FMath::Clamp(NewTargetArmLength, MinZoomLength, MaxZoomLength);
 }
@@ -326,17 +302,54 @@ void AMain::LMBDown() //Left Mouse Button Down
 {
 	bLMBDown = true;
 
-	if (ActiveOverlappingItem && !EquippedWeapon)
+	// 아이템 상호작용 몽타주 관련
 	{
-		if (MainAnimInstance && NormalMontage)
+		// 오버랩된 아이템 존재, 장착한 무기가 없을 때
+		if (ActiveOverlappingItem && !EquippedWeapon)
 		{
-			if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return;
-			bCanMove = false;
-            FRotator LookAtYaw = GetLookAtRotationYaw(ActiveOverlappingItem->GetActorLocation());
-            SetActorRotation(LookAtYaw);
+			if (MainAnimInstance && NormalMontage)
+			{
+				PlayMontageWithItem(); // 아이템 관련 몽타주 재생
+				MainAnimInstance->Montage_JumpToSection(FName("PickWand"), NormalMontage);
+			}
+		}
 
-			MainAnimInstance->Montage_Play(NormalMontage);
-			MainAnimInstance->Montage_JumpToSection(FName("PickWand"), NormalMontage);
+		// pick up the yellow stone
+		if (ActiveOverlappingItem && MainPlayerController->DialogueNum == 9)
+		{
+			if (MainAnimInstance && NormalMontage)
+			{
+				PlayMontageWithItem();
+				MainAnimInstance->Montage_JumpToSection(FName("PickItem"), NormalMontage);
+			}
+		}
+
+		if (CurrentOverlappedActor && ItemInHand)
+		{
+			if (CurrentOverlappedActor->GetName().Contains("MovingStone")  // 오버랩된 액터가 움직이는 돌이고
+				&& ItemInHand->GetName().Contains("Yellow")) // 손에 있는 아이템이 yellow stone일 때
+			{
+				if (MainPlayerController->DialogueNum == 9)
+				{
+					if (MainAnimInstance && NormalMontage)
+					{
+						PlayMontageWithItem();
+						MainAnimInstance->Montage_JumpToSection(FName("PutStone"), NormalMontage); // put yellow stone
+					}
+				}
+			}
+		}
+
+		// 마지막 과제 아이템
+		if (CurrentOverlappedActor && CurrentOverlappedActor->GetName().Contains("DivinumPraesidium"))
+		{
+			if (MainPlayerController->DialogueNum == 21 && MainAnimInstance && NormalMontage)
+			{
+				if (MainPlayerController->DialogueUI->SelectedReply != 1 || MainPlayerController->bDialogueUIVisible) return;
+
+				PlayMontageWithItem();
+				MainAnimInstance->Montage_JumpToSection(FName("PickStone"), NormalMontage); // 돌 챙기기
+			}
 		}
 	}
 
@@ -344,68 +357,22 @@ void AMain::LMBDown() //Left Mouse Button Down
 	if (CombatTarget)
 	{
 		if (MainPlayerController->bTargetArrowVisible)
-		{
+		{ // 화살표 및 체력바 제거
 			MainPlayerController->RemoveTargetArrow();
 			MainPlayerController->RemoveEnemyHPBar();
 		}
+		// 전투 타겟 해제
 		CombatTarget = nullptr;
 		bHasCombatTarget = false;
 	}
 
-	if (MainPlayerController->bDialogueUIVisible && MainPlayerController->DialogueUI->CurrentState != 3 && !MainPlayerController->bMenuVisible)
+	// 다음 대사 출력 관련
+	if (MainPlayerController->bDialogueUIVisible 
+		&& MainPlayerController->DialogueUI->CurrentState != 3 
+		&& !MainPlayerController->bMenuVisible)
 	{
         if (MainPlayerController->DialogueUI->bDisableMouseAndKeyboard) return;
 		else MainPlayerController->DialogueUI->Interact();
-	}
-    
-    if (ActiveOverlappingItem && MainPlayerController->DialogueNum == 9) // pick up the yellow stone
-    {
-        if (MainAnimInstance && NormalMontage)
-        {
-            if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return;
-            bCanMove = false;
-            FRotator LookAtYaw = GetLookAtRotationYaw(ActiveOverlappingItem->GetActorLocation());
-            SetActorRotation(LookAtYaw);
-
-			MainAnimInstance->Montage_Play(NormalMontage);
-			MainAnimInstance->Montage_JumpToSection(FName("PickItem"), NormalMontage);
-        }
-    }
-
-	if (CurrentOverlappedActor && ItemInHand)
-	{
-        if (CurrentOverlappedActor->GetName().Contains("MovingStone") && ItemInHand->GetName().Contains("Yellow"))
-        {
-            if (MainPlayerController->DialogueNum == 9)
-            {
-                if (MainAnimInstance && NormalMontage)
-                {
-                    if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return;
-                    bCanMove = false;
-                    FRotator LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
-                    SetActorRotation(LookAtYaw);
-
-					MainAnimInstance->Montage_Play(NormalMontage);
-					MainAnimInstance->Montage_JumpToSection(FName("PutStone"), NormalMontage); // 돌 놓기
-                }
-            }
-        }
-	}
-
-	if (CurrentOverlappedActor && CurrentOverlappedActor->GetName().Contains("DivinumPraesidium"))
-	{
-		if (MainPlayerController->DialogueNum == 21 && MainAnimInstance && NormalMontage)
-		{
-			if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return;
-			if (MainPlayerController->DialogueUI->SelectedReply != 1 || MainPlayerController->bDialogueUIVisible) return;
-
-			bCanMove = false;
-			FRotator LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
-			SetActorRotation(LookAtYaw);
-
-			MainAnimInstance->Montage_Play(NormalMontage);
-			MainAnimInstance->Montage_JumpToSection(FName("PickStone"), NormalMontage); // 돌 챙기기
-		}
 	}
 }
 
@@ -414,27 +381,18 @@ void AMain::LMBUp()
 	bLMBDown = false;
 }
 
-void AMain::SetInterpToEnemy(bool Interp)
-{
-	bInterpToEnemy = Interp;
-}
-
-FRotator AMain::GetLookAtRotationYaw(FVector Target)
-{
-	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Target);
-	FRotator LookAtRotationYaw(0.f, LookAtRotation.Yaw, 0.f);
-	return LookAtRotationYaw;
-}
-
 void AMain::Attack()
 {
+	// 특정 상황엔 공격 불가
 	if (MainPlayerController->DialogueNum < 3 || MainPlayerController->DialogueNum > 20 ) return;
 
-	if (EquippedWeapon && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead && !MainPlayerController->bDialogueUIVisible)
+	if (EquippedWeapon && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead 
+		&& !MainPlayerController->bDialogueUIVisible)
 	{
-		SkillNum = MainPlayerController->WhichKeyDown();
+		SetSkillNum(MainPlayerController->WhichKeyDown()); // 눌린 키로 어떤 스킬 사용인지 구분
+
 		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/Wind_Hit_Attack.WindAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
-		switch (SkillNum)
+		switch (GetSkillNum())
 		{
 			case 1:
 				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/1_Wind_Hit_Attack.1_Wind_Hit_Attack_C"));
@@ -458,6 +416,7 @@ void AMain::Attack()
 			default:
 				break;
 		}
+		
 		ToSpawn = Cast<UClass>(LoadedBP);
 
 		bAttacking = true;
@@ -465,21 +424,17 @@ void AMain::Attack()
 
 		if (MainAnimInstance && CombatMontage)
 		{
-            bCanMove = false;
-
+            bCanMove = false; // 이동 조작 불가
 			MainAnimInstance->Montage_Play(CombatMontage);
 			MainAnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
-
-			Spawn();			
+			Spawn(); // 마법 스폰
 		}
 	}
-
 }
 
 void AMain::AttackEnd()
 {
-    bCanMove = true;
-
+    bCanMove = true; // 이동 가능
 	bAttacking = false;
 	SetInterpToEnemy(false);
 }
@@ -495,11 +450,9 @@ void AMain::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent,
 			for (int i = 0; i < Targets.Num(); i++)
 			{
 				if (Enemy == Targets[i]) //already exist
-				{
 					return;
-				}
 			}
-			Targets.Add(Enemy); 
+			Targets.Add(Enemy); // 타겟팅 가능 몹 배열에 추가
 		}
 	}
 }
@@ -513,18 +466,20 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 		{
 			for (int i = 0; i < Targets.Num(); i++)
 			{
-				if (Enemy == Targets[i]) //already exist
+				if (Enemy == Targets[i]) // already exist
 				{
 					Targets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
 				}
 			}
-			if (Targets.Num() == 0)
+
+			if (Targets.Num() == 0) // 타겟팅 가능 몬스터가 없으면
 			{
 				bOverlappingCombatSphere = false;
 			}
 
-			if (CombatTarget == Enemy)
+			if (CombatTarget == Enemy) // 현재 (타겟팅된)전투 타겟과 (전투 범위를 나간 몬스터가)동일하다면
 			{
+				// 화살표 및 체력바 제거 & 전투 타겟 해제
 				MainPlayerController->RemoveTargetArrow();
 				MainPlayerController->RemoveEnemyHPBar();
 				CombatTarget = nullptr;
@@ -543,6 +498,7 @@ void AMain::Targeting() //Targeting using Tap key
 		{
 			targetIndex = 0;
 		}
+
 		//There is already exist targeted enemy, then targetArrow remove
 		if (MainPlayerController->bTargetArrowVisible)
 		{
@@ -550,18 +506,18 @@ void AMain::Targeting() //Targeting using Tap key
 			MainPlayerController->RemoveEnemyHPBar();
 		}
 
-		if (Targets.Num() == 0) return;
+		if (Targets.Num() == 0) return; // 타겟팅 가능 몬스터가 없으면 리턴
 
-		if (!bAutoTargeting)
+		if (!bAutoTargeting) // 수동 타겟팅
 		{
-			//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("noautotargt"));
-			if (Targets[targetIndex]->EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead) return;
+			// 죽은 몬스터는 타겟팅 불가
+			if (Targets[targetIndex]->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead) return;
+
             CombatTarget = Targets[targetIndex];
             targetIndex++;
 		}
 		
 		bHasCombatTarget = true;
-		//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("displaye"));
 
 		MainPlayerController->DisplayTargetArrow(); 
 		MainPlayerController->DisplayEnemyHPBar();
@@ -570,12 +526,12 @@ void AMain::Targeting() //Targeting using Tap key
 
 void AMain::Spawn() //Spawn Magic
 {
-	if (ToSpawn && MP >= 15)
+	if (ToSpawn && MP >= 15) // 마법 사용에 필요한 최소 MP가 15
 	{
         //UE_LOG(LogTemp, Log, TEXT("Spawn"));
 
 		//If player have not enough MP, then player can't use magic
-		switch (SkillNum)
+		switch (GetSkillNum())
 		{
         case 2:
             if (MP < 20.f) return;
@@ -591,31 +547,32 @@ void AMain::Spawn() //Spawn Magic
             break;
 		}	
 
-
 		FTimerHandle WaitHandle;
 		GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
+		{
+			UWorld* world = GetWorld();
+			if (world)
 			{
-				UWorld* world = GetWorld();
-				if (world)
+				FActorSpawnParameters spawnParams;
+				spawnParams.Owner = this;
+				FRotator rotator = this->GetActorRotation();
+				FVector spawnLocation = AttackArrow->GetComponentTransform().GetLocation();
+
+				// 1, 3번 제외 나머지 공격은 적 위치에서 스폰
+				if (GetSkillNum() != 1 && GetSkillNum() != 3 && CombatTarget)
 				{
-					FActorSpawnParameters spawnParams;
-					spawnParams.Owner = this;
-
-					FRotator rotator = this->GetActorRotation();
-
-					FVector spawnLocation = AttackArrow->GetComponentTransform().GetLocation();
-					if (SkillNum != 1 && SkillNum != 3 && CombatTarget)
-					{
-						spawnLocation = CombatTarget->GetActorLocation();
-					}
-
-					MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);	
-					// 적에게로 이동하는 공격은 공격이 어디로 날라갈지를 정해줘야함.
-					if ((SkillNum == 1 || SkillNum == 3) && MagicAttack && CombatTarget) MagicAttack->Target = CombatTarget;
+					spawnLocation = CombatTarget->GetActorLocation();
 				}
-			}), 0.6f, false); // 0.6초 뒤 실행, 반복X
 
-		switch (SkillNum)// decrease MP
+				MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);	
+
+				// 적에게로 이동하는 공격은 공격이 어디로 날라갈지를 정해줘야함.
+				if ((GetSkillNum() == 1 || GetSkillNum() == 3) && MagicAttack && CombatTarget)
+					MagicAttack->Target = CombatTarget;
+			}
+		}), 0.6f, false); // 0.6초 뒤 실행, 반복X
+
+		switch (GetSkillNum())// decrease MP
 		{
 			case 1:
 				MP -= 15.f;
@@ -634,11 +591,10 @@ void AMain::Spawn() //Spawn Magic
                 break;
 		}
 
-		//if(CombatTarget) CombatTarget->bAttackFromPlayer = true;
-		GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
+		if(!GetWorldTimerManager().IsTimerActive(MPTimer))
+			GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
 	}
 }
-
 
 float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
@@ -646,7 +602,7 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 	{
 		HP = 0.f;
 		Die();
-		if (DamageCauser)
+		if (DamageCauser) // 확인 필요
 		{
 			AEnemy* Enemy = Cast<AEnemy>(DamageCauser);
 			if (Enemy)
@@ -658,27 +614,28 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 	else
 	{
 		HP -= DamageAmount;
-		GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);	
+		// HP 자동 회복
+		if(!GetWorldTimerManager().IsTimerActive(HPTimer))
+			GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);	
 	}
 
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss"))
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) // 보스 스테이지
 	{
 		MagicAttack = Cast<AMagicSkill>(DamageCauser);
 
 		int TargetIndex = MagicAttack->index;
 
-		if (TargetIndex == 11)
+		if (TargetIndex == 11) // 보스 몬스터에게 공격 당함
 		{
 			for (int i = 0; i < NPCList.Num(); i++)
 			{
-				if (NPCList[i]->AgroTargets.Num() == 0)
+				if (NPCList[i]->GetAgroTargets().Num() == 0) // Npc의 인식 범위에 아무도 없을 때
 				{
-					AEnemy* BossEnemy = Cast<AEnemy>(UGameplayStatics::GetActorOfClass(GetWorld(), NPCList[i]->Boss));
-					NPCList[i]->MoveToTarget(BossEnemy);
-					GetWorldTimerManager().ClearTimer(NPCList[i]->MoveTimer);
-					NPCList[i]->AIController->StopMovement();
-					UE_LOG(LogTemp, Log, TEXT("yesyesyes main %s"), *NPCList[i]->GetName());
-
+					AEnemy* BossEnemy = Cast<AEnemy>(UGameplayStatics::GetActorOfClass(GetWorld(), NPCList[i]->GetBoss()));
+					NPCList[i]->MoveToTarget(BossEnemy); // 보스 몬스터에게 이동
+					GetWorldTimerManager().ClearTimer(NPCList[i]->GetMoveTimer());
+					NPCList[i]->GetAIController()->StopMovement();
+					//UE_LOG(LogTemp, Log, TEXT("yesyesyes main %s"), *NPCList[i]->GetName());
 				}
 			}
 		}
@@ -691,6 +648,7 @@ void AMain::Die()
 {
 	if (MovementStatus == EMovementStatus::EMS_Dead) return;
 
+	// 자동 회복 종료
 	GetWorldTimerManager().ClearTimer(HPTimer);
 	GetWorldTimerManager().ClearTimer(MPTimer);
 	GetWorldTimerManager().ClearTimer(SPTimer);
@@ -705,7 +663,6 @@ void AMain::Die()
 		MainAnimInstance->Montage_Play(CombatMontage);
 		MainAnimInstance->Montage_JumpToSection(FName("Death"));
 	}
-
 }
 
 void AMain::DeathEnd()
@@ -717,7 +674,10 @@ void AMain::DeathEnd()
 
 void AMain::Jump()
 {
-	if (MovementStatus != EMovementStatus::EMS_Dead && !MainPlayerController->bDialogueUIVisible && bCanMove) // 죽거나 대화 중일 때는 점프 불가, 수동으로 움직임 막았을 때도 불가
+	// 죽거나 대화 중일 때는 점프 불가, 수동으로 움직임 막았을 때도 불가
+	if (MovementStatus != EMovementStatus::EMS_Dead
+		&& !MainPlayerController->bDialogueUIVisible
+		&& bCanMove)
 	{
 		Super::Jump();
 	}
@@ -729,7 +689,7 @@ void AMain::Revive() // if player is dead, spawn player at the initial location
 		this->SetActorLocation(FVector(-192.f, 5257.f, 3350.f));
 	else if(MainPlayerController->DialogueNum <= 15) // second dungeon
         this->SetActorLocation(FVector(3910.f, -3920.f,-2115.f));
-	else												// boss level
+	else											// boss level
 		this->SetActorLocation(FVector(8.f, 1978.f, 184.f));
 
 
@@ -746,6 +706,8 @@ void AMain::Revive() // if player is dead, spawn player at the initial location
 void AMain::RevivalEnd()
 {
 	SetMovementStatus(EMovementStatus::EMS_Normal);
+
+	// 자동 회복 재개
 	GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);
 	GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
 	GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
@@ -761,7 +723,6 @@ void AMain::StartDialogue()
         if (MainPlayerController->DialogueUI->bDisableMouseAndKeyboard) return;
         else MainPlayerController->DialogueUI->Interact();
 	}
-    
 }
 
 void AMain::ItemSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -828,7 +789,7 @@ void AMain::SaveGame()
 	}
     
 	if (MainPlayerController->DialogueNum < 4)
-		SaveGameInstance->NpcInfo.TeamMoveIndex = Vivi->index;
+		SaveGameInstance->NpcInfo.TeamMoveIndex = Vivi->GetIndex();
 
 	SaveGameInstance->DeadEnemyList = Enemies;
 
@@ -870,9 +831,9 @@ void AMain::LoadGame()
 	
 	if (MainPlayerController->DialogueNum < 4)
 	{
-        Vovo->index = LoadGameInstance->NpcInfo.TeamMoveIndex;
-        Vivi->index = LoadGameInstance->NpcInfo.TeamMoveIndex;
-        Zizi->index = LoadGameInstance->NpcInfo.TeamMoveIndex;
+		Vovo->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
+        Vivi->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
+        Zizi->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
 	}
 
     if (SP < MaxSP && !recoverySP)
@@ -920,7 +881,7 @@ void AMain::LoadGame()
 	}
 }
 
-void AMain::CheckDialogueRequirement()
+void AMain::CheckDialogueRequirement() // 저장된 진행도에 따른 npc들 이동 및 위치 설정
 {
 	int count = 0;
 
@@ -931,11 +892,11 @@ void AMain::CheckDialogueRequirement()
 			{
 				if (Enemies[i].Contains("Golem") && Enemies.Num() == 9)
 				{
-					Momo->AIController->MoveToLocation(FVector(594.f, -1543.f, 2531.f));
-					Luko->AIController->MoveToLocation(FVector(494.f, -1629.f, 2561.f));
-					Vovo->AIController->MoveToLocation(FVector(903.f, -1767.f, 2574.f));
-					Vivi->AIController->MoveToLocation(FVector(790.f, -1636.f, 2566.f));
-					Zizi->AIController->MoveToLocation(FVector(978.f, -1650.f, 2553.f));
+					Momo->GetAIController()->MoveToLocation(FVector(594.f, -1543.f, 2531.f));
+					Luko->GetAIController()->MoveToLocation(FVector(494.f, -1629.f, 2561.f));
+					Vovo->GetAIController()->MoveToLocation(FVector(903.f, -1767.f, 2574.f));
+					Vivi->GetAIController()->MoveToLocation(FVector(790.f, -1636.f, 2566.f));
+					Zizi->GetAIController()->MoveToLocation(FVector(978.f, -1650.f, 2553.f));
 
 					MainPlayerController->DisplayDialogueUI();
 					return;
@@ -955,11 +916,11 @@ void AMain::CheckDialogueRequirement()
             Zizi->SetActorRotation(FRotator(0.f, 94.f, 0.f));
             Vovo->SetActorRotation(FRotator(0.f, 91.f, 0.f));
 
-            Momo->AIController->MoveToLocation(FVector(660.f, 1035.f, 1840.f));
-            Luko->AIController->MoveToLocation(FVector(598.f, 1030.f, 1840.f));
-            Vivi->AIController->MoveToLocation(FVector(710.f, 995.f, 1840.f));
-            Zizi->AIController->MoveToLocation(FVector(690.f, 930.f, 1840.f));
-            Vovo->AIController->MoveToLocation(FVector(630.f, 970.f, 1840.f));
+            Momo->GetAIController()->MoveToLocation(FVector(660.f, 1035.f, 1840.f));
+            Luko->GetAIController()->MoveToLocation(FVector(598.f, 1030.f, 1840.f));
+            Vivi->GetAIController()->MoveToLocation(FVector(710.f, 995.f, 1840.f));
+            Zizi->GetAIController()->MoveToLocation(FVector(690.f, 930.f, 1840.f));
+            Vovo->GetAIController()->MoveToLocation(FVector(630.f, 970.f, 1840.f));
 			break;
 		 case 9: //if ItemInHand is null, the stone have to put on the floor (this is check in blueprint)
 			MainPlayerController->SystemMessageNum = 10;
@@ -967,14 +928,14 @@ void AMain::CheckDialogueRequirement()
             MainPlayerController->DialogueUI->AllNpcLookAtPlayer();
             for (int i = 0; i < NPCList.Num(); i++)
             {
-                NPCList[i]->AIController->StopMovement();
-                GetWorld()->GetTimerManager().ClearTimer(NPCList[i]->MoveTimer);
+                NPCList[i]->GetAIController()->StopMovement();
+                GetWorld()->GetTimerManager().ClearTimer(NPCList[i]->GetMoveTimer());
             }
-			Momo->AIController->MoveToLocation(FVector(5307.f, -3808.f, -2122.f));
-			Luko->AIController->MoveToLocation(FVector(5239.f, -3865.f, -2117.f));
-			Vovo->AIController->MoveToLocation(FVector(5433.f, -3855.f, -2117.f));
-			Vivi->AIController->MoveToLocation(FVector(5392.f, -3686.f, -2117.f));
-			Zizi->AIController->MoveToLocation(FVector(5538.f, -3696.f, -2115.f));
+			Momo->GetAIController()->MoveToLocation(FVector(5307.f, -3808.f, -2122.f));
+			Luko->GetAIController()->MoveToLocation(FVector(5239.f, -3865.f, -2117.f));
+			Vovo->GetAIController()->MoveToLocation(FVector(5433.f, -3855.f, -2117.f));
+			Vivi->GetAIController()->MoveToLocation(FVector(5392.f, -3686.f, -2117.f));
+			Zizi->GetAIController()->MoveToLocation(FVector(5538.f, -3696.f, -2115.f));
 			break;
 		 case 12:
 			 for (auto enemy : Enemies)
@@ -986,7 +947,6 @@ void AMain::CheckDialogueRequirement()
 				 {
 					 MainPlayerController->bCalculateOn = true;
 					 MainPlayerController->DisplayDialogueUI();
-
 				 }
 			 }
 			 break;
@@ -1000,19 +960,19 @@ void AMain::CheckDialogueRequirement()
 			 }
 			 break;
 		 case 16:
-			 Vivi->AIController->MoveToLocation(FVector(105.f, 3176.f, 182.f));
-			 Momo->AIController->MoveToLocation(FVector(-86.f, 3263.f, 177.f));
-			 Luko->AIController->MoveToLocation(FVector(184.f, 3317.f, 182.f));
-			 Vovo->AIController->MoveToLocation(FVector(-140.f, 3370.f, 182.f));
-			 Zizi->AIController->MoveToLocation(FVector(68.f, 3398.f, 184.f));
+			 Vivi->GetAIController()->MoveToLocation(FVector(105.f, 3176.f, 182.f));
+			 Momo->GetAIController()->MoveToLocation(FVector(-86.f, 3263.f, 177.f));
+			 Luko->GetAIController()->MoveToLocation(FVector(184.f, 3317.f, 182.f));
+			 Vovo->GetAIController()->MoveToLocation(FVector(-140.f, 3370.f, 182.f));
+			 Zizi->GetAIController()->MoveToLocation(FVector(68.f, 3398.f, 184.f));
 			 MainPlayerController->DialogueUI->SelectedReply = 2;
 			 break;
 		 case 17:
-			 Vivi->AIController->MoveToLocation(FVector(100.f, 1997.f, 182.f));
-			 Momo->AIController->MoveToLocation(FVector(-86.f, 2150.f, 177.f));
-			 Luko->AIController->MoveToLocation(FVector(171.f, 2130.f, 182.f));
-			 Vovo->AIController->MoveToLocation(FVector(-160.f, 2060.f, 182.f));
-			 Zizi->AIController->MoveToLocation(FVector(18.f, 2105.f, 184.f));
+			 Vivi->GetAIController()->MoveToLocation(FVector(100.f, 1997.f, 182.f));
+			 Momo->GetAIController()->MoveToLocation(FVector(-86.f, 2150.f, 177.f));
+			 Luko->GetAIController()->MoveToLocation(FVector(171.f, 2130.f, 182.f));
+			 Vovo->GetAIController()->MoveToLocation(FVector(-160.f, 2060.f, 182.f));
+			 Zizi->GetAIController()->MoveToLocation(FVector(18.f, 2105.f, 184.f));
 			 break;
 		 case 18:
 			 if(Enemies.Num() == 5)
@@ -1021,11 +981,11 @@ void AMain::CheckDialogueRequirement()
 		 case 19:
 			 if (Enemies.Num() == 5)//보스맵, 포탈로 이동
 			 {
-				 Momo->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-				 Luko->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-				 Vovo->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-				 Vivi->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-				 Zizi->AIController->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+				 Momo->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+				 Luko->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+				 Vovo->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+				 Vivi->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+				 Zizi->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
 				 MainPlayerController->SystemMessageNum = 13;
 				 MainPlayerController->SetSystemMessage();
 			 }
@@ -1035,11 +995,11 @@ void AMain::CheckDialogueRequirement()
 			 }
 			 break;
 		case 20: // 돌 쪽으로 이동
-			Momo->AIController->MoveToLocation(FVector(-4660.f, 118.f, 393.f));
-			Luko->AIController->MoveToLocation(FVector(-4545.f, -241.f, 401.f));
-			Vovo->AIController->MoveToLocation(FVector(-4429.f, 103.f, 396.f));
-			Vivi->AIController->MoveToLocation(FVector(-4355.f, -195.f, 405.f));
-			Zizi->AIController->MoveToLocation(FVector(-4695.f, -190.f, 394.f));
+			Momo->GetAIController()->MoveToLocation(FVector(-4660.f, 118.f, 393.f));
+			Luko->GetAIController()->MoveToLocation(FVector(-4545.f, -241.f, 401.f));
+			Vovo->GetAIController()->MoveToLocation(FVector(-4429.f, 103.f, 396.f));
+			Vivi->GetAIController()->MoveToLocation(FVector(-4355.f, -195.f, 405.f));
+			Zizi->GetAIController()->MoveToLocation(FVector(-4695.f, -190.f, 394.f));
 			Momo->SetActorRotation(FRotator(0.f, 296.f, 0.f));
 			Luko->SetActorRotation(FRotator(0.f, 97.f, 0.f));
 			Vovo->SetActorRotation(FRotator(0.f, 219.f, 0.f));
@@ -1052,20 +1012,19 @@ void AMain::CheckDialogueRequirement()
 			Zizi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
 			Vovo->GetCharacterMovement()->MaxWalkSpeed = 450.f;
 			Luko->GetCharacterMovement()->MaxWalkSpeed = 450.f;
-			Momo->AIController->MoveToLocation(FVector(508.f, 120.f, 100.f));
-			Luko->AIController->MoveToLocation(FVector(311.f, -78.f, 103.f));
-			Vovo->AIController->MoveToLocation(FVector(469.f, -22.f, 103.f));
-			Vivi->AIController->MoveToLocation(FVector(267.f, 65.f, 101.f));
-			Zizi->AIController->MoveToLocation(FVector(591.f, 28.f, 104.f));
+			Momo->GetAIController()->MoveToLocation(FVector(508.f, 120.f, 100.f));
+			Luko->GetAIController()->MoveToLocation(FVector(311.f, -78.f, 103.f));
+			Vovo->GetAIController()->MoveToLocation(FVector(469.f, -22.f, 103.f));
+			Vivi->GetAIController()->MoveToLocation(FVector(267.f, 65.f, 101.f));
+			Zizi->GetAIController()->MoveToLocation(FVector(591.f, 28.f, 104.f));
 			break;
 		case 23:
-			Zizi->AIController->MoveToLocation(FVector(2560.f, 330.f, 157.f));
-			Vovo->AIController->MoveToLocation(FVector(2570.f, 335.f, 154.f));
-			Luko->AIController->MoveToLocation(FVector(1517.f, 335.f, 155.f));
-			Momo->AIController->MoveToLocation(FVector(1530.f, 330.f, 150.f));
-			Vivi->AIController->MoveToLocation(FVector(625.f, 330.f, 153.f));
+			Zizi->GetAIController()->MoveToLocation(FVector(2560.f, 330.f, 157.f));
+			Vovo->GetAIController()->MoveToLocation(FVector(2570.f, 335.f, 154.f));
+			Luko->GetAIController()->MoveToLocation(FVector(1517.f, 335.f, 155.f));
+			Momo->GetAIController()->MoveToLocation(FVector(1530.f, 330.f, 150.f));
+			Vivi->GetAIController()->MoveToLocation(FVector(625.f, 330.f, 153.f));
 			break;
-
 	}
 
 }
@@ -1118,16 +1077,17 @@ void AMain::ESCUp()
 
 void AMain::GetExp(float exp)
 {
-	if (Level == 5) return;
+	if (Level == 5) return; // 최고 레벨일 때는 리턴
 
 	Exp += exp;
 
-	if (Exp >= MaxExp)
+	if (Exp >= MaxExp) // 다음 레벨로의 경험치를 모두 채웠다면
 	{
-        Level += 1;
-        if (LevelUpSound != nullptr)
+        Level += 1; // 레벨 업
+        if (LevelUpSound)
             UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
 
+		// 경험치 수치 update
 		if (Exp == MaxExp)
 		{
             Exp = 0.f;
@@ -1140,6 +1100,7 @@ void AMain::GetExp(float exp)
 
 		if (Level == 5) Exp = MaxExp;
 
+		// 레벨에 따른 상태 능력치 최대치 초기화
 		switch (Level)
 		{
 			case 2:
@@ -1183,14 +1144,38 @@ void AMain::GetExp(float exp)
 		if (MP > MaxMP) MP = MaxMP;
 		if (SP > MaxSP) SP = MaxSP;
 
-
-
         FTimerHandle Timer;
         GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
-            {
-                MainPlayerController->RemoveSystemMessage();
-            }), 3.f, false);
+        {
+            MainPlayerController->RemoveSystemMessage();
+        }), 3.f, false);
 	}
+}
+
+void AMain::PlayMontageWithItem()
+{
+	if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return; // 중복 재생 방지
+
+	bCanMove = false; // 이동 조작 불가
+
+	FRotator LookAtYaw;
+
+	if (MainPlayerController->DialogueNum == 9 && ItemInHand)
+	{
+		if(ItemInHand->GetName().Contains("Yellow"))
+			LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
+	}
+	else if (MainPlayerController->DialogueNum == 21 && CurrentOverlappedActor->GetName().Contains("Divinum"))
+	{
+		LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
+	}
+	else
+		LookAtYaw = GetLookAtRotationYaw(ActiveOverlappingItem->GetActorLocation());
+
+	SetActorRotation(LookAtYaw); // 아이템 방향으로 회전
+
+	// 몽타주 재생
+	MainAnimInstance->Montage_Play(NormalMontage);
 }
 
 void AMain::ShowManual()
@@ -1199,10 +1184,11 @@ void AMain::ShowManual()
 	else MainPlayerController->DisplayManual();
 }
 
-void AMain::Escape()
+void AMain::Escape() // 긴급 탈출, 순간 이동
 {
-
-	if (MainPlayerController->DialogueNum >= 6 && !MainPlayerController->bDialogueUIVisible && MovementStatus != EMovementStatus::EMS_Dead)
+	if (MainPlayerController->DialogueNum >= 6
+		&& !MainPlayerController->bDialogueUIVisible
+		&& MovementStatus != EMovementStatus::EMS_Dead)
 	{
 		if (MainPlayerController->DialogueNum <= 8)
 		{
@@ -1226,10 +1212,8 @@ bool AMain::CanTalkWithNpc()
 		float distance = GetDistanceTo(NPCList[i]);
 		//UE_LOG(LogTemp, Log, TEXT("%s %f"), *NPCList[i]->GetName(), distance);
 
-		if (distance >= 1300.f)
-		{
+		if (distance >= 1300.f) // npc와 너무 멀면 대화 불가
 			return false;
-		}
 	}
 	return true;
 }
@@ -1242,7 +1226,7 @@ void AMain::AllNpcMoveToPlayer()
 	}
 }
 
-void AMain::SkipCombat()
+void AMain::SkipCombat() // 전투 스킵, 몬스터 제거
 {
 	if (MainPlayerController->bDialogueUIVisible || !bCanSkip || bSkip || MovementStatus == EMovementStatus::EMS_Dead) return;
 
@@ -1264,7 +1248,7 @@ void AMain::SkipCombat()
 	else return;
 }
 
-void AMain::RecoverWithLogo()
+void AMain::RecoverWithLogo() // get school icon in second stage
 {
 	HP += 150.f;
 	MP += 50.f;
@@ -1275,7 +1259,7 @@ void AMain::RecoverWithLogo()
 	if (SP >= MaxSP) SP = MaxSP;
 }
 
-void AMain::SetLevel5()
+void AMain::SetLevel5() // level cheat, 즉시 최대 레벨 도달
 {
 	if (MainPlayerController->DialogueNum < 3 || Level == 5) return;
 
@@ -1298,9 +1282,10 @@ void AMain::SetLevel5()
 		MainPlayerController->SystemMessageNum = 15;
 		MainPlayerController->SetSystemMessage();
 		FTimerHandle Timer;
-		GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]() {
+		GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
+		{
 			MainPlayerController->RemoveSystemMessage();
-			}), 3.f, false);
+		}), 3.f, false);
 	}
 }
 

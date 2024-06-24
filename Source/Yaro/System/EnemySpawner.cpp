@@ -2,10 +2,10 @@
 
 
 #include "EnemySpawner.h"
-#include "Enemy.h"
+#include "Yaro/Character/Enemies/Enemy.h"
 #include "YaroSaveGame.h"
 #include "Kismet/GameplayStatics.h"
-#include "Main.h"
+#include "Yaro/Character/Main.h"
 
 // Sets default values
 AEnemySpawner::AEnemySpawner()
