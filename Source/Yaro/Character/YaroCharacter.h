@@ -7,6 +7,15 @@
 #include "Yaro/Character/Enemies/Enemy.h"
 #include "YaroCharacter.generated.h"
 
+UENUM(BlueprintType)
+enum class ENPCType : uint8
+{
+	Momo,
+	Luko,
+	Vovo,
+	Vivi,
+	Zizi
+};
 
 UCLASS(config=Game)
 class AYaroCharacter : public AStudent
@@ -18,6 +27,9 @@ protected:
 	class AAIController* AIController;
 
 	UAnimInstance* AnimInstance;
+
+	UPROPERTY(EditDefaultsOnly, Category = "AI")
+	ENPCType NPCType;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	class AMain* Player;
@@ -67,7 +79,7 @@ protected:
 	int index = 0;
 
 	UPROPERTY(BlueprintReadWrite)
-	FTimerHandle TeamMoveTimer; // vivi, vivi, zizi
+	FTimerHandle TeamMoveTimer; // vovo, vivi, zizi
 
 
 

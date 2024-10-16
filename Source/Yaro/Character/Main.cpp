@@ -16,11 +16,11 @@
 #include "Yaro/MagicSkill.h"
 #include "Yaro/System/MainPlayerController.h"
 #include "Engine/BlueprintGeneratedClass.h"
-#include "Yaro/System/YaroSaveGame.h"
 #include "Yaro/ItemStorage.h"
 #include "Yaro/DialogueUI.h"
 #include "Yaro/Character/YaroCharacter.h"
 #include "Yaro/Character/MainAnimInstance.h"
+#include "Yaro/Structs/AttackSkillData.h"
 #include "AIController.h"
 
 
@@ -58,9 +58,11 @@ AMain::AMain()
 
 
 	// Configure character movement
+	WalkSpeed = 350.f;
+	RunSpeed = 600.f;
 	GetCharacterMovement()->JumpZVelocity = 400.f;
 	GetCharacterMovement()->SetWalkableFloorAngle(50.f);
-	GetCharacterMovement()->MaxWalkSpeed = 350.f;
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
 	// 공격 범위 설정
 	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
@@ -249,7 +251,7 @@ void AMain::Run(float Value)
 	if (!Value || SP <= 0.f) // 쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
 	{
 		bRunning = false;
-		GetCharacterMovement()->MaxWalkSpeed = 350.f; //속도 하향
+		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed; //속도 하향
 
 		if (SP < MaxSP && !recoverySP) // 스태미나 Full 상태가 아니면
 		{ // 스태미나 자동 회복
@@ -263,7 +265,7 @@ void AMain::Run(float Value)
 	else if(!bRunning && SP >= 5.f) // 쉬프트키가 눌려있고 스태미나 5 이상에 달리는 상태가 아니면
 	{
 		bRunning = true;
-		GetCharacterMovement()->MaxWalkSpeed = 600.f; // 속도 상향		
+		GetCharacterMovement()->MaxWalkSpeed = RunSpeed; // 속도 상향		
 	}
 }
 
@@ -390,34 +392,10 @@ void AMain::Attack()
 		&& !MainPlayerController->bDialogueUIVisible)
 	{
 		SetSkillNum(MainPlayerController->WhichKeyDown()); // 눌린 키로 어떤 스킬 사용인지 구분
-
-		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/Wind_Hit_Attack.WindAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
-		switch (GetSkillNum())
-		{
-			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/1_Wind_Hit_Attack.1_Wind_Hit_Attack_C"));
-				break;
-			case 2:
-				if (Level < 2) return;
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/2_ShockAttack.2_ShockAttack_C"));
-				break;
-			case 3:
-                if (Level < 3) return;
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/3_Electricball_Hit_Attack.3_Electricball_Hit_Attack_C"));
-				break;
-            case 4:
-                if (Level < 4) return;
-                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/4_PoisonAttack.4_PoisonAttack_C"));
-                break;
-            case 5:
-                if (Level < 5) return;
-                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/MainCharacter/5_EarthAttack.5_EarthAttack_C"));
-                break;
-			default:
-				break;
-		}
 		
-		ToSpawn = Cast<UClass>(LoadedBP);
+		if (Level < GetSkillNum()) return;
+
+		ToSpawn = AttackSkillData->FindRow<FAttackSkillData>("Attack", "")->Skills[GetSkillNum()-1];
 
 		bAttacking = true;
 		SetInterpToEnemy(true);
@@ -528,24 +506,9 @@ void AMain::Spawn() //Spawn Magic
 {
 	if (ToSpawn && MP >= 15) // 마법 사용에 필요한 최소 MP가 15
 	{
-        //UE_LOG(LogTemp, Log, TEXT("Spawn"));
-
 		//If player have not enough MP, then player can't use magic
-		switch (GetSkillNum())
-		{
-        case 2:
-            if (MP < 20.f) return;
-            break;
-        case 3:
-            if (MP < 25.f) return;
-            break;
-        case 4:
-            if (MP < 30.f) return;
-            break;
-        case 5:
-            if (MP < 35.f) return;
-            break;
-		}	
+		float MPCost = 10.f + GetSkillNum() * 5;
+        if (MP < MPCost) return;
 
 		FTimerHandle WaitHandle;
 		GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
@@ -564,32 +527,21 @@ void AMain::Spawn() //Spawn Magic
 					spawnLocation = CombatTarget->GetActorLocation();
 				}
 
-				MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);	
+				if (MagicAttack.IsValid())
+				{
+					MagicAttack->Destroy();  // 기존의 MagicAttack 제거
+					MagicAttack.Reset();     // 스마트 포인터 초기화
+				}
+
+				MagicAttack = MakeWeakObjectPtr<AMagicSkill>(world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams));
 
 				// 적에게로 이동하는 공격은 공격이 어디로 날라갈지를 정해줘야함.
-				if ((GetSkillNum() == 1 || GetSkillNum() == 3) && MagicAttack && CombatTarget)
+				if ((GetSkillNum() == 1 || GetSkillNum() == 3) && MagicAttack.IsValid() && CombatTarget)
 					MagicAttack->Target = CombatTarget;
 			}
 		}), 0.6f, false); // 0.6초 뒤 실행, 반복X
 
-		switch (GetSkillNum())// decrease MP
-		{
-			case 1:
-				MP -= 15.f;
-				break;
-			case 2:
-				MP -= 20.f;
-				break;
-			case 3:
-				MP -= 25.f;
-				break;
-            case 4:
-                MP -= 30.f;
-                break;
-            case 5:
-                MP -= 35.f;
-                break;
-		}
+		MP -= MPCost;
 
 		if(!GetWorldTimerManager().IsTimerActive(MPTimer))
 			GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);

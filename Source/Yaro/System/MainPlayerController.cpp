@@ -4,30 +4,32 @@
 #include "MainPlayerController.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
-#include "BrainComponent.h"
-#include "BehaviorTree/BlackboardComponent.h"
-#include "Yaro/DialogueUI.h"
-#include "Yaro/Character/Main.h"
-#include "Yaro/Character/YaroCharacter.h"
-#include "AIController.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Camera/CameraComponent.h"
+#include "BrainComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "Yaro/Character/Main.h"
+#include "Yaro/Character/YaroCharacter.h"
+#include "Yaro/System/GameManager.h"
+#include "Yaro/System/DialogueManager.h"
+#include "AIController.h"
 
-
-AMainPlayerController::AMainPlayerController()
-{
-    static ConstructorHelpers::FClassFinder<UUserWidget> DialogueBPClass(TEXT("/Game/HUDandWigets/DialogueUI_BP.DialogueUI_BP_C"));
-
-    if (DialogueBPClass.Class != nullptr) DialogueUIClass = DialogueBPClass.Class;
-}
 
 void AMainPlayerController::BeginPlay()
 {
     Super::BeginPlay();
     
+    UGameManager* GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
+    if (GameManager)
+    {
+        DialogueManager = GameManager->GetDialogueManager();
+    }
+
+
     //카메라 회전 제한
     this->PlayerCameraManager->ViewPitchMin = -50.f; // 세로회전 위
     this->PlayerCameraManager->ViewPitchMax = 5.f; //아래
+
 
     
     if (WTargetArrow)
@@ -76,17 +78,6 @@ void AMainPlayerController::BeginPlay()
         }
     }
 
-    if (DialogueUIClass != nullptr)
-    {
-        DialogueUI = CreateWidget<UDialogueUI>(this, DialogueUIClass);
-    }
-
-    if (DialogueUI != nullptr)
-    {
-        DialogueUI->AddToViewport();
-        DialogueUI->SetVisibility(ESlateVisibility::Hidden);
-    }
-
     if (WMenu)
     {
         Menu = CreateWidget<UUserWidget>(this, WMenu);
@@ -99,7 +90,6 @@ void AMainPlayerController::BeginPlay()
 
     bCalculateOn = true;
 
-    SpeechBubble = GetWorld()->SpawnActor<AActor>(SpeechBubble_BP);
 
 }
 
@@ -121,33 +111,11 @@ void AMainPlayerController::RemoveTargetArrow()
     }
 }
 
-void AMainPlayerController::DisplaySpeechBuubble(class AYaroCharacter* npc)
-{
-    if (SpeechBubble && bCanDisplaySpeechBubble)
-    {
-        SBLocation = npc->GetActorLocation() + FVector(0.f, 0.f, 93.f);
-
-        SpeechBubble->SetActorLocation(SBLocation);
-        SpeechBubble->SetActorHiddenInGame(false);
-
-        bSpeechBuubbleVisible = true;
-    }
-}
-
-void AMainPlayerController::RemoveSpeechBuubble()
-{
-    if (SpeechBubble)
-    {
-        bCanDisplaySpeechBubble = false;
-        bSpeechBuubbleVisible = false;
-        SpeechBubble->SetActorHiddenInGame(true);
-    }
-
-}
-
 void AMainPlayerController::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+
+    DialogueManager->Tick();
 
     if (TargetArrow)
     {
@@ -168,10 +136,7 @@ void AMainPlayerController::Tick(float DeltaTime)
         EnemyHPBar->SetDesiredSizeInViewport(SizeInViewport);
     }
 
-    if (bSpeechBuubbleVisible)
-    {
-        SpeechBubble->SetActorRotation(Main->GetControlRotation() + FRotator(0.f, 180.f, 0.f));
-    }
+
 
    if(Main == nullptr) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
@@ -219,7 +184,7 @@ void AMainPlayerController::RemoveEnemyHPBar()
     {
         bEnemyHPBarVisible = false;
         EnemyHPBar->SetVisibility(ESlateVisibility::Hidden);
-        bCanDisplaySpeechBubble = false;
+       // bCanDisplaySpeechBubble = false;
     }
 }
 
@@ -231,7 +196,7 @@ void AMainPlayerController::DisplayMenu()
 
         bMenuVisible = true;
 
-        if (DialogueNum < 3 || bDialogueUIVisible) DisplaySystemMessage();
+        if (DialogueManager->GetDialogueNum() < 3 || DialogueManager->IsDialogueUIVisible()) DisplaySystemMessage();
 
         Menu->SetVisibility(ESlateVisibility::Visible);
 
@@ -254,7 +219,7 @@ void AMainPlayerController::RemoveMenu()
 
         Menu->SetVisibility(ESlateVisibility::Hidden);
 
-        if (!bDialogueUIVisible)
+        if (!DialogueManager->IsDialogueUIVisible())
         {
             FInputModeGameOnly InputModeGameOnly;
             SetInputMode(InputModeGameOnly);
@@ -276,319 +241,6 @@ void AMainPlayerController::ToggleMenu()
     }
 }
 
-void AMainPlayerController::DisplayDialogueUI()
-{
-    if (DialogueUI)
-    {
-        //UE_LOG(LogTemp, Log, TEXT("DisplayDialogueUI"));
-
-        if (!DialogueUI->bCanStartDialogue) return;
-
-        if (bManualVisible) RemoveManual();
-
-
-        if (bFallenPlayer && (FallingCount == 1 || FallingCount == 5))
-        {
-            DialogueUI->InitializeDialogue(SpawnDialogue);
-        }
-
-        bDialogueUIVisible = true;
-
-        if (!bFallenPlayer)
-        {
-            switch (DialogueNum)
-            {
-                case 0:
-                case 1:
-                    DialogueUI->InitializeDialogue(IntroDialogue);
-                    break;
-                case 2:
-                    DialogueUI->InitializeDialogue(DungeonDialogue1);
-                    break;
-                case 3: //after golem battle
-                    if (!bFadeOn)
-                    {
-                        FadeAndDialogue();
-                        return;
-                    }
-                    bCanDisplaySpeechBubble = true;
-                    DialogueUI->InitializeDialogue(DungeonDialogue2);
-                    bFadeOn = false;
-                    break;
-                case 4: // the boat move
-                    DialogueUI->InitializeDialogue(DungeonDialogue2);
-                    break;
-                case 5: // second dungeon
-                    bCanDisplaySpeechBubble = true;
-                    DialogueUI->InitializeDialogue(DungeonDialogue3);
-                    break;
-                case 6: // triggerbox1 overplap
-                case 7: // triggerbox2, player jump to plane
-                case 8: // triggerbox3, player go over the other side
-                case 9: // plane2 up
-                case 10: // Npcs went over the other side
-                    if(DialogueNum == 8 || DialogueNum == 9) bCanDisplaySpeechBubble = true;
-                    DialogueUI->InitializeDialogue(DungeonDialogue4);
-                    break;
-                case 11: // discover food table trap
-                case 16: // move to the rocks
-                case 18:// after combat with boss
-                case 20: // discover divinum~, someone take the divinum~
-                    if (!bFadeOn)
-                    {
-                        FadeAndDialogue();
-                        if (DialogueNum == 18) Main->SaveGame();
-                        return;
-                    }
-                    bCanDisplaySpeechBubble = true;
-                    if(DialogueNum == 11)
-                        DialogueUI->InitializeDialogue(DungeonDialogue5);
-                    else if(DialogueNum == 16 || DialogueNum == 18)
-                        DialogueUI->InitializeDialogue(DungeonDialogue6);
-                    else if (DialogueNum == 20)
-                        DialogueUI->InitializeDialogue(FinalDialogue);
-                    bFadeOn = false;
-                    break;
-                case 12: // after combat with spiders
-                case 13: // before combat with final monsters in second dungeon
-                case 14: // after combat with little monsters
-                    if (bCalculateOn)
-                    {
-                        bDialogueUIVisible = false;
-                        bCalculateOn = false;
-                        CalculateDialogueDistance();
-                        return;
-                    }
-                    bCanDisplaySpeechBubble = true;
-                    DialogueUI->InitializeDialogue(DungeonDialogue5);
-                    break;
-                case 15: // boss level enter
-                case 17: // be ready to combat with boss 
-                    bCanDisplaySpeechBubble = true;
-                    DialogueUI->InitializeDialogue(DungeonDialogue6);
-                    break;
-                case 19: // back to cave
-                case 21: // griffons come
-                case 22: // last talk
-                case 23:
-                    if(DialogueNum != 23)
-                        bCanDisplaySpeechBubble = true;
-                    DialogueUI->InitializeDialogue(FinalDialogue);
-                    break;
-            }
-            
-        }
-
-        DialogueUI->SetVisibility(ESlateVisibility::Visible);
-
-        FInputModeGameAndUI InputMode;  
-        SetInputMode(InputMode);
-        bShowMouseCursor = true;
-    }
-
-
-}
-
-void AMainPlayerController::RemoveDialogueUI()
-{
-    if (DialogueUI)
-    {
-        if (!bFallenPlayer)
-        {
-            DialogueNum++;
-            DialogueEvents();
-        }
-        else
-        {
-            Main->SetCanMove(true);
-            if(bSpeechBuubbleVisible)
-                RemoveSpeechBuubble();
-        }
-              
-        bDialogueUIVisible = false;
-
-        bShowMouseCursor = false;
-
-        FInputModeGameOnly InputModeGameOnly;
-        SetInputMode(InputModeGameOnly);
-
-        DialogueUI->OnAnimationHideMessageUI();
-
-        if (Main->GetSkipStatus()) Main->SetSkipStatus(false);
-    }
-}
-
-
-void AMainPlayerController::DialogueEvents()
-{
-    RemoveSpeechBuubble();
-
-    switch (DialogueNum)
-    {
-        case 1: // luko moves to player   
-            Main->Luko->MoveToPlayer();         
-            break;
-        case 2:
-            if (SystemMessageNum != 3)
-            {
-                Main->SetInterpToCharacter(false);
-                Main->SetTargetCharacter(nullptr);
-                GetWorldTimerManager().ClearTimer(Main->Luko->GetMoveTimer());
-                Main->Luko->GetAIController()->MoveToLocation(FVector(5200.f, 35.f, 100.f));
-                SystemMessageNum = 16;
-                SetSystemMessage();
-                GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]() {
-
-                    SystemMessageNum = 2;
-                    SetSystemMessage();
-
-                    }), 2.5f, false);
-                return;
-            }
-            SetCinematicMode(false, true, true);   
-            if (Main->GetEquippedWeapon() == nullptr) // get the wand
-            {
-                SetSystemMessage();
-            }
-            break;
-        case 3: // enter the first dungeon
-            Main->Luko->SetInterpToCharacter(false);
-            Main->Luko->SetTargetCharacter(nullptr);
-            Main->SaveGame();
-            SystemMessageNum = 5;
-            SetSystemMessage();
-            break;
-        case 4: // move to boat
-            SetCinematicMode(false, true, true);
-            Main->Vovo->SetInterpToCharacter(false);
-            Main->Vovo->GetAIController()->MoveToLocation(FVector(630.f, 970.f, 1840.f));
-            Main->SetInterpToCharacter(false);
-            Main->SetTargetCharacter(nullptr);
-            break;
-        case 5:
-            GetWorld()->GetTimerManager().ClearTimer(DialogueUI->OnceTimer);
-            break;
-        case 6: // enter the second dungeon
-            SetCinematicMode(false, true, true);
-            Main->Momo->UsualFace();
-            for (int i = 0; i < Main->GetNPCList().Num(); i++)
-            {
-                if (Main->GetNPCList()[i] != Main->Momo) // momo's already follwing to player
-                {
-                    Main->GetNPCList()[i]->MoveToPlayer();
-                }
-            }
-            break;
-        case 7:
-        case 8:
-            Main->SetCanMove(true);
-            break;
-        case 9: // player go over the other side
-            if (Main->Vivi->GetNormalMontage() != nullptr)
-            {
-                Main->Vivi->GetAnimInstance()->Montage_Play(Main->Vivi->GetNormalMontage());
-                Main->Vivi->GetAnimInstance()->Montage_JumpToSection(FName("Throw"));
-            }
-            Main->SetInterpToCharacter(false);
-            Main->SetTargetCharacter(nullptr);
-            break;
-        case 10:
-            Main->Zizi->SetInterpToCharacter(false);
-            Main->SetInterpToCharacter(false);
-            Main->AllNpcMoveToPlayer();
-            break;
-        case 11: // npcs went over the other side
-        case 19: // after combat with boss
-            SetCinematicMode(false, true, true);
-            Main->SetCanMove(true);
-            Main->SetInterpToCharacter(false);
-            Main->SetTargetCharacter(nullptr);
-            DialogueUI->AllNpcDisableLookAt();
-            if (DialogueNum == 19)
-            {
-                Main->Momo->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-                Main->Luko->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-                Main->Vovo->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-                Main->Vivi->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-                Main->Zizi->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-                SystemMessageNum = 13;
-                SetSystemMessage();
-            }
-            if (DialogueNum == 11)
-            {
-                for (int i = 0; i < Main->GetNPCList().Num(); i++)
-                {
-                    Main->GetNPCList()[i]->UsualFace();
-                }
-            }
-            break;
-        case 12:
-            SetCinematicMode(false, true, true);
-            Main->SetCanMove(true);
-            ResetIgnoreMoveInput();
-            ResetIgnoreLookInput();
-            GetWorld()->GetTimerManager().ClearTimer(DialogueUI->OnceTimer);
-            break;
-        case 13:
-        case 14:
-            Main->Momo->UsualFace();
-            Main->SetCanMove(true);
-
-            Main->AllNpcMoveToPlayer();
-            break;
-        case 15:
-            DialogueUI->bDisableMouseAndKeyboard = false;
-            Main->SetCanMove(true);
-
-            SystemMessageNum = 11;
-            SetSystemMessage();
-            Main->AllNpcMoveToPlayer();
-            break;
-        case 16:
-            SetCinematicMode(false, true, true);
-            DialogueUI->AllNpcDisableLookAt();
-            Main->SetInterpToCharacter(false);
-            DialogueUI->bDisableMouseAndKeyboard = false;
-            break;
-        case 17:
-        case 22:
-        case 23:
-            DialogueUI->bDisableMouseAndKeyboard = false;
-            SetCinematicMode(false, true, true);
-            Main->SetCanMove(true);
-
-            if(DialogueNum == 23)
-                Main->Vivi->GetAIController()->MoveToLocation(FVector(625.f, 318.f, 153.f));
-            break;
-        case 18: // fog appear, boss combat soon
-            DialogueUI->bDisableMouseAndKeyboard = false;
-            Main->SetCanMove(true);
-            Main->AllNpcMoveToPlayer();
-            SystemMessageNum = 12;
-            SetSystemMessage();
-            Main->SaveGame();
-            GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]() {
-
-                RemoveSystemMessage();
-
-                }), 4.f, false);
-            break;
-        case 20:
-            SetCinematicMode(false, true, true);
-            break;
-        case 21:
-            DialogueUI->bDisableMouseAndKeyboard = false;
-            if (DialogueUI->SelectedReply == 1)
-            {
-                SetCinematicMode(false, true, true);
-                Main->SetCanMove(true);
-
-                SystemMessageNum = 14;
-                SetSystemMessage();
-            }
-            break;
-    }
-}
 
 void AMainPlayerController::FadeAndDialogue()
 {
@@ -606,7 +258,8 @@ void AMainPlayerController::FadeAndDialogue()
                     FallingCount += 1;
             }
 
-            if (DialogueNum == 11 || DialogueNum == 18 || DialogueNum == 20) // second dungeon food trap
+            int dialogueNum = DialogueManager->GetDialogueNum();
+            if (dialogueNum == 11 || dialogueNum == 18 || dialogueNum == 20) // second dungeon food trap
             {
                 Main->SetCanMove(false);
 
@@ -628,7 +281,9 @@ void AMainPlayerController::SetPositions()
         GetWorldTimerManager().ClearTimer(npc->GetTeamMoveTimer());
     }
 
-    if (DialogueNum == 3) // after golem battle
+    int dialogueNum = DialogueManager->GetDialogueNum();
+
+    if (dialogueNum == 3) // after golem battle
     {
         Main->SetActorLocation(FVector(646.f, -1747.f, 2578.f));
         Main->SetActorRotation(FRotator(0.f, 57.f, 0.f)); // y(pitch), z(yaw), x(roll)
@@ -649,7 +304,7 @@ void AMainPlayerController::SetPositions()
         Main->Zizi->SetActorRotation(FRotator(0.f, 187.f, 0.f));   
     }
 
-    if (DialogueNum == 11)
+    if (dialogueNum == 11)
     {
         Main->SetActorLocation(FVector(-137.f, -2833.f, -117.f));
         Main->SetActorRotation(FRotator(0.f, 170.f, 0.f)); // y(pitch), z(yaw), x(roll)
@@ -670,7 +325,7 @@ void AMainPlayerController::SetPositions()
         Main->Zizi->SetActorRotation(FRotator(0.f, 85.f, 0.f));
     }
 
-    if (DialogueNum == 16)
+    if (dialogueNum == 16)
     {
         Main->SetActorLocation(FVector(-35.f, 3549.f, 184.f));
         Main->SetActorRotation(FRotator(0.f, 265.f, 0.f)); // y(pitch), z(yaw), x(roll)
@@ -692,7 +347,7 @@ void AMainPlayerController::SetPositions()
 
     }
 
-    if (DialogueNum == 18)
+    if (dialogueNum == 18)
     {
         Main->SetActorLocation(FVector(16.f, -2734.f, 582.f));
         Main->SetActorRotation(FRotator(0.f, 270.f, 0.f)); // y(pitch), z(yaw), x(roll)
@@ -714,7 +369,7 @@ void AMainPlayerController::SetPositions()
 
     }
 
-    if (DialogueNum == 19)
+    if (dialogueNum == 19)
     {
         Main->SetActorLocation(FVector(4658.f, 41.f, 148.f));
         Main->SetActorRotation(FRotator(-3.f, 180.f, 0.f)); // y(pitch), z(yaw), x(roll)
@@ -735,7 +390,7 @@ void AMainPlayerController::SetPositions()
         Main->Zizi->SetActorRotation(FRotator(0.f, 175.f, 0.f));
     }
 
-    if (DialogueNum == 20)
+    if (dialogueNum == 20)
     {
         Main->SetActorLocation(FVector(-4446.f, -20.f, 401.f));
         Main->SetActorRotation(FRotator(2.f, 180.f, 0.f)); // y(pitch), z(yaw), x(roll)
@@ -762,12 +417,12 @@ void AMainPlayerController::DisplaySystemMessage()
 {
     if (SystemMessage)
     {
-        if (bMenuVisible && DialogueNum < 3)
+        if (bMenuVisible && DialogueManager->GetDialogueNum() < 3)
         {
             text = FString(TEXT("이 곳에선 저장되지 않습니다."));
 
         }
-        if (bMenuVisible && bDialogueUIVisible)
+        if (bMenuVisible && DialogueManager->IsDialogueUIVisible())
         {
             text = FString(TEXT("대화 중엔 저장되지 않습니다."));
         }
@@ -858,7 +513,7 @@ void AMainPlayerController::DisplayManual()
 {
     if (Manual)
     {
-        if (bMenuVisible || bDialogueUIVisible)
+        if (bMenuVisible || DialogueManager->IsDialogueUIVisible())
         {
             DisplaySystemMessage();
             text = FString(TEXT("대화 중이거나 메뉴가 활성화된 상태에서는\n조작 매뉴얼을 볼 수 없습니다."));
@@ -884,11 +539,11 @@ void AMainPlayerController::RemoveManual()
     {
         bManualVisible = false;
         Manual->SetVisibility(ESlateVisibility::Hidden);
-        if (DialogueNum == 2 && SystemMessageNum != 4)
+        if (DialogueManager->GetDialogueNum() == 2 && SystemMessageNum != 4)
         {
             Main->SetCanMove(true);
             SystemMessageNum = 3;
-            DialogueEvents();
+            DialogueManager->DialogueEvents();
         }
     }
 }

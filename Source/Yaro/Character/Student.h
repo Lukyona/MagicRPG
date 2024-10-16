@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Engine/DataTable.h"
 #include "Student.generated.h"
 
 UCLASS()
@@ -35,6 +36,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
 	class UAnimMontage* CombatMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
+		float WalkSpeed;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
+		float RunSpeed;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	class USphereComponent* CombatSphere;
 
@@ -54,10 +61,15 @@ protected:
 	class UArrowComponent* AttackArrow;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
-	class AMagicSkill* MagicAttack;
+	UDataTable* AttackSkillData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
+	TWeakObjectPtr<class AMagicSkill> MagicAttack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
 	TSubclassOf<class AMagicSkill> ToSpawn;
+
+
 
 public:	
 	// Sets default values for this character's properties

@@ -12,10 +12,16 @@ class YARO_API AMainPlayerController : public APlayerController
 	GENERATED_BODY()
 	
 public:
-	AMainPlayerController();
 
 	UPROPERTY(BlueprintReadWrite)
 	class AMain* Main;
+
+	UPROPERTY()
+	class UGameManager* GameManager;
+
+	UPROPERTY()
+	class UDialogueManager* DialogueManager; 
+
 
 	//Player can Targeting, then TargetArrow appear on Targeted enemy
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
@@ -58,26 +64,6 @@ public:
 	void RemoveMenu();
 	void ToggleMenu();
 
-	UFUNCTION(BlueprintCallable)
-	void DisplayDialogueUI();
-
-    UFUNCTION(BlueprintCallable)
-	void RemoveDialogueUI();
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	bool bDialogueUIVisible;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
-	class UDialogueUI* DialogueUI;
-
-	UPROPERTY(VisibleAnywhere, Category = "Dialogue")
-	TSubclassOf<class UUserWidget> DialogueUIClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
-	int DialogueNum = 0; // 0 - intro
-
-    UFUNCTION(BlueprintCallable)
-	void DialogueEvents();
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
     TSubclassOf<UUserWidget> WFadeInOut;
@@ -151,22 +137,7 @@ public:
 	bool bCalculateOn;
 
 
-	bool bSpeechBuubbleVisible;
-
-	UFUNCTION(BlueprintCallable)
-	void DisplaySpeechBuubble(class AYaroCharacter* npc);
-
-	void RemoveSpeechBuubble();
-
-	FVector SBLocation;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	bool bCanDisplaySpeechBubble = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<class AActor> SpeechBubble_BP;
-
-	class AActor* SpeechBubble;
+	
 
 	FTimerHandle Timer;
 

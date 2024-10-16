@@ -11,6 +11,7 @@
 #include "Yaro/Character/Enemies/Enemy.h"
 #include "Components/ArrowComponent.h"
 #include "Yaro/MagicSkill.h"
+#include "Yaro/Structs/AttackSkillData.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Components/CapsuleComponent.h"
@@ -18,6 +19,7 @@
 
 //////////////////////////////////////////////////////////////////////////
 // AYaroCharacter
+
 
 AYaroCharacter::AYaroCharacter()
 {
@@ -105,7 +107,7 @@ void AYaroCharacter::MoveToPlayer()
 		if (Player->GetMainPlayerController()->DialogueNum < 3)
 		{
 			// 대화 넘버 1에서 루코 혼자 플레이어에게로 이동, 루코 제외 전부 리턴
-			if (!(Player->GetMainPlayerController()->DialogueNum == 1 && this->GetName().Contains("Luko")))
+			if (!(Player->GetMainPlayerController()->DialogueNum == 1 && NPCType == ENPCType::Luko))
 				return;
 		}
 
@@ -117,18 +119,7 @@ void AYaroCharacter::MoveToPlayer()
 				&& !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) 
 			{
 				// 달리기 스피드로 변경
-				if ((this->GetName()).Contains("Momo"))
-				{
-					GetCharacterMovement()->MaxWalkSpeed = 600.f;
-				}
-				else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
-				{
-					GetCharacterMovement()->MaxWalkSpeed = 500.f;
-				}
-				else
-				{
-					GetCharacterMovement()->MaxWalkSpeed = 450.f;
-				}
+				GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
 				MoveToTarget(Player->GetNPCList()[i]->AgroTargets[0]);
 
 				//if(!GetWorldTimerManager().IsTimerActive(MoveTimer))
@@ -143,18 +134,7 @@ void AYaroCharacter::MoveToPlayer()
 
         if (distance >= 500.f) //일정 거리 이상 떨어져있다면 속도 높여 달리기
         {
-            if ((this->GetName()).Contains("Momo"))
-            {
-                GetCharacterMovement()->MaxWalkSpeed = 600.f;
-            }
-            else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
-            {
-                GetCharacterMovement()->MaxWalkSpeed = 500.f;
-            }
-            else
-            {
-                GetCharacterMovement()->MaxWalkSpeed = 450.f;
-            }
+			GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
 
 			// 첫번째 던전에서는 npc들이 지형에 끼거나 멈춰서 진행에 방해되지 않도록 텔레포트 기능 실행
 			if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")
@@ -163,18 +143,7 @@ void AYaroCharacter::MoveToPlayer()
         }
         else //가깝다면 속도 낮춰 걷기
         {
-            if ((this->GetName()).Contains("Momo"))
-            {
-                GetCharacterMovement()->MaxWalkSpeed = 300.f;
-            }
-            else if ((this->GetName()).Contains("Zizi") || (this->GetName()).Contains("Vivi"))
-            {
-                GetCharacterMovement()->MaxWalkSpeed = 250.f;
-            }
-            else
-            {
-                GetCharacterMovement()->MaxWalkSpeed = 225.f;
-            }
+			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 			TeleportCount = 0;
         }
 
@@ -396,7 +365,7 @@ void AYaroCharacter::Attack()
 	if ((!bAttacking) && (CombatTarget) && (CombatTarget->GetEnemyMovementStatus() != EEnemyMovementStatus::EMS_Dead))
 	{
         //UE_LOG(LogTemp, Log, TEXT("Attack,  %s"), *this->GetName());
-		if (this->GetName().Contains("Vovo") && bIsHealTime)
+		if (NPCType == ENPCType::Vovo && bIsHealTime)
 		{
 			GetWorldTimerManager().SetTimer(AttackTimer, this, &AYaroCharacter::Attack, 2.f);
 			return;
@@ -428,124 +397,8 @@ void AYaroCharacter::Attack()
             GetWorldTimerManager().SetTimer(StormTimer, this, &AYaroCharacter::CanCastStormMagic, 8.f, false);  // 8초 뒤 다시 스톰 사용 가능
         }
 
-		UBlueprintGeneratedClass* LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/1_GreenStormAttack.1_GreenStormAttack_C")); //초기화 안 하면 ToSpawn에 초기화되지 않은 변수 넣었다고 오류남
-		if (this->GetName().Contains("Luko"))
-		{
-			switch (GetSkillNum())
-			{
-				case 1:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/1_GreenStormAttack.1_GreenStormAttack_C"));
-					break;
-                case 2:
-                    LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/2_Greenball_Hit_Attack.2_Greenball_Hit_Attack_C"));
-                    break;
-				case 3:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/3_LightAttack.3_LightAttack_C"));
-					break;
-                case 4:
-                    LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/4_DarkAttack.4_DarkAttack_C"));
-                    break;
-                case 5:
-                    LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Luko/5_GreenLaserAttack.5_GreenLaserAttack_C"));
-                    break;
-				default:
-					break;
-			}
-		}
-		if (this->GetName().Contains("Momo"))
-		{
-			switch (GetSkillNum())
-			{
-				case 1:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/1_RedStormAttack.1_RedStormAttack_C"));
-					break;
-				case 2:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/2_Fireball_Hit_Attack.2_Fireball_Hit_Attack_C"));
-					break;
-				case 3:
-					LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/3_FireAttack.3_FireAttack_C"));
-					break;
-                case 4:
-                    LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/4_Fireball_Hit_Attack.4_Fireball_Hit_Attack_C"));
-                    break;
-                case 5:
-                    LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Momo/5_RedLaserAttack.5_RedLaserAttack_C"));
-                    break;
-				default:
-					break;
-			}
-		}
-		if (this->GetName().Contains("Vovo"))
-		{
-			switch (GetSkillNum())
-			{
-			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/1_YellowStormAttack.1_YellowStormAttack_C"));
-				break;
-			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/2_Waterball_Hit_Attack.2_Waterball_Hit_Attack_C"));
-				break;
-			case 3:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/3_AquaAttack.3_AquaAttack_C"));
-				break;
-            case 4:
-                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/4_AuraAttack.4_AuraAttack_C"));
-                break;
-            case 5:
-                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vovo/5_YellowLaserAttack.5_YellowLaserAttack_C"));
-                break;
-			default:
-				break;
-			}
-		}
-		if (this->GetName().Contains("Vivi"))
-		{
-			switch (GetSkillNum())
-			{
-			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/1_BlueStormAttack.1_BlueStormAttack_C"));
-				break;
-			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/2_Ice_Hit_Attack.2_Ice_Hit_Attack_C"));
-				break;
-            case 3:
-                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/3_IceBolt_Hit_Attack.3_IceBolt_Hit_Attack_C"));
-                break;
-			case 4:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/4_IceAttack.4_IceAttack_C"));
-				break;
-            case 5:
-                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Vivi/5_BlueLaserAttack.5_BlueLaserAttack_C"));
-                break;
-			default:
-				break;
-			}
-		}
-		if (this->GetName().Contains("Zizi"))
-		{
-			switch (GetSkillNum())
-			{
-			case 1:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/1_PurpleStormAttack.1_PurpleStormAttack_C"));
-				break;
-			case 2:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/2_Thunderball_Hit_Attack.2_Thunderball_Hit_Attack_C"));
-				break;
-            case 3:
-                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/3_EnergyBolt_Hit_Attack.3_EnergyBolt_Hit_Attack_C"));
-				break;
-			case 4:
-				LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/4_LightningAttack.4_LightningAttack_C"));
-				break;
-            case 5:
-                LoadedBP = LoadObject<UBlueprintGeneratedClass>(GetWorld(), TEXT("/Game/Blueprints/MagicAttacks/Zizi/5_TornadoAttack.5_TornadoAttack_C"));
-                break;
-			default:
-				break;
-			}
-		}
 
-		ToSpawn = Cast<UClass>(LoadedBP);
+		ToSpawn = AttackSkillData->FindRow<FAttackSkillData>("Attack", "")->Skills[GetSkillNum() - 1];
 
 		bAttacking = true;
 		SetInterpToEnemy(true); // 적 방향으로 회전 가능
@@ -713,23 +566,21 @@ void AYaroCharacter::Spawn()
 				{
 					// 모모/루코/보보의 경우 3번 스킬은 적 위치에서 스폰
 					if (GetSkillNum() == 3 && 
-						(this->GetName().Contains("Momo")
-						|| this->GetName().Contains("Luko")
-						|| this->GetName().Contains("Vovo"))) 
+						(NPCType == ENPCType::Momo) || NPCType == ENPCType::Luko || NPCType == ENPCType::Vovo)
 					{
 						spawnLocation = CombatTarget->GetActorLocation();
 					}
 						
 					//모모 제외 4번 스킬 적 위치에서 스폰
-					if (GetSkillNum() == 4 && !this->GetName().Contains("Momo"))
+					if (GetSkillNum() == 4 && NPCType != ENPCType::Momo)
 					{
 						spawnLocation = CombatTarget->GetActorLocation();
 					}			
 				}		
 
 				MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);
-		
-				if (MagicAttack && CombatTarget)
+
+				if (MagicAttack.IsValid() && CombatTarget)
 				{ // 타겟 적과 캐스터 정보 전달
 					MagicAttack->Target = CombatTarget;
 					MagicAttack->Caster = this;
