@@ -4,7 +4,12 @@
 #include "Yaro/System/GameManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Yaro/System/DialogueManager.h"
+#include "Yaro/System/NPCManager.h"
+#include "Yaro/System/PlayerStatsManager.h"
 #include "Yaro/System/YaroSaveGame.h"
+#include "Yaro/System/MainPlayerController.h"
+#include "Yaro/Character/Main.h"
+#include "Yaro/Character/YaroCharacter.h"
 
 
 void UGameManager::Init()
@@ -13,7 +18,36 @@ void UGameManager::Init()
 
     // 다이얼로그 매니저 생성 및 초기화
     DialogueManager = NewObject<UDialogueManager>(this, UDialogueManager::StaticClass());
-	DialogueManager->Init();
+	if(DialogueManager) DialogueManager->Init();
+
+	NPCManager = NewObject<UNPCManager>(this, UNPCManager::StaticClass());
+	if (NPCManager) NPCManager->Init();
+}
+
+AMain* UGameManager::GetPlayer()
+{
+	if (!Player)
+	{
+		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		if (PlayerController)
+		{
+			Player = Cast<AMain>(PlayerController->GetPawn());
+		}
+	}
+	return Player;
+}
+
+AMainPlayerController* UGameManager::GetMainPlayerController()
+{
+	if (!MainPlayerController)
+	{
+		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		if (PlayerController)
+		{
+			MainPlayerController = Cast<AMainPlayerController>(PlayerController);
+		}
+	}
+	return MainPlayerController;
 }
 
 void UGameManager::SaveGame()
@@ -24,11 +58,9 @@ void UGameManager::SaveGame()
 		|| DialogueManager->GetDialogueNum() == 21)
 	{
 		GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &UGameManager::SaveGame, 1.f, false);
-
 		return;
 	}
 
-	//UE_LOG(LogTemp, Log, TEXT("SaveGame"));
 
 	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
 
@@ -44,23 +76,23 @@ void UGameManager::SaveGame()
 	SaveGameInstance->CharacterStats.MaxExp = MaxExp;
 	SaveGameInstance->CharacterStats.PotionNum = PotionNum;
 
-	SaveGameInstance->DialogueNum = MainPlayerController->DialogueNum;
+	SaveGameInstance->DialogueNum = DialogueManager->GetDialogueNum();
 	SaveGameInstance->CharacterStats.FallingCount = MainPlayerController->FallingCount;
 
-	SaveGameInstance->CharacterStats.Location = GetActorLocation();
-	SaveGameInstance->CharacterStats.Rotation = GetActorRotation();
+	SaveGameInstance->CharacterStats.Location = Player->GetActorLocation();
+	SaveGameInstance->CharacterStats.Rotation = Player->GetActorRotation();
 
-	if (MainPlayerController->DialogueNum < 23)
+	if (DialogueManager->GetDialogueNum() < 23)
 	{
-		SaveGameInstance->NpcInfo.MomoLocation = Momo->GetActorLocation();
-		SaveGameInstance->NpcInfo.LukoLocation = Luko->GetActorLocation();
-		SaveGameInstance->NpcInfo.VovoLocation = Vovo->GetActorLocation();
-		SaveGameInstance->NpcInfo.ViviLocation = Vivi->GetActorLocation();
-		SaveGameInstance->NpcInfo.ZiziLocation = Zizi->GetActorLocation();
+		SaveGameInstance->NpcInfo.MomoLocation = NPCManager->GetNPC("Momo")->GetActorLocation();
+		SaveGameInstance->NpcInfo.LukoLocation = NPCManager->GetNPC("Luko")->GetActorLocation();
+		SaveGameInstance->NpcInfo.VovoLocation = NPCManager->GetNPC("Vovo")->GetActorLocation();
+		SaveGameInstance->NpcInfo.ViviLocation = NPCManager->GetNPC("Vivi")->GetActorLocation();
+		SaveGameInstance->NpcInfo.ZiziLocation = NPCManager->GetNPC("Zizi")->GetActorLocation();
 	}
 
-	if (MainPlayerController->DialogueNum < 4)
-		SaveGameInstance->NpcInfo.TeamMoveIndex = Vivi->GetIndex();
+	if ((DialogueManager->GetDialogueNum() < 4)
+		SaveGameInstance->NpcInfo.TeamMoveIndex = NPCManager->GetNPC("Vivi")->GetIndex();
 
 	SaveGameInstance->DeadEnemyList = Enemies;
 
@@ -71,9 +103,9 @@ void UGameManager::SaveGame()
 
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
 
-	if (MainPlayerController->DialogueNum == 18 && MainPlayerController->SystemMessageNum == 12) return;
+	if (DialogueManager->GetDialogueNum() == 18 && MainPlayerController->SystemMessageNum == 12) return;
 
-	GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &AMain::SaveGame, 1.f, false);
+	GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &UGameManager::SaveGame, 1.f, false);
 }
 
 void UGameManager::LoadGame()
@@ -82,8 +114,7 @@ void UGameManager::LoadGame()
 
 	LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot(LoadGameInstance->SaveName, LoadGameInstance->UserIndex));
 
-	MainPlayerController = Cast<AMainPlayerController>(GetController());
-	MainPlayerController->DialogueNum = LoadGameInstance->DialogueNum;
+	DialogueManager->SetDialogueNum(LoadGameInstance->DialogueNum);
 	MainPlayerController->FallingCount = LoadGameInstance->CharacterStats.FallingCount;
 
 	HP = LoadGameInstance->CharacterStats.HP;
@@ -100,11 +131,11 @@ void UGameManager::LoadGame()
 
 	Enemies = LoadGameInstance->DeadEnemyList;
 
-	if (MainPlayerController->DialogueNum < 4)
+	if (DialogueManager->GetDialogueNum() < 4)
 	{
-		Vovo->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
-		Vivi->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
-		Zizi->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
+		NPCManager->GetNPC("Vovo")->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
+		NPCManager->GetNPC("Vivi")->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
+		NPCManager->GetNPC("Zizi")->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
 	}
 
 	if (SP < MaxSP && !recoverySP)
@@ -131,23 +162,22 @@ void UGameManager::LoadGame()
 				AItem* Item = GetWorld()->SpawnActor<AItem>(Storage->ItemMap["YellowStone"]);
 				Item->PickUp(this);
 			}
-
 		}
 	}
 
 	if (DialogueManager->GetDialogueNum() != 5)
 	{
-		if (MainPlayerController->DialogueNum == 15 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) return;
+		if (DialogueManager->GetDialogueNum() == 15 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) return;
 
-		SetActorLocation(LoadGameInstance->CharacterStats.Location);
-		SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
+		Player->SetActorLocation(LoadGameInstance->CharacterStats.Location);
+		Player->SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
 
-		if (MainPlayerController->DialogueNum == 19) return;
+		if (DialogueManager->GetDialogueNum() == 19) return;
 
-		Momo->SetActorLocation(LoadGameInstance->NpcInfo.MomoLocation);
-		Luko->SetActorLocation(LoadGameInstance->NpcInfo.LukoLocation);
-		Vovo->SetActorLocation(LoadGameInstance->NpcInfo.VovoLocation);
-		Vivi->SetActorLocation(LoadGameInstance->NpcInfo.ViviLocation);
-		Zizi->SetActorLocation(LoadGameInstance->NpcInfo.ZiziLocation);
+		NPCManager->SetNPCLocation("Momo", LoadGameInstance->NpcInfo.MomoLocation);
+		NPCManager->SetNPCLocation("Luko", LoadGameInstance->NpcInfo.LukoLocation);
+		NPCManager->SetNPCLocation("Vovo", LoadGameInstance->NpcInfo.VovoLocation);
+		NPCManager->SetNPCLocation("Vivi", LoadGameInstance->NpcInfo.ViviLocation);
+		NPCManager->SetNPCLocation("Zizi", LoadGameInstance->NpcInfo.ZiziLocation);
 	}
 }

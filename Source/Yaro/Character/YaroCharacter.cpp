@@ -16,7 +16,9 @@
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Components/CapsuleComponent.h"
 #include "Yaro/System/MainPlayerController.h"
-
+#include "Yaro/System/GameManager.h"
+#include "Yaro/System/DialogueManager.h"
+#include "Yaro/System/NPCManager.h"
 //////////////////////////////////////////////////////////////////////////
 // AYaroCharacter
 
@@ -26,7 +28,7 @@ AYaroCharacter::AYaroCharacter()
 	SetAgroSphere();
 	SetCombatSphere();
 	SetNotAllowSphere();
-
+	
 	// positions in first dungeon. only vovo, vivi, zizi
 	SetPosList();
 }
@@ -34,6 +36,12 @@ AYaroCharacter::AYaroCharacter()
 void AYaroCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
+	if (GameManager)
+	{
+		DialogueManager = GameManager->GetDialogueManager();
+		NPCManager = GameManager->GetNPCManager();
+	}
 
 	AIController = Cast<AAIController>(GetController());
 
@@ -61,31 +69,6 @@ void AYaroCharacter::Tick(float DeltaTime)
 	{
 		ACharacter* p = UGameplayStatics::GetPlayerCharacter(this, 0);
 		Player = Cast<AMain>(p);
-
-		if (Player) 
-		{// NPC 정보 설정
-            if (this->GetName().Contains("Momo"))
-            {
-                Player->Momo = this;
-            }
-            if (this->GetName().Contains("Luko"))
-            {
-                Player->Luko = this;
-            }
-            if (this->GetName().Contains("Vovo"))
-            {
-                Player->Vovo = this;
-            }
-            if (this->GetName().Contains("Vivi"))
-            {
-                Player->Vivi = this;
-            }
-            if (this->GetName().Contains("Zizi"))
-            {
-                Player->Zizi = this;
-            }
-			Player->AddNpcToList(this);
-		}
 	}
 }
 
@@ -95,32 +78,32 @@ void AYaroCharacter::MoveToPlayer()
 
 	if (CombatTarget == nullptr && !bAttacking && !bOverlappingCombatSphere && AgroTargets.Num() == 0) // 전투 중이 아닐 때
 	{
-		if (Player->GetMainPlayerController()->bDialogueUIVisible) // 대화 중에는 대부분 이동X
+		if (DialogueManager->IsDialogueUIVisible()) // 대화 중에는 대부분 이동X
 		{
-			if (Player->GetMainPlayerController()->DialogueNum != 6) // 특정 시점 제외하고 플레이어를 따라가기
+			if (DialogueManager->GetDialogueNum() != 6) // 특정 시점 제외하고 플레이어를 따라가기
 			{
 				GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
 				return;
 			}
 		}
 
-		if (Player->GetMainPlayerController()->DialogueNum < 3)
+		if (DialogueManager->GetDialogueNum() < 3)
 		{
 			// 대화 넘버 1에서 루코 혼자 플레이어에게로 이동, 루코 제외 전부 리턴
-			if (!(Player->GetMainPlayerController()->DialogueNum == 1 && NPCType == ENPCType::Luko))
+			if (!(DialogueManager->GetDialogueNum() == 1 && NPCType == ENPCType::Luko))
 				return;
 		}
 
-		for (int i = 0; i < Player->GetNPCList().Num(); i++)
+		for (auto NPC : NPCManager->GetNPCMap())
 		{
 			// 다른 npc의 인식 범위에 몬스터가 있으면 도와주러 감, 단 첫번째 던전은 제외
-			if (Player->GetNPCList()[i]->AgroTargets.Num() != 0
-				&& Player->GetNPCList()[i]->AgroTargets[0]->GetEnemyMovementStatus() != EEnemyMovementStatus::EMS_Dead
+			if (NPC.Value->AgroTargets.Num() != 0
+				&& NPC.Value->AgroTargets[0]->GetEnemyMovementStatus() != EEnemyMovementStatus::EMS_Dead
 				&& !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) 
 			{
 				// 달리기 스피드로 변경
 				GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
-				MoveToTarget(Player->GetNPCList()[i]->AgroTargets[0]);
+				MoveToTarget(NPC.Value->AgroTargets[0]);
 
 				//if(!GetWorldTimerManager().IsTimerActive(MoveTimer))
 					GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 1.f);
@@ -257,17 +240,17 @@ void AYaroCharacter::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCompo
 				{
 					bOverlappingCombatSphere = false; // 확인 필요
 
-					for (int i = 0; i < Player->GetNPCList().Num(); i++)
+					for (auto NPC : NPCManager->GetNPCMap())
 					{
 						// 다른 npc의 인식 범위에 몬스터가 있으면 도와주러 감, 첫번째 던전 제외
-						if (Player->GetNPCList()[i]->AgroTargets.Num() != 0
+						if (NPC.Value->AgroTargets.Num() != 0
 							&& !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) 
 						{
 							// 그 몬스터가 죽은 상태면 리턴
-							if (Player->GetNPCList()[i]->AgroTargets[0]->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead) return;
+							if (NPC.Value->AgroTargets[0]->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead) return;
 							//UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapEnd Go Help %s"), *this->GetName());
 
-							MoveToTarget(Player->GetNPCList()[i]->AgroTargets[0]);
+							MoveToTarget(NPC.Value->AgroTargets[0]);
 						}
 					}
 				}
@@ -373,18 +356,18 @@ void AYaroCharacter::Attack()
 
 		if (bCanCastStrom) // npc can cast strom magic
 		{
-			if (Player->GetMainPlayerController()->DialogueNum <= 5)
+			if (DialogueManager->GetDialogueNum() <= 5)
 				SetSkillNum(FMath::RandRange(1, 3));
-			else if (Player->GetMainPlayerController()->DialogueNum <= 14)
+			else if (DialogueManager->GetDialogueNum() <= 14)
 				SetSkillNum(FMath::RandRange(1, 4));
 			else
 				SetSkillNum(FMath::RandRange(1, 5));
 		}
 		else // npc can't cast strom magic
 		{
-			if (Player->GetMainPlayerController()->DialogueNum <= 5)
+			if (DialogueManager->GetDialogueNum() <= 5)
 				SetSkillNum(FMath::RandRange(2, 3));
-			else if (Player->GetMainPlayerController()->DialogueNum <= 14)
+			else if (DialogueManager->GetDialogueNum() <= 14)
 				SetSkillNum(FMath::RandRange(2, 4));
 			else
 				SetSkillNum(FMath::RandRange(2, 5));
@@ -461,14 +444,14 @@ void AYaroCharacter::AttackEnd()
 				}
 				else // 인식 범위에 몬스터 없음
 				{
-					for (int i = 0; i < Player->GetNPCList().Num(); i++)
+					for (auto NPC : NPCManager->GetNPCMap())
 					{
 						// 다른 npc의 인식 범위에 몬스터가 있으면 도와주러 감, 첫번째 던전 제외
-						if (Player->GetNPCList()[i]->AgroTargets.Num() != 0
+						if (NPC.Value->AgroTargets.Num() != 0
 							&& !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) 
 						{
 							//UE_LOG(LogTemp, Log, TEXT("AttackEnd - Go Help %s"), *this->GetName());
-							MoveToTarget(Player->GetNPCList()[i]->AgroTargets[0]);
+							MoveToTarget(NPC.Value->AgroTargets[0]);
 						}
 					}
 				}
@@ -625,9 +608,9 @@ void AYaroCharacter::MoveToLocation() // Vivi, Vovo, Zizi만 실행
 			if (index == 4 && distance <= 70.f) // 골렘쪽으로 이동 중
 			{
 				// 목표 지점 이동을 모두 끝내고, 모모 혹은 플레이어가 골렘과 전투 중이면 골렘 쪽으로 이동
-				if (Player->Momo->CombatTarget && Player->Momo->CombatTarget->GetName().Contains("Golem"))
+				if (NPCManager->GetNPC("Momo")->CombatTarget && NPCManager->GetNPC("Momo")->CombatTarget->GetName().Contains("Golem"))
 				{
-					AIController->MoveToActor(Player->Momo->CombatTarget);
+					AIController->MoveToActor(NPCManager->GetNPC("Momo")->CombatTarget);
 				}
                 if (Player->GetCombatTarget() && Player->GetCombatTarget()->GetName().Contains("Golem"))
                 {

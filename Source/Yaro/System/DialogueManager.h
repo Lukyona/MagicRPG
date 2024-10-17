@@ -14,7 +14,15 @@ class YARO_API UDialogueManager : public UObject
 {
 	GENERATED_BODY()
 
-	
+	UPROPERTY()
+	class UGameManager* GameManager;
+
+	UPROPERTY()
+	class UNPCManager* NPCManager;
+
+	UPROPERTY()
+	class AMain* Player;
+
 	int DialogueNum = 0; // 0 - intro
 
 	bool bDialogueUIVisible;
@@ -28,12 +36,13 @@ class YARO_API UDialogueManager : public UObject
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 		//bool bCanDisplaySpeechBubble = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TSubclassOf<class AActor> SpeechBubble_BP;
+	TSubclassOf<class AActor> SpeechBubble_BP;
 
+	UPROPERTY()
 	class AActor* SpeechBubble;
 
-	TArray<UDataTable*> DialogueDatas;
+	UPROPERTY()
+	TArray <class UDataTable*> DialogueDatas;
 
 public:
 	UDialogueManager();
@@ -45,6 +54,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		int GetDialogueNum() { return DialogueNum; }
+
+	void SetDialogueNum(int Value) { DialogueNum = Value; }
 
 	UFUNCTION(BlueprintCallable)
 		bool IsDialogueUIVisible() const { return bDialogueUIVisible; }

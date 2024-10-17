@@ -5,6 +5,7 @@
 #include "Components/SphereComponent.h"
 #include "AIController.h"
 #include "Yaro/Character/Main.h"
+#include "Yaro/Character/YaroCharacter.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/BoxComponent.h"
 #include "Animation/AnimInstance.h"
@@ -16,8 +17,10 @@
 #include "Components/CapsuleComponent.h"
 #include "Sound/SoundCue.h"
 #include "Yaro/System/MainPlayerController.h"
+#include "Yaro/System/GameManager.h"
+#include "Yaro/System/DialogueManager.h"
+#include "Yaro/System/NPCManager.h"
 #include "Engine/EngineTypes.h"
-#include "Yaro/Character/YaroCharacter.h"
 
 // Sets default values
 AEnemy::AEnemy()
@@ -41,6 +44,8 @@ AEnemy::AEnemy()
 void AEnemy::BeginPlay()
 {
 	Super::BeginPlay();
+	GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
+	if (GameManager) NPCManager = GameManager->GetNPCManager();
 
 	AIController = Cast<AAIController>(GetController());
 
@@ -567,11 +572,11 @@ void AEnemy::DeathEnd()
 	
 	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first") && Main->GetEnemies().Num() == 9) // 첫번째 던전 클리어했는지, 골렘 이후 대화가 정상
 	{
-		Main->SaveGame();
-		if (Main->Momo->GetTeleportCount() == 0) GetWorldTimerManager().ClearTimer(Main->Momo->GetMoveTimer());
-		if (Main->Luko->GetTeleportCount() == 0) GetWorldTimerManager().ClearTimer(Main->Luko->GetMoveTimer());
+		GameManager->SaveGame();
+		if (NPCManager->GetNPC("Momo")->GetTeleportCount() == 0) GetWorldTimerManager().ClearTimer(NPCManager->GetNPC("Momo")->GetMoveTimer());
+		if (NPCManager->GetNPC("Luko")->GetTeleportCount() == 0) GetWorldTimerManager().ClearTimer(NPCManager->GetNPC("Luko")->GetMoveTimer());
 
-		Main->GetMainPlayerController()->DisplayDialogueUI();
+		GameManager->GetDialogueManager()->DisplayDialogueUI();
 	}
 
 	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second") && Main->GetEnemies().Num() >= 15)
@@ -586,20 +591,16 @@ void AEnemy::DeathEnd()
 		}
 		if (count == 3)
 		{
-			for (int i = 0; i < Main->GetNPCList().Num(); i++)
-			{
-				Main->GetNPCList()[i]->GetWorldTimerManager().ClearTimer(Main->GetNPCList()[i]->GetMoveTimer());
-				Main->GetNPCList()[i]->GetAIController()->StopMovement();
-			}
-			Main->SaveGame();
-			Main->GetMainPlayerController()->DisplayDialogueUI();
+			NPCManager->AllNpcStopFollowPlayer();
+			GameManager->SaveGame();
+			GameManager->GetDialogueManager()->DisplayDialogueUI();
 		}
 	}
 
 	if ((UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Main->GetEnemies().Num() == 5))
 	{
-		Main->SaveGame();
-		Main->GetMainPlayerController()->DisplayDialogueUI();
+		GameManager->SaveGame();
+		GameManager->GetDialogueManager()->DisplayDialogueUI();
 	}
 	
 	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::Disappear, DeathDelay);

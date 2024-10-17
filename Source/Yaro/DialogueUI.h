@@ -49,8 +49,38 @@ class YARO_API UDialogueUI : public UUserWidget
 {
 	GENERATED_BODY()
 
+	UPROPERTY()
+	class UGameManager* GameManager;
+
+	UPROPERTY()
+	class UDialogueManager* DialogueManager;
+
+	UPROPERTY()
+	class UNPCManager* NPCManager;
+
+	UPROPERTY()
+		class AMain* Player;
+
+	UPROPERTY()
+		class AMainPlayerController* MainPlayerController;
+
+	UPROPERTY()
+		class AYaroCharacter* Momo;
+
+	UPROPERTY()
+		class AYaroCharacter* Luko;
+
+	UPROPERTY()
+		class AYaroCharacter* Vovo;
+
+	UPROPERTY()
+		class AYaroCharacter* Vivi;
+
+	UPROPERTY()
+		class AYaroCharacter* Zizi;
 
 protected:
+	virtual void NativeConstruct() override;
 
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* NPCText;
@@ -145,12 +175,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int NumOfReply; 
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	class AMain* Main;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	class AMainPlayerController* MainPlayerController;
-
 	// 대화 끝나고 바로 대화 또 못하게끔(애니메이션 시간이 필요)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bCanStartDialogue = true;
@@ -166,16 +190,8 @@ public:
 
     FTimerHandle OnceTimer;
 
-	void AllNpcLookAtPlayer();
-
-	void AllNpcDisableLookAt();
-
-	void AllNpcStopFollowPlayer();
-
+	
 	void AutoDialogue();
 
-	UFUNCTION(BlueprintCallable)
-	void OpenMouth(AYaroCharacter* npc);
 
-	void CloseAllMouth();
 };

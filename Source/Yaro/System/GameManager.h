@@ -14,15 +14,25 @@ class YARO_API UGameManager : public UGameInstance
 {
 	GENERATED_BODY()
 
+	class AMain* Player;
+	class AMainPlayerController* MainPlayerController;
+
+	class UDialogueManager* DialogueManager;
+	class UNPCManager* NPCManager;
+
 public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "PlayerData")
 		TSubclassOf<APawn> PlayerClass;
 
-	UPROPERTY()
-		class UDialogueManager* DialogueManager;  // 다이얼로그 매니저에 대한 참조
+	FTimerHandle SaveTimer; 
+
 
 	UDialogueManager* GetDialogueManager() const { return DialogueManager; }
+	UNPCManager* GetNPCManager() const { return NPCManager; }
+	AMain* GetPlayer();
+	AMainPlayerController* GetMainPlayerController();
+
 	
 	virtual void Init() override;
 

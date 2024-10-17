@@ -4,20 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
-#include "UIManager.generated.h"
+#include "PlayerStatsManager.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class YARO_API UUIManager : public UObject
+class YARO_API UPlayerStatsManager : public UObject
 {
 	GENERATED_BODY()
-
-	UPROPERTY()
-	class UGameManager* GameManager;
 	
-
-public:
-	void Init();
 };

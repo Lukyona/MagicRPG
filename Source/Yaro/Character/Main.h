@@ -22,7 +22,17 @@ class YARO_API AMain : public AStudent
 {
 	GENERATED_BODY()
 
+	UPROPERTY()
+	class UGameManager* GameManager;
+
+	UPROPERTY()
+		class UDialogueManager* DialogueManager;
+
+	UPROPERTY()
+		class UNPCManager* NPCManager;
 protected:
+
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	EMovementStatus MovementStatus;
 
@@ -162,11 +172,6 @@ protected:
 	class USoundBase* LevelUpSound;
 
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	TArray<class AYaroCharacter*> NPCList;
-
-	FTimerHandle SaveTimer; // 게임 저장 타이머
-
 	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
 	TArray<FString> Enemies; // 죽은 적 정보 저장
 
@@ -187,23 +192,6 @@ protected:
 public:
 	// Sets default values for this character's properties
 	AMain();
-
-	// NPC들
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	class AYaroCharacter* Momo;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	class AYaroCharacter* Luko;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	class AYaroCharacter* Vovo;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	class AYaroCharacter* Vivi;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	class AYaroCharacter* Zizi;
-	
 
 	AMainPlayerController* GetMainPlayerController() { return MainPlayerController; }
 
@@ -315,27 +303,12 @@ public:
 
 	void Escape(); // press E key, spawn player at the other location
 
-
-	UFUNCTION(BlueprintCallable)
-	void SaveGame();
-
-	UFUNCTION(BlueprintCallable)
-	void LoadGame();
-
 	void ShowManual();
 
 	void StartDialogue();
 
 	UFUNCTION(BlueprintCallable)
-	void CheckDialogueRequirement(); // when player continew the game, if it is the time that start dialogue, then start dialogue
-
-	UFUNCTION(BlueprintCallable)
 	bool CanTalkWithNpc();
-
-	void AllNpcMoveToPlayer();
-
-	void AddNpcToList(AYaroCharacter* npc) { NPCList.Add(npc); }
-	TArray<class AYaroCharacter*> GetNPCList() { return NPCList; }
 
 	void AddEnemies(FString name) { Enemies.Add(name); }
 

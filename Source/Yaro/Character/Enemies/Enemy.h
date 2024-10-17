@@ -22,6 +22,11 @@ class YARO_API AEnemy : public ACharacter
 	GENERATED_BODY()
 
 private:
+	UPROPERTY()
+		class UGameManager* GameManager;
+
+	UPROPERTY()
+		class UNPCManager* NPCManager;
 
 	bool hasSecondCollision = false;
 

@@ -22,7 +22,18 @@ class AYaroCharacter : public AStudent
 {
 	GENERATED_BODY()
 
+	UPROPERTY()
+	class UGameManager* GameManager;
+
+	UPROPERTY()
+	class UDialogueManager* DialogueManager;
+
+	UPROPERTY()
+	class UNPCManager* NPCManager;
+
 protected:
+
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	class AAIController* AIController;
 
@@ -107,6 +118,8 @@ public:
 	AYaroCharacter();
 
 	AAIController* GetAIController() { return AIController; }
+
+	ENPCType GetType() { return NPCType; }
 
 	UFUNCTION(BlueprintCallable)
 	void MoveToPlayer();

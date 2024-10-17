@@ -80,9 +80,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Fade Events")
 	bool bFadeOn = false;
 
-    UFUNCTION(BlueprintCallable)
-	void SetPositions();
-
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
     FText SystemText;
 

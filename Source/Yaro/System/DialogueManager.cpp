@@ -4,7 +4,10 @@
 #include "Yaro/System/DialogueManager.h"
 #include "EngineUtils.h"
 #include "Engine/DataTable.h"
+#include "Yaro/System/GameManager.h"
+#include "Yaro/System/NPCManager.h"
 #include "Yaro/DialogueUI.h"
+#include "Yaro/Character/Main.h"
 
 
 UDialogueManager::UDialogueManager()
@@ -32,9 +35,17 @@ UDialogueManager::UDialogueManager()
 
 void UDialogueManager::Init()
 {
+    GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
+    if (GameManager)
+    {
+        Player = GameManager->GetPlayer();
+        NPCManager = GameManager->GetNPCManager();
+    }
+    else return;
+
     if (DialogueUIClass != nullptr)
     {
-        DialogueUI = CreateWidget<UDialogueUI>(this, DialogueUIClass);
+        DialogueUI = CreateWidget<UDialogueUI>(GameManager, DialogueUIClass);
     }
 
     if (DialogueUI != nullptr)
@@ -51,7 +62,7 @@ void UDialogueManager::Tick()
 {
     if (bSpeechBuubbleVisible)
     {
-        SpeechBubble->SetActorRotation(Main->GetControlRotation() + FRotator(0.f, 180.f, 0.f));
+        SpeechBubble->SetActorRotation(GameManager->GetPlayer()->GetControlRotation() + FRotator(0.f, 180.f, 0.f));
     }
 }
 
@@ -63,16 +74,16 @@ void UDialogueManager::DisplayDialogueUI()
 
         if (!DialogueUI->bCanStartDialogue) return;
 
-        if (bManualVisible) RemoveManual();
+       // if (bManualVisible) RemoveManual();
 
 
-        if (bFallenPlayer && (FallingCount == 1 || FallingCount == 5))
+       /* if (bFallenPlayer && (FallingCount == 1 || FallingCount == 5))
         {
             DialogueUI->InitializeDialogue(DialogueDatas.Last(0));
-        }
+        }*/
 
         bDialogueUIVisible = true;
-
+        /*
         if (!bFallenPlayer)
         {
             switch (DialogueNum)
@@ -90,7 +101,7 @@ void UDialogueManager::DisplayDialogueUI()
                     FadeAndDialogue();
                     return;
                 }
-                bCanDisplaySpeechBubble = true;
+                //bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[2]);
                 bFadeOn = false;
                 break;
@@ -98,7 +109,7 @@ void UDialogueManager::DisplayDialogueUI()
                 DialogueUI->InitializeDialogue(DialogueDatas[2]);
                 break;
             case 5: // second dungeon
-                bCanDisplaySpeechBubble = true;
+                //bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[3]);
                 break;
             case 6: // triggerbox1 overplap
@@ -106,7 +117,7 @@ void UDialogueManager::DisplayDialogueUI()
             case 8: // triggerbox3, player go over the other side
             case 9: // plane2 up
             case 10: // Npcs went over the other side
-                if (DialogueNum == 8 || DialogueNum == 9) bCanDisplaySpeechBubble = true;
+                //if (DialogueNum == 8 || DialogueNum == 9) bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[4]);
                 break;
             case 11: // discover food table trap
@@ -116,10 +127,10 @@ void UDialogueManager::DisplayDialogueUI()
                 if (!bFadeOn)
                 {
                     FadeAndDialogue();
-                    if (DialogueNum == 18) Main->SaveGame();
+                    if (DialogueNum == 18) Player->SaveGame();
                     return;
                 }
-                bCanDisplaySpeechBubble = true;
+                //bCanDisplaySpeechBubble = true;
                 if (DialogueNum == 11)
                     DialogueUI->InitializeDialogue(DialogueDatas[5]);
                 else if (DialogueNum == 16 || DialogueNum == 18)
@@ -138,20 +149,20 @@ void UDialogueManager::DisplayDialogueUI()
                     CalculateDialogueDistance();
                     return;
                 }
-                bCanDisplaySpeechBubble = true;
+                //bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[5]);
                 break;
             case 15: // boss level enter
             case 17: // be ready to combat with boss 
-                bCanDisplaySpeechBubble = true;
+               // bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[6]);
                 break;
             case 19: // back to cave
             case 21: // griffons come
             case 22: // last talk
             case 23:
-                if (DialogueNum != 23)
-                    bCanDisplaySpeechBubble = true;
+               // if (DialogueNum != 23)
+                 //   bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[7]);
                 break;
             }
@@ -162,14 +173,14 @@ void UDialogueManager::DisplayDialogueUI()
 
         FInputModeGameAndUI InputMode;
         SetInputMode(InputMode);
-        bShowMouseCursor = true;
+        bShowMouseCursor = true;*/
     }
 }
 
 void UDialogueManager::RemoveDialogueUI()
 {
     if (DialogueUI)
-    {
+    {/*
         if (!bFallenPlayer)
         {
             DialogueNum++;
@@ -177,7 +188,7 @@ void UDialogueManager::RemoveDialogueUI()
         }
         else
         {
-            Main->SetCanMove(true);
+            Player->SetCanMove(true);
             if (bSpeechBuubbleVisible)
                 RemoveSpeechBuubble();
         }
@@ -188,29 +199,29 @@ void UDialogueManager::RemoveDialogueUI()
 
         FInputModeGameOnly InputModeGameOnly;
         SetInputMode(InputModeGameOnly);
-
+        
         DialogueUI->OnAnimationHideMessageUI();
-
-        if (Main->GetSkipStatus()) Main->SetSkipStatus(false);
+        */
+        if (Player->GetSkipStatus()) Player->SetSkipStatus(false);
     }
 }
 
 void UDialogueManager::DialogueEvents()
 {
     RemoveSpeechBuubble();
-
+    
     switch (DialogueNum)
     {
     case 1: // luko moves to player   
-        Main->Luko->MoveToPlayer();
+        NPCManager->GetNPC("Luko")->MoveToPlayer();
         break;
     case 2:
         if (SystemMessageNum != 3)
         {
-            Main->SetInterpToCharacter(false);
-            Main->SetTargetCharacter(nullptr);
-            GetWorldTimerManager().ClearTimer(Main->Luko->GetMoveTimer());
-            Main->Luko->GetAIController()->MoveToLocation(FVector(5200.f, 35.f, 100.f));
+            Player->SetInterpToCharacter(false);
+            Player->SetTargetCharacter(nullptr);
+            GetWorldTimerManager().ClearTimer(NPCManager->GetNPC("Luko")->GetMoveTimer());
+            NPCManager->MoveNPCToLocation("Luko", FVector(5200.f, 35.f, 100.f));
             SystemMessageNum = 16;
             SetSystemMessage();
             GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]() {
@@ -222,108 +233,108 @@ void UDialogueManager::DialogueEvents()
             return;
         }
         SetCinematicMode(false, true, true);
-        if (Main->GetEquippedWeapon() == nullptr) // get the wand
+        if (Player->GetEquippedWeapon() == nullptr) // get the wand
         {
             SetSystemMessage();
         }
         break;
     case 3: // enter the first dungeon
-        Main->Luko->SetInterpToCharacter(false);
-        Main->Luko->SetTargetCharacter(nullptr);
-        Main->SaveGame();
+        NPCManager->GetNPC("Luko")->SetInterpToCharacter(false);
+        NPCManager->GetNPC("Luko")->SetTargetCharacter(nullptr);
+        GameManager->SaveGame();
         SystemMessageNum = 5;
         SetSystemMessage();
         break;
     case 4: // move to boat
         SetCinematicMode(false, true, true);
-        Main->Vovo->SetInterpToCharacter(false);
-        Main->Vovo->GetAIController()->MoveToLocation(FVector(630.f, 970.f, 1840.f));
-        Main->SetInterpToCharacter(false);
-        Main->SetTargetCharacter(nullptr);
+        NPCManager->GetNPC("Vovo")->SetInterpToCharacter(false);
+        NPCManager->MoveNPCToLocation("Vovo", FVector(630.f, 970.f, 1840.f));
+        Player->SetInterpToCharacter(false);
+        Player->SetTargetCharacter(nullptr);
         break;
     case 5:
         GetWorld()->GetTimerManager().ClearTimer(DialogueUI->OnceTimer);
         break;
     case 6: // enter the second dungeon
         SetCinematicMode(false, true, true);
-        Main->Momo->UsualFace();
-        for (int i = 0; i < Main->GetNPCList().Num(); i++)
+        NPCManager->GetNPC("Momo")->UsualFace();
+        for (auto NPC : NPCManager->GetNPCMap())
         {
-            if (Main->GetNPCList()[i] != Main->Momo) // momo's already follwing to player
+            if (NPC.Key != "Momo") // momo's already follwing to player
             {
-                Main->GetNPCList()[i]->MoveToPlayer();
+                NPC.Value->MoveToPlayer();
             }
         }
         break;
     case 7:
     case 8:
-        Main->SetCanMove(true);
+        Player->SetCanMove(true);
         break;
     case 9: // player go over the other side
-        if (Main->Vivi->GetNormalMontage() != nullptr)
+        if (NPCManager->GetNPC("Vivi")->GetNormalMontage() != nullptr)
         {
-            Main->Vivi->GetAnimInstance()->Montage_Play(Main->Vivi->GetNormalMontage());
-            Main->Vivi->GetAnimInstance()->Montage_JumpToSection(FName("Throw"));
+            NPCManager->GetNPC("Vivi")->GetAnimInstance()->Montage_Play(NPCManager->GetNPC("Vivi")->GetNormalMontage());
+            NPCManager->GetNPC("Vivi")->GetAnimInstance()->Montage_JumpToSection(FName("Throw"));
         }
-        Main->SetInterpToCharacter(false);
-        Main->SetTargetCharacter(nullptr);
+        Player->SetInterpToCharacter(false);
+        Player->SetTargetCharacter(nullptr);
         break;
     case 10:
-        Main->Zizi->SetInterpToCharacter(false);
-        Main->SetInterpToCharacter(false);
-        Main->AllNpcMoveToPlayer();
+        NPCManager->GetNPC("Zizi")->SetInterpToCharacter(false);
+        Player->SetInterpToCharacter(false);
+        NPCManager->AllNpcMoveToPlayer();
         break;
     case 11: // npcs went over the other side
     case 19: // after combat with boss
         SetCinematicMode(false, true, true);
-        Main->SetCanMove(true);
-        Main->SetInterpToCharacter(false);
-        Main->SetTargetCharacter(nullptr);
-        DialogueUI->AllNpcDisableLookAt();
+        Player->SetCanMove(true);
+        Player->SetInterpToCharacter(false);
+        Player->SetTargetCharacter(nullptr);
+        NPCManager->AllNpcDisableLookAt();
         if (DialogueNum == 19)
         {
-            Main->Momo->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-            Main->Luko->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-            Main->Vovo->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-            Main->Vivi->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
-            Main->Zizi->GetAIController()->MoveToLocation(FVector(8.f, -3585.f, 684.f));
+            NPCManager->MoveNPCToLocation("Momo", FVector(8.f, -3585.f, 684.f));
+            NPCManager->MoveNPCToLocation("Luko", FVector(8.f, -3585.f, 684.f));
+            NPCManager->MoveNPCToLocation("Vovo", FVector(8.f, -3585.f, 684.f));
+            NPCManager->MoveNPCToLocation("Vivi", FVector(8.f, -3585.f, 684.f));
+            NPCManager->MoveNPCToLocation("Zizi", FVector(8.f, -3585.f, 684.f));
             SystemMessageNum = 13;
             SetSystemMessage();
         }
         if (DialogueNum == 11)
         {
-            for (int i = 0; i < Main->GetNPCList().Num(); i++)
+            for (auto NPC : NPCManager->GetNPCMap())
             {
-                Main->GetNPCList()[i]->UsualFace();
+                NPC.Value->UsualFace();
             }
         }
         break;
     case 12:
         SetCinematicMode(false, true, true);
-        Main->SetCanMove(true);
+        Player->SetCanMove(true);
         ResetIgnoreMoveInput();
         ResetIgnoreLookInput();
         GetWorld()->GetTimerManager().ClearTimer(DialogueUI->OnceTimer);
         break;
     case 13:
     case 14:
-        Main->Momo->UsualFace();
-        Main->SetCanMove(true);
+        NPCManager->GetNPC("Momo")->UsualFace();
+        Player->SetCanMove(true);
 
-        Main->AllNpcMoveToPlayer();
+        NPCManager->AllNpcMoveToPlayer();
         break;
     case 15:
         DialogueUI->bDisableMouseAndKeyboard = false;
-        Main->SetCanMove(true);
+        Player->SetCanMove(true);
 
         SystemMessageNum = 11;
         SetSystemMessage();
-        Main->AllNpcMoveToPlayer();
+        NPCManager->AllNpcMoveToPlayer();
         break;
     case 16:
         SetCinematicMode(false, true, true);
-        DialogueUI->AllNpcDisableLookAt();
-        Main->SetInterpToCharacter(false);
+        NPCManager->AllNpcDisableLookAt();
+        Player->SetInterpToCharacter(false);
         DialogueUI->bDisableMouseAndKeyboard = false;
         break;
     case 17:
@@ -331,18 +342,18 @@ void UDialogueManager::DialogueEvents()
     case 23:
         DialogueUI->bDisableMouseAndKeyboard = false;
         SetCinematicMode(false, true, true);
-        Main->SetCanMove(true);
+        Player->SetCanMove(true);
 
         if (DialogueNum == 23)
-            Main->Vivi->GetAIController()->MoveToLocation(FVector(625.f, 318.f, 153.f));
+            NPCManager->MoveNPCToLocation("Vivi", FVector(625.f, 318.f, 153.f));
         break;
     case 18: // fog appear, boss combat soon
         DialogueUI->bDisableMouseAndKeyboard = false;
-        Main->SetCanMove(true);
-        Main->AllNpcMoveToPlayer();
+        Player->SetCanMove(true);
+        NPCManager->AllNpcMoveToPlayer();
         SystemMessageNum = 12;
         SetSystemMessage();
-        Main->SaveGame();
+        GameManager->SaveGame();
         GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]() {
 
             RemoveSystemMessage();
@@ -357,13 +368,15 @@ void UDialogueManager::DialogueEvents()
         if (DialogueUI->SelectedReply == 1)
         {
             SetCinematicMode(false, true, true);
-            Main->SetCanMove(true);
+            Player->SetCanMove(true);
 
             SystemMessageNum = 14;
             SetSystemMessage();
         }
         break;
     }
+
+    
 }
 
 void UDialogueManager::DisplaySpeechBuubble(class AYaroCharacter* npc)
@@ -387,5 +400,4 @@ void UDialogueManager::RemoveSpeechBuubble()
         bSpeechBuubbleVisible = false;
         SpeechBubble->SetActorHiddenInGame(true);
     }
-
 }
