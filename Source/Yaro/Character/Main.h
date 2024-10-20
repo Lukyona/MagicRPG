@@ -29,7 +29,13 @@ class YARO_API AMain : public AStudent
 		class UDialogueManager* DialogueManager;
 
 	UPROPERTY()
+		class UUIManager* UIManager;
+
+	UPROPERTY()
 		class UNPCManager* NPCManager;
+
+
+
 protected:
 
 
@@ -81,6 +87,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bCanMove = true;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+		bool bFallenInDungeon = false; // 플레이어가 던전 범위 밖으로 추락했을 때 true
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		int FallCount = 0;
 
 	/**
 	/*
@@ -172,19 +183,13 @@ protected:
 	class USoundBase* LevelUpSound;
 
 
-	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
-	TArray<FString> Enemies; // 죽은 적 정보 저장
 
 
 	bool bLMBDown;
 	bool bESCDown;
 
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bSkip = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bCanSkip = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int PotionNum;
@@ -220,10 +225,15 @@ public:
 	void SetItemInHand(AItem* item) { ItemInHand = item; }
 	AItem* GetItemInHand() { return ItemInHand; }
 
-	TArray<FString> GetEnemies() { return Enemies; }
+	void SetFallCount(uint8 Count) { FallCount = Count; }
+	int GetFallCount() { return FallCount; }
 
-	void SetSkipStatus(bool value) { bSkip = value; }
-	bool GetSkipStatus() { return bSkip; }
+	void SetFallenInDungeon(bool Value) { bFallenInDungeon = Value; }
+	bool IsFallenInDungeon() { return bFallenInDungeon; }
+
+	bool IsInAir();
+	bool IsDead() { return MovementStatus == EMovementStatus::EMS_Dead ? true : false; }
+
 	
 protected:
 	// Called when the game starts or when spawned
@@ -307,10 +317,8 @@ public:
 
 	void StartDialogue();
 
-	UFUNCTION(BlueprintCallable)
-	bool CanTalkWithNpc();
 
-	void AddEnemies(FString name) { Enemies.Add(name); }
+
 
 	UFUNCTION(BlueprintCallable)
 	void RecoverWithLogo();

@@ -19,10 +19,9 @@
 #include "Yaro/System/GameManager.h"
 #include "Yaro/System/DialogueManager.h"
 #include "Yaro/System/NPCManager.h"
+
 //////////////////////////////////////////////////////////////////////////
 // AYaroCharacter
-
-
 AYaroCharacter::AYaroCharacter()
 {
 	SetAgroSphere();
@@ -702,6 +701,11 @@ void AYaroCharacter::MoveToSafeLocation() // 안전한 위치로 이동, 몬스터와의 안전
 	FVector SafeLocation = GetActorLocation() + FVector(value, value, 0.f);
 	AIController->MoveToLocation(SafeLocation);
 	//UE_LOG(LogTemp, Log, TEXT("movwsafeg %s"), *this->GetName());
+}
+
+void AYaroCharacter::ClearTeamMoveTimer()
+{
+	GetWorldTimerManager().ClearTimer(TeamMoveTimer);
 }
 
 void AYaroCharacter::Smile() // 웃는 표정

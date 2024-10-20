@@ -14,6 +14,7 @@
 #include "Yaro/System/GameManager.h"
 #include "Yaro/System/DialogueManager.h"
 #include "Yaro/System/NPCManager.h"
+#include "Yaro/System/UIManager.h"
 
 void UDialogueUI::NativeConstruct()
 {
@@ -223,11 +224,11 @@ void UDialogueUI::DialogueEvents()
     int DNum = DialogueManager->GetDialogueNum();
    // UE_LOG(LogTemp, Log, TEXT("DialogueEvents"));
 
-    if (MainPlayerController->bFallenPlayer)
+    if (Player->IsFallenInDungeon())
     {
         bDisableMouseAndKeyboard = false;
 
-        if (MainPlayerController->FallingCount == 1)
+        if (Player->GetFallCount() == 1)
         {
             if (RowIndex == 0)
             {
@@ -236,25 +237,23 @@ void UDialogueUI::DialogueEvents()
 
             if (RowIndex == 7)
             {
-                MainPlayerController->FallingCount++;
+                Player->SetFallCount(2);
                 AutoCloseDialogue();
                 NPCManager->AllNpcDisableLookAt();
-                MainPlayerController->bFallenPlayer = false;
+                Player->SetFallenInDungeon(false);
                 return;
             }
         }
-        else if (MainPlayerController->FallingCount == 6)
+        else if (Player->GetFallCount() == 6)
         {
             if (RowIndex == 0) RowIndex = 7;
 
             if (RowIndex == 8)
             {
-                MainPlayerController->FallingCount++;
                 AutoCloseDialogue();
-                MainPlayerController->bFallenPlayer = false;
+                Player->SetFallenInDungeon(false);
                 return;
             }
-
         }
         else return;
     }
@@ -268,8 +267,7 @@ void UDialogueUI::DialogueEvents()
 
                 if (RowIndex == 0 && MessageIndex == 2)
                 {
-                    MainPlayerController->SystemMessageNum = 1;
-                    MainPlayerController->SetSystemMessage();
+                    GameManager->GetUIManager()->SetSystemMessage(1);
                 }
 
                 switch (RowIndex)

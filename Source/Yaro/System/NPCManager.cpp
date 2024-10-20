@@ -5,11 +5,14 @@
 #include "Containers/Map.h"
 #include "EngineUtils.h"   // TActorIterator 사용을 위한 헤더
 #include "AIController.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Character/Main.h"
 #include "System/GameManager.h"
 #include "System/DialogueManager.h"
+#include "System/UIManager.h"
 
+UNPCManager* UNPCManager::Instance = nullptr;
 
 void UNPCManager::Init()
 {
@@ -18,6 +21,7 @@ void UNPCManager::Init()
 	if (GameManager)
 	{
 		DialogueManager = GameManager->GetDialogueManager();
+		UIManager = GameManager->GetUIManager();
 	}
 }
 
@@ -80,12 +84,17 @@ void UNPCManager::SetNPCLocation(AYaroCharacter* NPC, FVector Location)
 {
 	NPC->SetActorLocation(Location);
 }
-void UNPCManager::AllNpcMoveToPlayer()
+
+bool UNPCManager::IsNPCInTalkRange()
 {
 	for (auto NPC : NPCMap)
 	{
-		NPC.Value->MoveToPlayer();
+		float distance = GameManager->GetPlayer()->GetDistanceTo(NPC.Value);
+
+		if (distance >= 1300.f) // npc와 너무 멀면 대화 불가
+			return false;
 	}
+	return true;
 }
 
 void UNPCManager::SetPositionsForDialogue()
@@ -94,7 +103,7 @@ void UNPCManager::SetPositionsForDialogue()
 	for (auto NPC : NPCMap)
 	{
 		if(NPC.Key != "Momo" && NPC.Key != "Luko")
-		GetWorldTimerManager().ClearTimer(NPC.Value->GetTeamMoveTimer());
+			NPC.Value->ClearTeamMoveTimer();
 	}
 
 	int dialogueNum = DialogueManager->GetDialogueNum();
@@ -232,14 +241,15 @@ void UNPCManager::SetPositionsForDialogue()
 
 void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 npc들 이동 및 위치 설정
 {
-	int EnemyCount = 0;
+	uint32 EnemyCount = 0;
+	uint32 DeadEnemiesNum = GameManager->GetDeadEnemies().Num();
 
 	switch (DialogueNum)
 	{
 	case 3: // after golem died
-		for (int i = 0; i < Enemies.Num(); i++)
+		for (auto Enemy : GameManager->GetDeadEnemies())
 		{
-			if (Enemies[i].Contains("Golem") && Enemies.Num() == 9)
+			if (Enemy.Contains("Golem") && DeadEnemiesNum == 9)
 			{
 				MoveNPCToLocation(Momo, FVector(594.f, -1543.f, 2531.f));
 				MoveNPCToLocation(Luko, FVector(494.f, -1629.f, 2561.f));
@@ -272,8 +282,7 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		MoveNPCToLocation(Zizi, FVector(690.f, 930.f, 1840.f));
 		break;
 	case 9: //if ItemInHand is null, the stone have to put on the floor (this is check in blueprint)
-		MainPlayerController->SystemMessageNum = 10;
-		MainPlayerController->SetSystemMessage();
+		UIManager->SetSystemMessage(10);
 		AllNpcLookAtPlayer();
 		AllNpcStopFollowPlayer();
 		MoveNPCToLocation(Momo, FVector(5307.f, -3808.f, -2122.f));
@@ -283,22 +292,21 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		MoveNPCToLocation(Zizi, FVector(5538.f, -3696.f, -2115.f));
 		break;
 	case 12:
-		for (auto enemy : Enemies)
+		for (auto Enemy : GameManager->GetDeadEnemies())
 		{
-			if (enemy.Contains("spider")) // Event enemies in second dungeon
+			if (Enemy.Contains("spider")) // Event enemies in second dungeon
 				EnemyCount++;
 
 			if (EnemyCount == 5)
 			{
-				MainPlayerController->bCalculateOn = true;
-				DialogueManager->DisplayDialogueUI();
+				DialogueManager->CheckDialogueStartCondition();
 			}
 		}
 		break;
 	case 14:
-		for (auto enemy : Enemies)
+		for (auto Enemy : GameManager->GetDeadEnemies())
 		{
-			if (enemy.Contains("monster")) // Final enemies in second dungeon
+			if (Enemy.Contains("monster")) // Final enemies in second dungeon
 				EnemyCount++;
 
 			if (EnemyCount == 3) DialogueManager->DisplayDialogueUI();
@@ -320,21 +328,20 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		MoveNPCToLocation(Zizi, FVector(18.f, 2105.f, 184.f));
 		break;
 	case 18:
-		if (Enemies.Num() == 5)
+		if (DeadEnemiesNum == 5)
 			DialogueManager->DisplayDialogueUI();
 		break;
 	case 19:
-		if (Enemies.Num() == 5)//보스맵, 포탈로 이동
+		if (DeadEnemiesNum == 5)//보스맵, 포탈로 이동
 		{
 			MoveNPCToLocation(Momo, FVector(8.f, -3585.f, 684.f));
 			MoveNPCToLocation(Luko, FVector(8.f, -3585.f, 684.f));
 			MoveNPCToLocation(Vovo, FVector(8.f, -3585.f, 684.f));
 			MoveNPCToLocation(Vivi, FVector(8.f, -3585.f, 684.f));
 			MoveNPCToLocation(Zizi, FVector(8.f, -3585.f, 684.f));
-			MainPlayerController->SystemMessageNum = 13;
-			MainPlayerController->SetSystemMessage();
+			UIManager->SetSystemMessage(13);
 		}
-		else if (Enemies.Num() == 0) //동굴
+		else if (DeadEnemiesNum == 0) //동굴
 		{
 			DialogueManager->DisplayDialogueUI();
 		}
@@ -372,6 +379,14 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		break;
 	}
 
+}
+
+void UNPCManager::AllNpcMoveToPlayer()
+{
+	for (auto NPC : NPCMap)
+	{
+		NPC.Value->MoveToPlayer();
+	}
 }
 
 void UNPCManager::AllNpcLookAtPlayer()

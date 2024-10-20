@@ -14,6 +14,8 @@ class YARO_API UDialogueManager : public UObject
 {
 	GENERATED_BODY()
 
+	static UDialogueManager* Instance;
+
 	UPROPERTY()
 	class UGameManager* GameManager;
 
@@ -21,7 +23,13 @@ class YARO_API UDialogueManager : public UObject
 	class UNPCManager* NPCManager;
 
 	UPROPERTY()
+	class UUIManager* UIManager;
+
+	UPROPERTY()
 	class AMain* Player;
+
+	UPROPERTY()
+		class AMainPlayerController* MainPlayerController;
 
 	int DialogueNum = 0; // 0 - intro
 
@@ -45,15 +53,24 @@ class YARO_API UDialogueManager : public UObject
 	TArray <class UDataTable*> DialogueDatas;
 
 public:
-	UDialogueManager();
+	static UDialogueManager* CreateInstance(UObject* Outer)
+	{
+		if (Instance == nullptr)
+		{
+			Instance = NewObject<UDialogueManager>(Outer, UDialogueManager::StaticClass());
+		}
+		return Instance;
+	}
 
 	void Init();
 
 	void Tick();
 
+	UFUNCTION(BlueprintCallable)
+		void CheckDialogueStartCondition();
 
 	UFUNCTION(BlueprintCallable)
-		int GetDialogueNum() { return DialogueNum; }
+		int GetDialogueNum() const { return DialogueNum; }
 
 	void SetDialogueNum(int Value) { DialogueNum = Value; }
 

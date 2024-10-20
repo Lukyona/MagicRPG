@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Yaro/System/DialogueManager.h"
 #include "Yaro/System/NPCManager.h"
+#include "Yaro/System/UIManager.h"
 #include "Yaro/System/PlayerStatsManager.h"
 #include "Yaro/System/YaroSaveGame.h"
 #include "Yaro/System/MainPlayerController.h"
@@ -17,11 +18,14 @@ void UGameManager::Init()
 	Super::Init();
 
     // 다이얼로그 매니저 생성 및 초기화
-    DialogueManager = NewObject<UDialogueManager>(this, UDialogueManager::StaticClass());
+    DialogueManager = UDialogueManager::CreateInstance(this);
 	if(DialogueManager) DialogueManager->Init();
 
-	NPCManager = NewObject<UNPCManager>(this, UNPCManager::StaticClass());
+	NPCManager = UNPCManager::CreateInstance(this);
 	if (NPCManager) NPCManager->Init();
+
+	UIManager = UUIManager::CreateInstance(this);
+	if (UIManager) UIManager->Init();
 }
 
 AMain* UGameManager::GetPlayer()
@@ -54,8 +58,8 @@ void UGameManager::SaveGame()
 {
 	if (DialogueManager->GetDialogueNum() >= 23) return;
 
-	if (DialogueManager->IsDialogueUIVisible() || MainPlayerController->bFallenPlayer || MainAnimInstance->bIsInAir
-		|| DialogueManager->GetDialogueNum() == 21)
+	if (DialogueManager->IsDialogueUIVisible() || DialogueManager->GetDialogueNum() == 21
+		|| Player->IsInAir() || Player->IsFallenInDungeon())
 	{
 		GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &UGameManager::SaveGame, 1.f, false);
 		return;
@@ -77,7 +81,7 @@ void UGameManager::SaveGame()
 	SaveGameInstance->CharacterStats.PotionNum = PotionNum;
 
 	SaveGameInstance->DialogueNum = DialogueManager->GetDialogueNum();
-	SaveGameInstance->CharacterStats.FallingCount = MainPlayerController->FallingCount;
+	SaveGameInstance->CharacterStats.FallCount = Player->GetFallCount();
 
 	SaveGameInstance->CharacterStats.Location = Player->GetActorLocation();
 	SaveGameInstance->CharacterStats.Rotation = Player->GetActorRotation();
@@ -91,10 +95,10 @@ void UGameManager::SaveGame()
 		SaveGameInstance->NpcInfo.ZiziLocation = NPCManager->GetNPC("Zizi")->GetActorLocation();
 	}
 
-	if ((DialogueManager->GetDialogueNum() < 4)
+	if (DialogueManager->GetDialogueNum() < 4)
 		SaveGameInstance->NpcInfo.TeamMoveIndex = NPCManager->GetNPC("Vivi")->GetIndex();
 
-	SaveGameInstance->DeadEnemyList = Enemies;
+	SaveGameInstance->DeadEnemyList = DeadEnemies;
 
 	if (ItemInHand)
 	{
@@ -103,7 +107,7 @@ void UGameManager::SaveGame()
 
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
 
-	if (DialogueManager->GetDialogueNum() == 18 && MainPlayerController->SystemMessageNum == 12) return;
+	if (DialogueManager->GetDialogueNum() == 18 && UIManager->GetSystemMessageNum() == 12) return;
 
 	GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &UGameManager::SaveGame, 1.f, false);
 }
@@ -115,7 +119,7 @@ void UGameManager::LoadGame()
 	LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot(LoadGameInstance->SaveName, LoadGameInstance->UserIndex));
 
 	DialogueManager->SetDialogueNum(LoadGameInstance->DialogueNum);
-	MainPlayerController->FallingCount = LoadGameInstance->CharacterStats.FallingCount;
+	Player->SetFallCount(LoadGameInstance->CharacterStats.FallCount);
 
 	HP = LoadGameInstance->CharacterStats.HP;
 	MaxHP = LoadGameInstance->CharacterStats.MaxHP;
@@ -129,7 +133,7 @@ void UGameManager::LoadGame()
 	PotionNum = LoadGameInstance->CharacterStats.PotionNum;
 
 
-	Enemies = LoadGameInstance->DeadEnemyList;
+	DeadEnemies = LoadGameInstance->DeadEnemyList;
 
 	if (DialogueManager->GetDialogueNum() < 4)
 	{

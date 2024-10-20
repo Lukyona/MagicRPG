@@ -14,10 +14,18 @@ UCLASS()
 class YARO_API UNPCManager : public UObject
 {
 	GENERATED_BODY()
-	
+
+	UPROPERTY()
+	static UNPCManager* Instance;
+
+	UPROPERTY()
 	class UGameManager* GameManager;
 
+	UPROPERTY()
 	class UDialogueManager* DialogueManager;
+
+	UPROPERTY()
+		class UUIManager* UIManager;
 
 	UPROPERTY()
 		TMap<FString, class AYaroCharacter*> NPCMap;
@@ -39,6 +47,15 @@ class YARO_API UNPCManager : public UObject
 		class AYaroCharacter* Zizi;
 
 public:
+	static UNPCManager* CreateInstance(UObject* Outer)
+	{
+		if (Instance == nullptr)
+		{
+			Instance = NewObject<UNPCManager>(Outer, UNPCManager::StaticClass());
+		}
+		return Instance;
+	}
+
 	void Init();
 
 	FString EnumToString(const FString& EnumName, ENPCType EnumValue);
@@ -52,6 +69,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void SetPositionsForDialogue();
+
+	UFUNCTION(BlueprintCallable)
+		bool IsNPCInTalkRange();
 
 	AYaroCharacter* GetNPC(FString NPCName) const;
 

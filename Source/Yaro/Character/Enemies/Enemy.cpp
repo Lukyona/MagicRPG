@@ -155,7 +155,7 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 	{
 		if (AgroSound && AgroTargets.Num() == 0) // 인식 범위에 아무도 없었으면 인식 사운드 재생
 		{
-			if(!(UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Main->GetEnemies().Num() == 5))
+			if(!(UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && GameManager->GetDeadEnemies().Num() == 5))
 				UGameplayStatics::PlaySound2D(this, AgroSound);
 		}
 
@@ -548,13 +548,13 @@ void AEnemy::Die()
 {
 	if (EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead)
 	{
-		Main->AddEnemies(Name);
+		GameManager->AddDeadEnemy(Name);
 		if (AIController) AIController->StopMovement();
 		SetInterpToTarget(false);
 
-		if (DeathSound && !Main->GetSkipStatus()) UGameplayStatics::PlaySound2D(this, DeathSound);
+		if (DeathSound && !GameManager->IsSkipping()) UGameplayStatics::PlaySound2D(this, DeathSound);
 
-		if (AnimInstance && !Main->GetSkipStatus())
+		if (AnimInstance && !GameManager->IsSkipping())
 		{
 			AnimInstance->Montage_Play(CombatMontage);
 			AnimInstance->Montage_JumpToSection(FName("Death"), CombatMontage);
@@ -570,7 +570,8 @@ void AEnemy::DeathEnd()
 	GetMesh()->bPauseAnims = true;
 	GetMesh()->bNoSkeletonUpdate = true;
 	
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first") && Main->GetEnemies().Num() == 9) // 첫번째 던전 클리어했는지, 골렘 이후 대화가 정상
+	uint32 DeadEnemiesNum = GameManager->GetDeadEnemies().Num();
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first") && DeadEnemiesNum == 9) // 첫번째 던전 클리어했는지, 골렘 이후 대화가 정상
 	{
 		GameManager->SaveGame();
 		if (NPCManager->GetNPC("Momo")->GetTeleportCount() == 0) GetWorldTimerManager().ClearTimer(NPCManager->GetNPC("Momo")->GetMoveTimer());
@@ -579,17 +580,18 @@ void AEnemy::DeathEnd()
 		GameManager->GetDialogueManager()->DisplayDialogueUI();
 	}
 
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second") && Main->GetEnemies().Num() >= 15)
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second") && DeadEnemiesNum >= 15)
 	{
-		int count = 0;
-		for (int i = 0; i < Main->GetEnemies().Num(); i++)
+		int Count = 0;
+		for (auto Enemy : GameManager->GetDeadEnemies())
 		{
-			if (Main->GetEnemies()[i].Contains("monster"))
+			if (Enemy.Contains("monster"))
 			{
-				count++;
+				Count++;
 			}
 		}
-		if (count == 3)
+
+		if (Count == 3)
 		{
 			NPCManager->AllNpcStopFollowPlayer();
 			GameManager->SaveGame();
@@ -597,7 +599,7 @@ void AEnemy::DeathEnd()
 		}
 	}
 
-	if ((UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Main->GetEnemies().Num() == 5))
+	if ((UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && DeadEnemiesNum == 5))
 	{
 		GameManager->SaveGame();
 		GameManager->GetDialogueManager()->DisplayDialogueUI();

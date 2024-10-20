@@ -98,6 +98,5 @@ void AItem::PickUp(AMain* Char)
         bRotate = false;
         Char->SetItemInHand(this);
         Char->SetActiveOverlappingItem(nullptr);
-
     }
 }

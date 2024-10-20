@@ -170,9 +170,10 @@ public:
 	int GetTeleportCount() { return TeleportCount; }
 
 	FTimerHandle& GetMoveTimer() { return MoveTimer; }
-	FTimerHandle& GetTeamMoveTimer() { return TeamMoveTimer; }
 
 	TArray<AEnemy*> GetAgroTargets() { return AgroTargets; }
+
+	void ClearTeamMoveTimer();
 
 	void SetIndex(int value) { index = value; }
 	int GetIndex() { return index; }

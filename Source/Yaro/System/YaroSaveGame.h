@@ -45,7 +45,7 @@ struct FCharacterStats
 	FString ItemName;
 
     UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
-	int FallingCount;
+	int FallCount;
 
 	UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
 	int PotionNum;

@@ -25,6 +25,7 @@
 #include "Yaro/System/GameManager.h"
 #include "Yaro/System/DialogueManager.h"
 #include "Yaro/System/NPCManager.h"
+#include "Yaro/System/UIManager.h"
 
 // Sets default values
 AMain::AMain()
@@ -109,6 +110,11 @@ AMain::AMain()
 
 }
 
+bool AMain::IsInAir()
+{
+	return MainAnimInstance->bIsInAir;;
+}
+
 // Called when the game starts or when spawned
 void AMain::BeginPlay()
 {
@@ -118,6 +124,7 @@ void AMain::BeginPlay()
 	if (GameManager)
 	{
 		DialogueManager = GameManager->GetDialogueManager();
+		UIManager = GameManager->GetUIManager();
 		NPCManager = GameManager->GetNPCManager();
 		if (NPCManager)
 			NPCManager->InitializeNPCs();
@@ -151,10 +158,7 @@ void AMain::Tick(float DeltaTime)
 	if (CombatTarget) 
 	{
 		CombatTargetLocation = CombatTarget->GetActorLocation(); // 전투 타겟의 위치 정보 받아오기
-		if (MainPlayerController)
-		{
-			MainPlayerController->EnemyLocation = CombatTargetLocation; // 화살표와 체력 정보 띄우기 위함
-		}
+		UIManager->SetEnemyLocation(CombatTargetLocation); // 화살표와 체력 정보 띄우기 위함
 
         if (CombatTarget->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead) // 현재 전투 타겟이 죽었다면
         {
@@ -169,10 +173,10 @@ void AMain::Tick(float DeltaTime)
             CombatTarget = nullptr;
             bHasCombatTarget = false;
 
-            if (MainPlayerController->bTargetArrowVisible) 
+            if (UIManager->IsTargetArrowVisible()) 
             {// 화살표 및 몬스터 체력바 제거
-                MainPlayerController->RemoveTargetArrow();
-                MainPlayerController->RemoveEnemyHPBar();
+				UIManager->RemoveTargetArrow();
+				UIManager->RemoveEnemyHPBar();
             }
         }
 	}
@@ -357,7 +361,7 @@ void AMain::LMBDown() //Left Mouse Button Down
 		{
 			if (DialogueManager->GetDialogueNum() == 21 && MainAnimInstance && NormalMontage)
 			{
-				//풀어if (MainPlayerController->DialogueUI->SelectedReply != 1 || DialogueManager->IsDialogueUIVisible()) return;
+				if (MainPlayerController->DialogueUI->SelectedReply != 1 || DialogueManager->IsDialogueUIVisible()) return;
 
 				PlayMontageWithItem();
 				MainAnimInstance->Montage_JumpToSection(FName("PickStone"), NormalMontage); // 돌 챙기기
@@ -368,10 +372,10 @@ void AMain::LMBDown() //Left Mouse Button Down
 	// Targeting Off
 	if (CombatTarget)
 	{
-		if (MainPlayerController->bTargetArrowVisible)
+		if (UIManager->IsTargetArrowVisible())
 		{ // 화살표 및 체력바 제거
-			MainPlayerController->RemoveTargetArrow();
-			MainPlayerController->RemoveEnemyHPBar();
+			UIManager->RemoveTargetArrow();
+			UIManager->RemoveEnemyHPBar();
 		}
 		// 전투 타겟 해제
 		CombatTarget = nullptr;
@@ -380,11 +384,11 @@ void AMain::LMBDown() //Left Mouse Button Down
 
 	// 다음 대사 출력 관련
 	if (DialogueManager->IsDialogueUIVisible()
-		//풀어&& MainPlayerController->DialogueUI->CurrentState != 3 
-		&& !MainPlayerController->bMenuVisible)
+		&& MainPlayerController->DialogueUI->CurrentState != 3 
+		&& !UIManager->IsMenuVisible())
 	{
-		//풀어if (MainPlayerController->DialogueUI->bDisableMouseAndKeyboard) return;
-		//풀어else MainPlayerController->DialogueUI->Interact();
+		if (MainPlayerController->DialogueUI->bDisableMouseAndKeyboard) return;
+		else MainPlayerController->DialogueUI->Interact();
 	}
 }
 
@@ -468,8 +472,8 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 			if (CombatTarget == Enemy) // 현재 (타겟팅된)전투 타겟과 (전투 범위를 나간 몬스터가)동일하다면
 			{
 				// 화살표 및 체력바 제거 & 전투 타겟 해제
-				MainPlayerController->RemoveTargetArrow();
-				MainPlayerController->RemoveEnemyHPBar();
+				UIManager->RemoveTargetArrow();
+				UIManager->RemoveEnemyHPBar();
 				CombatTarget = nullptr;
 				bHasCombatTarget = false;
 			}
@@ -488,10 +492,10 @@ void AMain::Targeting() //Targeting using Tap key
 		}
 
 		//There is already exist targeted enemy, then targetArrow remove
-		if (MainPlayerController->bTargetArrowVisible)
+		if (UIManager->IsTargetArrowVisible())
 		{
-			MainPlayerController->RemoveTargetArrow();
-			MainPlayerController->RemoveEnemyHPBar();
+			UIManager->RemoveTargetArrow();
+			UIManager->RemoveEnemyHPBar();
 		}
 
 		if (Targets.Num() == 0) return; // 타겟팅 가능 몬스터가 없으면 리턴
@@ -507,8 +511,8 @@ void AMain::Targeting() //Targeting using Tap key
 		
 		bHasCombatTarget = true;
 
-		MainPlayerController->DisplayTargetArrow(); 
-		MainPlayerController->DisplayEnemyHPBar();
+		UIManager->DisplayTargetArrow();
+		UIManager->DisplayEnemyHPBar();
 	}
 }
 
@@ -680,11 +684,11 @@ void AMain::StartDialogue()
 	if (!MainPlayerController)
 		MainPlayerController = Cast<AMainPlayerController>(GetController());
 
-	//풀어if (MainPlayerController->DialogueUI->CurrentState != 3 && !MainPlayerController->bMenuVisible)
-	//풀어{   
-	//풀어    if (MainPlayerController->DialogueUI->bDisableMouseAndKeyboard) return;
-	//풀어    else MainPlayerController->DialogueUI->Interact();
-	//풀어}
+	if (MainPlayerController->DialogueUI->CurrentState != 3 && !UIManager->IsMenuVisible())
+	{   
+	    if (MainPlayerController->DialogueUI->bDisableMouseAndKeyboard) return;
+	    else MainPlayerController->DialogueUI->Interact();
+	}
 }
 
 void AMain::ItemSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -743,7 +747,7 @@ void AMain::ESCDown()
 
 	if (MainPlayerController)
 	{
-		MainPlayerController->ToggleMenu();
+		UIManager->ToggleMenu();
 	}
 }
 
@@ -782,31 +786,27 @@ void AMain::GetExp(float exp)
 		{
 			case 2:
 				MaxExp = 150.f;
-				MainPlayerController->SystemMessageNum = 6;
-				MainPlayerController->SetSystemMessage();
+				UIManager->SetSystemMessage(6);
 				MaxHP = 350.f;
 				MaxMP = 175.f;
 				MaxSP = 325.f;
 				break;
 			case 3:
 				MaxExp = 250.f;
-                MainPlayerController->SystemMessageNum = 7;
-                MainPlayerController->SetSystemMessage();
+				UIManager->SetSystemMessage(7);
                 MaxHP = 450.f;
                 MaxMP = 200.f;
                 MaxSP = 350.f;
 				break;
 			case 4:
 				MaxExp = 360.f;
-                MainPlayerController->SystemMessageNum = 8;
-                MainPlayerController->SetSystemMessage();
+				UIManager->SetSystemMessage(8);
                 MaxHP = 600.f;
                 MaxMP = 230.f;
                 MaxSP = 375.f;
 				break;
             case 5:
-                MainPlayerController->SystemMessageNum = 9;
-                MainPlayerController->SetSystemMessage();
+				UIManager->SetSystemMessage(9);
                 MaxHP = 700.f;
                 MaxMP = 280.f;
                 MaxSP = 400.f;
@@ -824,7 +824,7 @@ void AMain::GetExp(float exp)
         FTimerHandle Timer;
         GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
         {
-            MainPlayerController->RemoveSystemMessage();
+				UIManager->RemoveSystemMessage();
         }), 3.f, false);
 	}
 }
@@ -857,8 +857,8 @@ void AMain::PlayMontageWithItem()
 
 void AMain::ShowManual()
 {
-	if (MainPlayerController->bManualVisible) MainPlayerController->RemoveManual();
-	else MainPlayerController->DisplayManual();
+	if (UIManager->IsControlGuideVisible()) UIManager->RemoveControlGuide();
+	else UIManager->DisplayControlGuide();
 }
 
 void AMain::Escape() // 긴급 탈출, 순간 이동
@@ -882,22 +882,12 @@ void AMain::Escape() // 긴급 탈출, 순간 이동
 	}
 }
 
-bool AMain::CanTalkWithNpc()
-{
-	for (int i = 0; i < NPCList.Num(); i++)
-	{
-		float distance = GetDistanceTo(NPCList[i]);
-		//UE_LOG(LogTemp, Log, TEXT("%s %f"), *NPCList[i]->GetName(), distance);
 
-		if (distance >= 1300.f) // npc와 너무 멀면 대화 불가
-			return false;
-	}
-	return true;
-}
 
 void AMain::SkipCombat() // 전투 스킵, 몬스터 제거
 {
-	if (DialogueManager->IsDialogueUIVisible() || !bCanSkip || bSkip || MovementStatus == EMovementStatus::EMS_Dead) return;
+	if (DialogueManager->IsDialogueUIVisible() || !GameManager->IsSkippable() || GameManager->IsSkipping()
+		|| MovementStatus == EMovementStatus::EMS_Dead) return;
 
 	if (DialogueManager->GetDialogueNum() < 4) // first dungeon
 	{
@@ -946,14 +936,13 @@ void AMain::SetLevel5() // level cheat, 즉시 최대 레벨 도달
 	MP = MaxMP;
 	SP = MaxSP;
 
-	if (!MainPlayerController->bSystemMessageVisible)
+	if (!UIManager->IsSystemMessageVisible())
 	{
-		MainPlayerController->SystemMessageNum = 15;
-		MainPlayerController->SetSystemMessage();
+		UIManager->SetSystemMessage(15);
 		FTimerHandle Timer;
 		GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
 		{
-			MainPlayerController->RemoveSystemMessage();
+				UIManager->RemoveSystemMessage();
 		}), 3.f, false);
 	}
 }

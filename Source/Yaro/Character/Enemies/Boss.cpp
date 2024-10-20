@@ -15,19 +15,15 @@ ABoss::ABoss()
 	EnemyExp = 100.f;
 
 	AttackDelay = 0.4f;
-
-
 }
 
 void ABoss::BeginPlay()
 {
 	Super::BeginPlay();
-
 }
 
 void ABoss::Disappear()
 {
 	Super::SphereCollisionDisabled();
-
 	Super::Destroy();
 }
