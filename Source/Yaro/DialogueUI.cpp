@@ -69,12 +69,12 @@ void UDialogueUI::AnimateMessage(const FString& Text)
 
     SetSpeechBubbleLocation();
 
-    GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UDialogueUI::OnAnimationTimerCompleted, 0.2f, false);
+    GetWorld()->GetTimerManager().SetTimer(TextTimer, this, &UDialogueUI::OnAnimationTimerCompleted, 0.2f, false);
 }
 
 void UDialogueUI::OnAnimationTimerCompleted()
 {
-    GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
+    GetWorld()->GetTimerManager().ClearTimer(TextTimer);
 
     OutputMessage.AppendChar(InitialMessage[iLetter]);
 
@@ -87,7 +87,7 @@ void UDialogueUI::OnAnimationTimerCompleted()
     if ((iLetter + 1) < InitialMessage.Len())
     {
         iLetter += 1;
-        GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UDialogueUI::OnAnimationTimerCompleted, DelayBetweenLetters, false);
+        GetWorld()->GetTimerManager().SetTimer(TextTimer, this, &UDialogueUI::OnAnimationTimerCompleted, DelayBetweenLetters, false);
     }
     else
     {
@@ -136,7 +136,7 @@ void UDialogueUI::Interact()
 {
     if (CurrentState == 1) // The text is being animated, skip
     {
-        GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
+        GetWorld()->GetTimerManager().ClearTimer(TextTimer);
         NPCText->SetText(FText::FromString(InitialMessage));
        // UE_LOG(LogTemp, Log, TEXT("Interact-1"));
         NPCManager->CloseAllMouth();
@@ -226,7 +226,7 @@ void UDialogueUI::DialogueEvents()
 
     if (Player->IsFallenInDungeon())
     {
-        bDisableMouseAndKeyboard = false;
+        bInputDisabled = false;
 
         if (Player->GetFallCount() == 1)
         {
@@ -306,7 +306,7 @@ void UDialogueUI::DialogueEvents()
                 case 7:
                     NPCManager->OpenMouth(Momo);
                     Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, -15.f, 0.f));
-                    bDisableMouseAndKeyboard = false;
+                    bInputDisabled = false;
                     DialogueManager->DisplaySpeechBuubble(Momo);
                     break;
                 case 2: // Vivi
@@ -344,18 +344,18 @@ void UDialogueUI::DialogueEvents()
                     Vovo->GetAIController()->MoveToLocation(FVector(5200.f, 35.f, 100.f));
                     Vivi->GetAIController()->MoveToLocation(FVector(5200.f, 35.f, 100.f));
                     Zizi->GetAIController()->MoveToLocation(FVector(5200.f, 35.f, 100.f));
-                    bDisableMouseAndKeyboard = true;
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 2.f, false);
+                    bInputDisabled = true;
+                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 2.f, false);
                     break;
                 case 11:
                     Player->SetCanMove(false);
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, FTimerDelegate::CreateLambda([&]()
+                    FTimerHandle Timer;
+                    GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
                         {
                             DialogueManager->DisplayDialogueUI();
                             Player->SetInterpToCharacter(true);
                             Player->SetTargetCharacter(Luko);
-                            GetWorld()->GetTimerManager().ClearTimer(OnceTimer);
-
+                            GetWorld()->GetTimerManager().ClearTimer(Timer);
                         }), 2.f, false); // 2초 뒤 루코 대화
                     AutoCloseDialogue();
                     return;
@@ -367,7 +367,7 @@ void UDialogueUI::DialogueEvents()
         {
             if (RowIndex == 0)
             {
-                bDisableMouseAndKeyboard = false;
+                bInputDisabled = false;
                 RowIndex = 11;
                 Player->GetCameraBoom()->TargetArmLength = 500.f;
             }
@@ -447,12 +447,12 @@ void UDialogueUI::DialogueEvents()
                         NPC.Value->GetAIController()->StopMovement();
                     }
                     RowIndex = 8;
-                    bDisableMouseAndKeyboard = true;
+                    bInputDisabled = true;
                 case 9:
                 case 10:
                 case 11:
                     // GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("first"));
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 3.f, false);
+                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 3.f, false);
                     break;
             }
         }
@@ -537,7 +537,7 @@ void UDialogueUI::DialogueEvents()
                 Zizi->GetAIController()->MoveToLocation(FVector(5538.f, -3696.f, -2115.f));
                 break;
             case 6: // zizi says
-                bDisableMouseAndKeyboard = false;
+                bInputDisabled = false;
                 Player->SetCanMove(true);
                 AutoCloseDialogue();
                 return;
@@ -550,6 +550,7 @@ void UDialogueUI::DialogueEvents()
             switch (RowIndex)
             {
             case 0:
+            {
                 RowIndex = 6;
                 NPCManager->AllNpcLookAtPlayer();
                 NPCManager->AllNpcStopFollowPlayer();
@@ -558,13 +559,15 @@ void UDialogueUI::DialogueEvents()
                 Vovo->GetAIController()->MoveToLocation(FVector(5433.f, -3855.f, -2117.f));
                 Vivi->GetAIController()->MoveToLocation(FVector(5392.f, -3686.f, -2117.f));
                 Zizi->GetAIController()->MoveToLocation(FVector(5538.f, -3696.f, -2115.f));
-                GetWorld()->GetTimerManager().SetTimer(OnceTimer, FTimerDelegate::CreateLambda([&]()
+                FTimerHandle Timer;
+                GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
                     {
                         Player->SetTargetCharacter(Vivi);
                         Player->SetInterpToCharacter(true);
-                        GetWorld()->GetTimerManager().ClearTimer(OnceTimer);
-                    }), 0.6f, false); // npc들쪽 쳐다보기
+                        GetWorld()->GetTimerManager().ClearTimer(Timer);
+                    }), 0.6f, false); // npc쪽 쳐다보기
                 break;
+            }
             case 10:
                 Player->SetCanMove(true);
                 AutoCloseDialogue();
@@ -590,13 +593,13 @@ void UDialogueUI::DialogueEvents()
                 case 12:
                     if (MessageIndex == 1)
                     {
-                        bDisableMouseAndKeyboard = true;
-                        GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.f, false);
+                        bInputDisabled = true;
+                        GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 1.f, false);
                     }
                     break;
                 case 13:
                     AutoCloseDialogue();
-                    bDisableMouseAndKeyboard = false;
+                    bInputDisabled = false;
                     return;
                     break;
             }
@@ -658,12 +661,12 @@ void UDialogueUI::DialogueEvents()
                     Player->GetCameraBoom()->SocketOffset = FVector(0.f, -750.f, 70.f);
                     Player->GetCameraBoom()->TargetArmLength = -10.f;
 
-                    bDisableMouseAndKeyboard = true;
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 2.f, false);
+                    bInputDisabled = true;
+                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 2.f, false);
                     break;
                 case 6://다시 카메라 플레이어쪽으로 돌리기
                     //MainPlayerController->bCanDisplaySpeechBubble = true;
-                    bDisableMouseAndKeyboard = false;
+                    bInputDisabled = false;
                     Player->GetFollowCamera()->SetRelativeRotation((FRotator(0.f, 0.f, 0.f)));
                     Player->GetCameraBoom()->SocketOffset = FVector(0.f, 0.f, 70.f);
                     Player->GetCameraBoom()->TargetArmLength = 290.f;
@@ -672,8 +675,8 @@ void UDialogueUI::DialogueEvents()
                     NPCManager->AllNpcDisableLookAt();
                     if (ExplosionSound != nullptr)
                         UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, ExplosionSound);
-                    bDisableMouseAndKeyboard = true;
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 0.6f, false);
+                    bInputDisabled = true;
+                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 0.6f, false);
                     break;
                 case 9: //npc이동 지지 제외
                     Luko->GetCharacterMovement()->MaxWalkSpeed = 450.f;
@@ -682,13 +685,13 @@ void UDialogueUI::DialogueEvents()
                     Luko->GetAIController()->MoveToLocation(FVector(-198.f, -2065.f, -118.f));
                     Vivi->GetAIController()->MoveToLocation(FVector(-347.f, -2040.f, -121.f));
                     Vovo->GetAIController()->MoveToLocation(FVector(-248.f, -2141.f, -118.f));
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
+                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
                     break;
                 case 10:
                     Zizi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
                     Zizi->GetAIController()->MoveToLocation(FVector(-415.f, -2180.f, -116.f));
                     AutoCloseDialogue();
-                    bDisableMouseAndKeyboard = false;
+                    bInputDisabled = false;
                     DialogueManager->RemoveSpeechBuubble();
                     return;
                     break;
@@ -799,9 +802,9 @@ void UDialogueUI::DialogueEvents()
                     Player->SetTargetCharacter(Vivi);
                     break;
                 case 5:
-                    bDisableMouseAndKeyboard = true;
+                    bInputDisabled = true;
                     NPCManager->AllNpcDisableLookAt();
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
+                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
                     break;
                 case 6:
                     if (SelectedReply == 1)
@@ -817,8 +820,8 @@ void UDialogueUI::DialogueEvents()
                     }
                     else if (MessageIndex == 1)
                     {
-                        bDisableMouseAndKeyboard = true;
-                        GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 2.f, false);
+                        bInputDisabled = true;
+                        GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 2.f, false);
                     }
                     break;
                 case 7:
@@ -859,9 +862,9 @@ void UDialogueUI::DialogueEvents()
                     break;
                 case 10:
                     Zizi->GetAIController()->MoveToLocation(FVector(18, 3090, 182.f));
-                    bDisableMouseAndKeyboard = true;
+                    bInputDisabled = true;
 
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
+                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
                     break;
                 case 11:
                     Zizi->SetActorRotation(FRotator(0.f, 260.f, 0.f));
@@ -870,18 +873,18 @@ void UDialogueUI::DialogueEvents()
                         Zizi->GetAnimInstance()->Montage_Play(Zizi->GetCombatMontage());
                         Zizi->GetAnimInstance()->Montage_JumpToSection(FName("Attack"));
                     }
-                    bDisableMouseAndKeyboard = true;
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.6f, false);
+                    bInputDisabled = true;
+                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 1.6f, false);
                     break;
                 case 12:
-                    bDisableMouseAndKeyboard = false;
+                    bInputDisabled = false;
                     break;
                 case 15:
                     Vovo->Smile();
                     break;
                 case 16:
-                    bDisableMouseAndKeyboard = true;
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.4f, false);
+                    bInputDisabled = true;
+                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 1.4f, false);
                     break;
                 case 17:
                     Vovo->UsualFace();
@@ -1006,8 +1009,8 @@ void UDialogueUI::DialogueEvents()
                     }
                     else if (SelectedReply == 2)
                     {
-                        bDisableMouseAndKeyboard = true;
-                        GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
+                        bInputDisabled = true;
+                        GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
                     }
                     break;
                 case 11:
@@ -1033,8 +1036,8 @@ void UDialogueUI::DialogueEvents()
                     SpawnGriffon();
                     break;
                 case 13:
-                    bDisableMouseAndKeyboard = true;
-                    GetWorld()->GetTimerManager().SetTimer(OnceTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
+                    bInputDisabled = true;
+                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
                     break;
                 case 14:
                     DialogueManager->RemoveSpeechBuubble();
@@ -1117,4 +1120,9 @@ void UDialogueUI::AutoCloseDialogue()
 void UDialogueUI::AutoDialogue()
 {
     Interact();
+}
+
+void UDialogueUI::ClearAutoDialogueTimer()
+{
+    GetWorld()->GetTimerManager().ClearTimer(AutoDialogueTimer);
 }

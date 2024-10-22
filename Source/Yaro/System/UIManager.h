@@ -99,10 +99,16 @@ public:
         void DisplaySystemMessage();
     UFUNCTION(BlueprintCallable)
         void RemoveSystemMessage();
-    bool IsSystemMessageVisible() { return bSystemMessageVisible; }
+
+    UFUNCTION(BlueprintCallable)
+    bool IsSystemMessageVisible() const { return bSystemMessageVisible; }
 
     UFUNCTION(BlueprintCallable)
         void SetSystemMessage(int MessageNum);
+
+    UFUNCTION(BlueprintCallable)
+    FText GetSystemText() const { return SystemText; }
+
     uint8 GetSystemMessageNum() const { return SystemMessageNum; }
 
     void SetEnemyLocation(FVector Location) { EnemyLocation = Location; }
@@ -118,6 +124,9 @@ public:
     bool IsFading() { return bIsFading; }
     void SetIsFading(bool Value) { bIsFading = Value; }
 
+    UFUNCTION(BlueprintCallable, BlueprintPure)
+        UUserWidget* GetFadeInOut();
+
     UFUNCTION(BlueprintCallable)
-    UUserWidget* GetFadeInOut() const { return FadeInOut; }
+        void CreateFadeWidget(bool bExecuteFadeOutEvent);
 };

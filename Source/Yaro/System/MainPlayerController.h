@@ -33,8 +33,9 @@ public:
 
     int WhichKeyDown(); // Find out pressed key, this will be SkillNum  
 
-    UFUNCTION(BlueprintImplementableEvent, Category = "Fade Events")
-        void FadeOut();
+    UFUNCTION(BlueprintImplementableEvent)
+        void FadeOutEvent();
+
 
 protected:
     virtual void BeginPlay() override;

@@ -197,17 +197,18 @@ void UUIManager::DisplaySystemMessage()
 {
     if (SystemMessage)
     {
-        FString text;
+        FString WarningText = "";
         if (bMenuVisible && DialogueManager->GetDialogueNum() < 3)
         {
-            text = FString(TEXT("이 곳에선 저장되지 않습니다."));
+            WarningText = FString(TEXT("이 곳에선 저장되지 않습니다."));
         }
         if (bMenuVisible && DialogueManager->IsDialogueUIVisible())
         {
-            text = FString(TEXT("대화 중엔 저장되지 않습니다."));
+            WarningText = FString(TEXT("대화 중엔 저장되지 않습니다."));
         }
 
-        SystemText = FText::FromString(text);
+        if(WarningText != "")
+            SystemText = FText::FromString(WarningText);
 
         bSystemMessageVisible = true;
         SystemMessage->SetVisibility(ESlateVisibility::Visible);
@@ -279,6 +280,7 @@ void UUIManager::SetSystemMessage(int MessageNum)
         break;
     }
 
+    SystemText = FText::FromString(text);
     SystemMessageNum = MessageNum;
     DisplaySystemMessage();
 }
@@ -345,7 +347,32 @@ void UUIManager::FadeAndDialogue()
                 MainPlayerController->SetCinematicMode(true, true, true);
 
             }
-            MainPlayerController->FadeOut();
+            MainPlayerController->FadeOutEvent();
+        }
+    }
+}
+
+UUserWidget* UUIManager::GetFadeInOut()
+{
+    if (!FadeInOut && FadeInOutClass)
+    {
+        FadeInOut = CreateWidget<UUserWidget>(GameManager, FadeInOutClass);
+    }
+    return FadeInOut;
+}
+
+void UUIManager::CreateFadeWidget(bool bExecuteFadeOutEvent)
+{
+    if (FadeInOutClass)
+    {
+        FadeInOut = CreateWidget<UUserWidget>(GameManager, FadeInOutClass);
+        
+        if (FadeInOut)
+        {
+            FadeInOut->AddToViewport();
+
+            if(bExecuteFadeOutEvent)
+                MainPlayerController->FadeOutEvent();
         }
     }
 }

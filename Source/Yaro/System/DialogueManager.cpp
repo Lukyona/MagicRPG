@@ -25,7 +25,7 @@ void UDialogueManager::Init()
     }
     else return;
 
-    static ConstructorHelpers::FClassFinder<UUserWidget> DialogueBPClass(TEXT("/Game/HUDandWigets/DialogueUI_BP.DialogueUI_BP_C"));
+    static ConstructorHelpers::FClassFinder<UUserWidget> DialogueBPClass(TEXT("/Game/HUDandWigets/DialogueUI.DialogueUI_C"));
 
     if (ensure(DialogueBPClass.Class != nullptr))
     {
@@ -83,7 +83,7 @@ void UDialogueManager::DisplayDialogueUI()
 {
     if (DialogueUI)
     {
-        if (!DialogueUI->bCanStartDialogue) return;
+        if (!DialogueUI->CanStartDialogue()) return;
 
         if (UIManager->IsControlGuideVisible()) UIManager->RemoveControlGuide();
 
@@ -251,7 +251,7 @@ void UDialogueManager::DialogueEvents()
         Player->SetTargetCharacter(nullptr);
         break;
     case 5:
-        GetWorld()->GetTimerManager().ClearTimer(DialogueUI->OnceTimer);
+        DialogueUI->ClearAutoDialogueTimer();
         break;
     case 6: // enter the second dungeon
         MainPlayerController->SetCinematicMode(false, true, true);
@@ -311,7 +311,7 @@ void UDialogueManager::DialogueEvents()
         Player->SetCanMove(true);
         MainPlayerController->ResetIgnoreMoveInput();
         MainPlayerController->ResetIgnoreLookInput();
-        GetWorld()->GetTimerManager().ClearTimer(DialogueUI->OnceTimer);
+       DialogueUI->ClearAutoDialogueTimer();
         break;
     case 13:
     case 14:
@@ -321,7 +321,7 @@ void UDialogueManager::DialogueEvents()
         NPCManager->AllNpcMoveToPlayer();
         break;
     case 15:
-        DialogueUI->bDisableMouseAndKeyboard = false;
+        DialogueUI->SetInputDisabled(false);
         Player->SetCanMove(true);
         UIManager->SetSystemMessage(11);
         NPCManager->AllNpcMoveToPlayer();
@@ -330,12 +330,12 @@ void UDialogueManager::DialogueEvents()
         MainPlayerController->SetCinematicMode(false, true, true);
         NPCManager->AllNpcDisableLookAt();
         Player->SetInterpToCharacter(false);
-        DialogueUI->bDisableMouseAndKeyboard = false;
+        DialogueUI->SetInputDisabled(false);
         break;
     case 17:
     case 22:
     case 23:
-        DialogueUI->bDisableMouseAndKeyboard = false;
+        DialogueUI->SetInputDisabled(false);
         MainPlayerController->SetCinematicMode(false, true, true);
         Player->SetCanMove(true);
 
@@ -344,7 +344,7 @@ void UDialogueManager::DialogueEvents()
         break;
     case 18: // fog appear, boss combat soon
     {
-        DialogueUI->bDisableMouseAndKeyboard = false;
+        DialogueUI->SetInputDisabled(false);
         Player->SetCanMove(true);
         NPCManager->AllNpcMoveToPlayer();
         UIManager->SetSystemMessage(12);
@@ -360,8 +360,8 @@ void UDialogueManager::DialogueEvents()
         MainPlayerController->SetCinematicMode(false, true, true);
         break;
     case 21:
-        DialogueUI->bDisableMouseAndKeyboard = false;
-        if (DialogueUI->SelectedReply == 1)
+        DialogueUI->SetInputDisabled(false);
+        if (DialogueUI->GetSelectedReply() == 1)
         {
             MainPlayerController->SetCinematicMode(false, true, true);
             Player->SetCanMove(true);

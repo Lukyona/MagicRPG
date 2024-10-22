@@ -708,6 +708,13 @@ void AYaroCharacter::ClearTeamMoveTimer()
 	GetWorldTimerManager().ClearTimer(TeamMoveTimer);
 }
 
+void AYaroCharacter::ClearAllTimer()
+{
+	GetWorldTimerManager().ClearTimer(TeamMoveTimer);
+	GetWorldTimerManager().ClearTimer(MoveTimer);
+	GetWorldTimerManager().ClearTimer(MagicSpawnTimer);
+}
+
 void AYaroCharacter::Smile() // ¿ô´Â Ç¥Á¤
 {
 	this->bSmile = true;

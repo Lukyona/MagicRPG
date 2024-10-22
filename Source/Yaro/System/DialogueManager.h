@@ -72,7 +72,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void CheckDialogueStartCondition();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 		UDialogueUI* GetDialogueUI() { return DialogueUI; }
 
 	UFUNCTION(BlueprintCallable)

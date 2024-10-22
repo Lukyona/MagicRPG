@@ -175,6 +175,9 @@ public:
 
 	void ClearTeamMoveTimer();
 
+	UFUNCTION(BlueprintCallable)
+	void ClearAllTimer();
+
 	void SetIndex(int value) { index = value; }
 	int GetIndex() { return index; }
 

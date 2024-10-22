@@ -361,7 +361,7 @@ void AMain::LMBDown() //Left Mouse Button Down
 		{
 			if (DialogueManager->GetDialogueNum() == 21 && MainAnimInstance && NormalMontage)
 			{
-				if (DialogueManager->GetDialogueUI()->SelectedReply != 1 || DialogueManager->IsDialogueUIVisible()) return;
+				if (DialogueManager->GetDialogueUI()->GetSelectedReply() != 1 || DialogueManager->IsDialogueUIVisible()) return;
 
 				PlayMontageWithItem();
 				MainAnimInstance->Montage_JumpToSection(FName("PickStone"), NormalMontage); // 돌 챙기기
@@ -384,10 +384,10 @@ void AMain::LMBDown() //Left Mouse Button Down
 
 	// 다음 대사 출력 관련
 	if (DialogueManager->IsDialogueUIVisible()
-		&& DialogueManager->GetDialogueUI()->CurrentState != 3
+		&& DialogueManager->GetDialogueUI()->GetCurrentState() != 3
 		&& !UIManager->IsMenuVisible())
 	{
-		if (DialogueManager->GetDialogueUI()->bDisableMouseAndKeyboard) return;
+		if (DialogueManager->GetDialogueUI()->IsInputDisabled()) return;
 		else DialogueManager->GetDialogueUI()->Interact();
 	}
 }
@@ -686,9 +686,9 @@ void AMain::StartDialogue()
 	if (!MainPlayerController)
 		MainPlayerController = Cast<AMainPlayerController>(GetController());
 
-	if (DialogueManager->GetDialogueUI()->CurrentState != 3 && !UIManager->IsMenuVisible())
+	if (DialogueManager->GetDialogueUI()->GetCurrentState() != 3 && !UIManager->IsMenuVisible())
 	{   
-	    if (DialogueManager->GetDialogueUI()->bDisableMouseAndKeyboard) return;
+	    if (DialogueManager->GetDialogueUI()->IsInputDisabled()) return;
 	    else DialogueManager->GetDialogueUI()->Interact();
 	}
 }

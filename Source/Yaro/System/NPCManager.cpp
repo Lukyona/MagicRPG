@@ -60,9 +60,15 @@ void UNPCManager::AddNPC(FString NPCName, class AYaroCharacter* NPC)
     NPCMap.Add(NPCName, NPC);
 }
 
+AYaroCharacter* UNPCManager::GetNPC(ENPCType NPCType)
+{
+	FString NPCName = EnumToString(TEXT("ENPCType"), NPCType);
+    return NPCMap.Contains(NPCName) ? NPCMap[NPCName] : nullptr;
+}
+
 AYaroCharacter* UNPCManager::GetNPC(FString NPCName) const
 {
-    return NPCMap.Contains(NPCName) ? NPCMap[NPCName] : nullptr;
+	return NPCMap.Contains(NPCName) ? NPCMap[NPCName] : nullptr;
 }
 
 void UNPCManager::MoveNPCToLocation(FString NPCName, FVector Location)

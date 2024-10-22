@@ -36,24 +36,25 @@ public:
 
 	FTimerHandle SaveTimer; 
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	UDialogueManager* GetDialogueManager() const { return DialogueManager; }
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	UNPCManager* GetNPCManager() const { return NPCManager; }
 
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 		UUIManager* GetUIManager() const { return UIManager; }
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	AMain* GetPlayer();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	AMainPlayerController* GetMainPlayerController();
 
 	// 배열을 const 참조로 반환하여 배열의 복사가 일어나지 않도록, 마지막 const는 이 함수가 객체의 멤버 변수를 변경하지 않는 것을 의미
-	const TArray<FString>& GetDeadEnemies() const { return DeadEnemies; }
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	const TArray<FString>& GetDeadEnemies() { return DeadEnemies; }
 	void AddDeadEnemy(FString EnemyName) { DeadEnemies.Add(EnemyName); }
 
 

@@ -22,19 +22,19 @@ class YARO_API AMain : public AStudent
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
-	class UGameManager* GameManager;
+protected:
+	    UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		class UGameManager* GameManager;
 
-	UPROPERTY()
+	    UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		class UDialogueManager* DialogueManager;
 
-	UPROPERTY()
+	    UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		class UUIManager* UIManager;
 
-	UPROPERTY()
+	    UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		class UNPCManager* NPCManager;
 
-protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	EMovementStatus MovementStatus;
 

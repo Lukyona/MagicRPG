@@ -72,8 +72,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 		bool IsNPCInTalkRange();
 
-	UFUNCTION(BlueprintCallable)
-	AYaroCharacter* GetNPC(FString NPCName) const;
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	AYaroCharacter* GetNPC(ENPCType NPCType);
+
+	AYaroCharacter* UNPCManager::GetNPC(FString NPCName) const;
+
 
 	UFUNCTION(BlueprintCallable)
 	const TMap<FString, AYaroCharacter*>& GetNPCMap() const { return NPCMap; }
