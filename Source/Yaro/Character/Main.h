@@ -34,11 +34,7 @@ class YARO_API AMain : public AStudent
 	UPROPERTY()
 		class UNPCManager* NPCManager;
 
-
-
 protected:
-
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	EMovementStatus MovementStatus;
 
@@ -99,6 +95,8 @@ protected:
 	/*
 	*/
 
+	TMap<FString, float> PlayerStats;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float MaxHP;
 
@@ -126,19 +124,20 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float MaxExp;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		int PotionNum;
+
+
 	// 스탯 자동 회복
 	FTimerHandle HPTimer;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
 	float HPDelay;
 
 	FTimerHandle MPTimer;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
 	float MPDelay;
 
 	FTimerHandle SPTimer;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
 	float SPDelay;
 
@@ -182,17 +181,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	class USoundBase* LevelUpSound;
 
-
-
-
 	bool bLMBDown;
 	bool bESCDown;
 
-
-
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int PotionNum;
 
 public:
 	// Sets default values for this character's properties
@@ -205,17 +196,23 @@ public:
 
 	void SetCanMove(bool value) { bCanMove = value; }
 
-	float GetHP() { return HP; }
-	void SetHP(float value) { HP = value; }
-	float GetMaxHP() { return HP; }
-	float GetMP() { return HP; }
-	
-	void AddHP(float value) { HP += value; }
-	void AddMP(float value) { MP += value; }
+	void InitializeStats();
+
+	float GetStat(FString StatName) const;
+	void SetStat(FString StatName, float Value);
+
+
+	void AddHP(float value) { HP += value; SetStat("HP", HP); }
+	void AddMP(float value) { MP += value; SetStat("MP", MP);}
+	void AddSP(float value) { SP += value; SetStat("SP", SP); }
 
 	void RecoveryHP();
 	void RecoveryMP();
 	void RecoverySP();
+
+	void GainExp(float Value);
+
+	const TMap<FString, TSubclassOf<class AItem>>* AMain::GetItemMap();
 	
 	FORCEINLINE void SetActiveOverlappingItem(AItem* Item) { ActiveOverlappingItem = Item; }
 
@@ -229,6 +226,8 @@ public:
 	int GetFallCount() { return FallCount; }
 
 	void SetFallenInDungeon(bool Value) { bFallenInDungeon = Value; }
+
+	UFUNCTION(BlueprintCallable)
 	bool IsFallenInDungeon() { return bFallenInDungeon; }
 
 	bool IsInAir();
@@ -283,8 +282,6 @@ public:
 
 	void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 	void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
-
-	void GetExp(float exp);
 
 	void PlayMontageWithItem();
  

@@ -31,7 +31,7 @@ class YARO_API UGameManager : public UGameInstance
 
 public:
 
-	UPROPERTY(BlueprintReadWrite, Category = "PlayerData")
+	UPROPERTY(BlueprintReadWrite)
 		TSubclassOf<APawn> PlayerClass;
 
 	FTimerHandle SaveTimer; 
@@ -67,10 +67,16 @@ public:
 		void LoadGame();
 
 
+	UFUNCTION(BlueprintCallable)
 	bool IsSkipping() const { return bIsSkipping; }
+
+	UFUNCTION(BlueprintCallable)
 	void SetIsSkipping(bool bSkipping) { bIsSkipping = bSkipping; }
 
+	UFUNCTION(BlueprintCallable)
 	bool IsSkippable() const { return bIsSkippable; }
+
+	UFUNCTION(BlueprintCallable)
 	void SetIsSkippable(bool bSkippable) { bIsSkippable = bSkippable; }
 
 

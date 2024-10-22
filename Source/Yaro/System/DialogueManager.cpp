@@ -38,7 +38,6 @@ void UDialogueManager::Init()
         DialogueUI->SetVisibility(ESlateVisibility::Hidden);
     }
 
-
     TArray<UObject*> Assets; // µ¿ÀÛ µÊ?
     EngineUtils::FindOrLoadAssetsByPath(TEXT("/Game/DialogueDatas"), Assets, EngineUtils::ATL_Class);
 
@@ -108,14 +107,14 @@ void UDialogueManager::DisplayDialogueUI()
                 DialogueUI->InitializeDialogue(DialogueDatas[1]);
                 break;
             case 3: //after golem battle
-                if (!bFadeOn)
+                if (!UIManager->IsFading())
                 {
-                    FadeAndDialogue();
+                    UIManager->FadeAndDialogue();
                     return;
                 }
                 //bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[2]);
-                bFadeOn = false;
+                UIManager->SetIsFading(false);
                 break;
             case 4: // the boat move
                 DialogueUI->InitializeDialogue(DialogueDatas[2]);
@@ -136,9 +135,9 @@ void UDialogueManager::DisplayDialogueUI()
             case 16: // move to the rocks
             case 18:// after combat with boss
             case 20: // discover divinum~, someone take the divinum~
-                if (!bFadeOn)
+                if (!UIManager->IsFading())
                 {
-                    FadeAndDialogue();
+                    UIManager->FadeAndDialogue();
                     if (DialogueNum == 18) GameManager->SaveGame();
                     return;
                 }
@@ -149,7 +148,7 @@ void UDialogueManager::DisplayDialogueUI()
                     DialogueUI->InitializeDialogue(DialogueDatas[6]);
                 else if (DialogueNum == 20)
                     DialogueUI->InitializeDialogue(DialogueDatas[7]);
-                bFadeOn = false;
+                UIManager->SetIsFading(false);
                 break;
             case 12: // after combat with spiders
             case 13: // before combat with final monsters in second dungeon
@@ -171,7 +170,6 @@ void UDialogueManager::DisplayDialogueUI()
                 DialogueUI->InitializeDialogue(DialogueDatas[7]);
                 break;
             }
-
         }
 
         DialogueUI->SetVisibility(ESlateVisibility::Visible);
@@ -345,6 +343,7 @@ void UDialogueManager::DialogueEvents()
             NPCManager->MoveNPCToLocation("Vivi", FVector(625.f, 318.f, 153.f));
         break;
     case 18: // fog appear, boss combat soon
+    {
         DialogueUI->bDisableMouseAndKeyboard = false;
         Player->SetCanMove(true);
         NPCManager->AllNpcMoveToPlayer();
@@ -356,6 +355,7 @@ void UDialogueManager::DialogueEvents()
             UIManager->RemoveSystemMessage();
             }), 4.f, false);
         break;
+    }
     case 20:
         MainPlayerController->SetCinematicMode(false, true, true);
         break;

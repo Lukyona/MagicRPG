@@ -85,16 +85,18 @@ AMain::AMain()
 
 
 	//상태 정보 초기화
-	MaxHP = 300.f;
-	HP = 300.f;
-	MaxMP = 150.f;
-	MP = 150.f;
-	MaxSP = 300.f;
-	SP = 300.f;
+	PlayerStats.Add("Gender", 0.f);
+	PlayerStats.Add("MaxHP", 300.f);
+	PlayerStats.Add("HP", 300.f);
+	PlayerStats.Add("MaxMP", 150.f);
+	PlayerStats.Add("MP", 150.f);
+	PlayerStats.Add("MaxSP", 300.f);
+	PlayerStats.Add("SP", 300.f);
+	PlayerStats.Add("Level", 1.f);
+	PlayerStats.Add("Exp", 0.f);
+	PlayerStats.Add("MaxExp", 60.f);
+	PlayerStats.Add("PotionNum", 0.f);
 
-	Level = 1;
-	Exp = 0.f;
-	MaxExp = 60.f;
 
 	HPDelay = 3.f;
 	MPDelay = 2.f;
@@ -103,8 +105,6 @@ AMain::AMain()
 	DeathDelay = 3.f;
 
 	MovementStatus = EMovementStatus::EMS_Normal;
-
-	PotionNum = 0;
 
 	bESCDown = false;
 
@@ -137,8 +137,8 @@ void AMain::BeginPlay()
 	ItemSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapEnd);
 
 	// 현재 캐릭터 성별 정보 저장
-	if (this->GetName().Contains("Boy")) Gender = 1;
-	if (this->GetName().Contains("Girl")) Gender = 2;
+	if (this->GetName().Contains("Boy")) SetStat("Gender", 1);
+	if (this->GetName().Contains("Girl")) SetStat("Gender", 2);
 
 	// 아이템 정보 관련
 	Storage = GetWorld()->SpawnActor<AItemStorage>(ObjectStorage);
@@ -241,7 +241,7 @@ void AMain::MoveForward(float Value)
 		AddMovementInput(Direction, Value);
 
 		if (bRunning && SP > 0.f) // 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
-			SP -= 1.f;
+			AddSP(-1);
 	}
 }
 
@@ -257,7 +257,7 @@ void AMain::MoveRight(float Value)
 		AddMovementInput(Direction, Value);
 
 		if (bRunning && SP > 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
-			SP -= 1.f;
+			AddSP(-1);
 	}
 }
 
@@ -361,7 +361,7 @@ void AMain::LMBDown() //Left Mouse Button Down
 		{
 			if (DialogueManager->GetDialogueNum() == 21 && MainAnimInstance && NormalMontage)
 			{
-				if (MainPlayerController->DialogueUI->SelectedReply != 1 || DialogueManager->IsDialogueUIVisible()) return;
+				if (DialogueManager->GetDialogueUI()->SelectedReply != 1 || DialogueManager->IsDialogueUIVisible()) return;
 
 				PlayMontageWithItem();
 				MainAnimInstance->Montage_JumpToSection(FName("PickStone"), NormalMontage); // 돌 챙기기
@@ -384,11 +384,11 @@ void AMain::LMBDown() //Left Mouse Button Down
 
 	// 다음 대사 출력 관련
 	if (DialogueManager->IsDialogueUIVisible()
-		&& MainPlayerController->DialogueUI->CurrentState != 3 
+		&& DialogueManager->GetDialogueUI()->CurrentState != 3
 		&& !UIManager->IsMenuVisible())
 	{
-		if (MainPlayerController->DialogueUI->bDisableMouseAndKeyboard) return;
-		else MainPlayerController->DialogueUI->Interact();
+		if (DialogueManager->GetDialogueUI()->bDisableMouseAndKeyboard) return;
+		else DialogueManager->GetDialogueUI()->Interact();
 	}
 }
 
@@ -556,6 +556,7 @@ void AMain::Spawn() //Spawn Magic
 		}), 0.6f, false); // 0.6초 뒤 실행, 반복X
 
 		MP -= MPCost;
+		SetStat("MP", MP);
 
 		if(!GetWorldTimerManager().IsTimerActive(MPTimer))
 			GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
@@ -606,7 +607,7 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 			}
 		}
 	}
-
+	SetStat("HP", HP);
 	return DamageAmount;
 }
 
@@ -666,6 +667,7 @@ void AMain::Revive() // if player is dead, spawn player at the initial location
 		MainAnimInstance->Montage_JumpToSection(FName("Revival"));
 		GetMesh()->bNoSkeletonUpdate = false;
 		HP += 50.f;
+		SetStat("HP", HP);
 	}
 }
 
@@ -684,10 +686,10 @@ void AMain::StartDialogue()
 	if (!MainPlayerController)
 		MainPlayerController = Cast<AMainPlayerController>(GetController());
 
-	if (MainPlayerController->DialogueUI->CurrentState != 3 && !UIManager->IsMenuVisible())
+	if (DialogueManager->GetDialogueUI()->CurrentState != 3 && !UIManager->IsMenuVisible())
 	{   
-	    if (MainPlayerController->DialogueUI->bDisableMouseAndKeyboard) return;
-	    else MainPlayerController->DialogueUI->Interact();
+	    if (DialogueManager->GetDialogueUI()->bDisableMouseAndKeyboard) return;
+	    else DialogueManager->GetDialogueUI()->Interact();
 	}
 }
 
@@ -710,6 +712,39 @@ void AMain::ItemSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AAc
     }
 }
 
+void AMain::InitializeStats()
+{
+	if (SP < MaxSP && !recoverySP)
+	{
+		recoverySP = true;
+		GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
+	}
+
+	if (HP < MaxHP)
+		GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);
+
+	if (MP < MaxMP)
+		GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
+
+}
+
+float AMain::GetStat(FString StatName) const
+{
+	if (PlayerStats.Contains(StatName))
+	{
+		return PlayerStats[StatName];
+	}
+	return 0.f;
+}
+
+void AMain::SetStat(FString StatName, float Value)
+{
+	if (PlayerStats.Contains(StatName))
+	{
+		PlayerStats[StatName] = Value;
+	}
+}
+
 void AMain::RecoveryHP()
 {
 	HP += 5.f;
@@ -718,6 +753,7 @@ void AMain::RecoveryHP()
 		HP = MaxHP;
 		GetWorldTimerManager().ClearTimer(HPTimer);
 	}
+	SetStat("HP", HP);
 }
 
 void AMain::RecoveryMP()
@@ -728,6 +764,7 @@ void AMain::RecoveryMP()
 		MP = MaxMP;
 		GetWorldTimerManager().ClearTimer(MPTimer);
 	}
+	SetStat("MP", MP);
 }
 
 void AMain::RecoverySP()
@@ -739,6 +776,7 @@ void AMain::RecoverySP()
 		GetWorldTimerManager().ClearTimer(SPTimer);
 		recoverySP = false;
 	}
+	SetStat("SP", SP);
 }
 
 void AMain::ESCDown()
@@ -756,11 +794,11 @@ void AMain::ESCUp()
 	bESCDown = false;
 }
 
-void AMain::GetExp(float exp)
+void AMain::GainExp(float Value)
 {
 	if (Level == 5) return; // 최고 레벨일 때는 리턴
 
-	Exp += exp;
+	Exp += Value;
 
 	if (Exp >= MaxExp) // 다음 레벨로의 경험치를 모두 채웠다면
 	{
@@ -821,12 +859,29 @@ void AMain::GetExp(float exp)
 		if (MP > MaxMP) MP = MaxMP;
 		if (SP > MaxSP) SP = MaxSP;
 
+
+		SetStat("HP", HP);
+		SetStat("MaxHP", MaxHP);
+		SetStat("MP", MP);
+		SetStat("MaxMP", MaxMP);
+		SetStat("SP", SP);
+		SetStat("MaxSP", MaxSP);
+		SetStat("Level", Level);
+		SetStat("Exp", Exp);
+		SetStat("MaxExp", MaxExp);
+
         FTimerHandle Timer;
         GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
         {
 				UIManager->RemoveSystemMessage();
         }), 3.f, false);
 	}
+}
+
+const TMap<FString, TSubclassOf<class AItem>>* AMain::GetItemMap()
+{
+	if (Storage != nullptr) return &(Storage->ItemMap);
+	return nullptr;
 }
 
 void AMain::PlayMontageWithItem()
@@ -916,6 +971,10 @@ void AMain::RecoverWithLogo() // get school icon in second stage
 	if (HP >= MaxHP) HP = MaxHP;
 	if (MP >= MaxMP) MP = MaxMP;
 	if (SP >= MaxSP) SP = MaxSP;
+
+	SetStat("HP", HP);
+	SetStat("MP", MP);
+	SetStat("SP", SP);
 }
 
 void AMain::SetLevel5() // level cheat, 즉시 최대 레벨 도달
@@ -935,6 +994,16 @@ void AMain::SetLevel5() // level cheat, 즉시 최대 레벨 도달
 	HP = MaxHP;
 	MP = MaxMP;
 	SP = MaxSP;
+
+	SetStat("HP", HP);
+	SetStat("MaxHP", MaxHP);
+	SetStat("MP", MP);
+	SetStat("MaxMP", MaxMP);
+	SetStat("SP", SP);
+	SetStat("MaxSP", MaxSP);
+	SetStat("Level", Level);
+	SetStat("Exp", Exp);
+	SetStat("MaxExp", MaxExp);
 
 	if (!UIManager->IsSystemMessageVisible())
 	{
@@ -956,4 +1025,9 @@ void AMain::UsePotion()
 	HP = MaxHP;
 	MP = MaxMP;
 	SP = MaxSP;
+
+	SetStat("HP", HP);
+	SetStat("MP", MP);
+	SetStat("SP", SP);
+	SetStat("PotionNum", PotionNum);
 }

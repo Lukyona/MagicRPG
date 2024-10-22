@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "System/UIManager.h"
@@ -26,6 +26,7 @@ void UUIManager::Init()
     static ConstructorHelpers::FClassFinder<UUserWidget> SystemMessageBPClass(TEXT("/Game/HUDandWigets/SystemMessage.SystemMessage_C"));
     static ConstructorHelpers::FClassFinder<UUserWidget> TargetArrowBPClass(TEXT("/Game/HUDandWigets/TargetArrow.TargetArrow_C"));
     static ConstructorHelpers::FClassFinder<UUserWidget> EnemyHPBarBPClass(TEXT("/Game/HUDandWigets/EnemyHPBar.EnemyHPBar_C"));
+    static ConstructorHelpers::FClassFinder<UUserWidget> FadeInOutBPClass(TEXT("/Game/HUDandWigets/FadeInOut.FadeInOut_C"));
 
     if (ensure(ControlGuideBPClass.Class != nullptr))
     {
@@ -39,7 +40,7 @@ void UUIManager::Init()
 
     if (ensure(MenuBPClass.Class != nullptr))
     {
-        Menu = CreateWidget<UUserWidget>(this, MenuBPClass.Class);
+        Menu = CreateWidget<UUserWidget>(GameManager, MenuBPClass.Class);
         if (Menu)
         {
             Menu->AddToViewport();
@@ -49,7 +50,7 @@ void UUIManager::Init()
 
     if (ensure(SystemMessageBPClass.Class != nullptr))
     {
-        SystemMessage = CreateWidget<UUserWidget>(this, SystemMessageBPClass.Class);
+        SystemMessage = CreateWidget<UUserWidget>(GameManager, SystemMessageBPClass.Class);
         if (SystemMessage)
         {
             SystemMessage->AddToViewport();
@@ -59,7 +60,7 @@ void UUIManager::Init()
 
     if (ensure(TargetArrowBPClass.Class != nullptr))
     {
-        TargetArrow = CreateWidget<UUserWidget>(this, TargetArrowBPClass.Class);
+        TargetArrow = CreateWidget<UUserWidget>(GameManager, TargetArrowBPClass.Class);
         if (TargetArrow)
         {
             TargetArrow->AddToViewport();
@@ -72,7 +73,7 @@ void UUIManager::Init()
 
     if (ensure(EnemyHPBarBPClass.Class != nullptr))
     {
-        EnemyHPBar = CreateWidget<UUserWidget>(this, EnemyHPBarBPClass.Class);
+        EnemyHPBar = CreateWidget<UUserWidget>(GameManager, EnemyHPBarBPClass.Class);
         if (EnemyHPBar)
         {
             EnemyHPBar->AddToViewport();
@@ -81,6 +82,11 @@ void UUIManager::Init()
 
         FVector2D Alignment(0.f, 0.f);
         EnemyHPBar->SetAlignmentInViewport(Alignment);
+    }
+
+    if (ensure(FadeInOutBPClass.Class != nullptr))
+    {
+        FadeInOutClass = FadeInOutBPClass.Class;
     }
 }
 
@@ -112,7 +118,7 @@ void UUIManager::DisplayControlGuide()
         {
             FTimerHandle TimerHandle;
             DisplaySystemMessage();
-            FString text = TEXT("´ëÈ­ ÁßÀÌ°Å³ª ¸Þ´º°¡ È°¼ºÈ­µÈ »óÅÂ¿¡¼­´Â\nÁ¶ÀÛ ¸Å´º¾óÀ» º¼ ¼ö ¾ø½À´Ï´Ù.");
+            FString text = TEXT("ëŒ€í™” ì¤‘ì´ê±°ë‚˜ ë©”ë‰´ê°€ í™œì„±í™”ëœ ìƒíƒœì—ì„œëŠ”\nì¡°ìž‘ ë§¤ë‰´ì–¼ì„ ë³¼ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
             SystemText = FText::FromString(text);
             GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([&]() {
 
@@ -194,11 +200,11 @@ void UUIManager::DisplaySystemMessage()
         FString text;
         if (bMenuVisible && DialogueManager->GetDialogueNum() < 3)
         {
-            text = FString(TEXT("ÀÌ °÷¿¡¼± ÀúÀåµÇÁö ¾Ê½À´Ï´Ù."));
+            text = FString(TEXT("ì´ ê³³ì—ì„  ì €ìž¥ë˜ì§€ ì•ŠìŠµë‹ˆë‹¤."));
         }
         if (bMenuVisible && DialogueManager->IsDialogueUIVisible())
         {
-            text = FString(TEXT("´ëÈ­ Áß¿£ ÀúÀåµÇÁö ¾Ê½À´Ï´Ù."));
+            text = FString(TEXT("ëŒ€í™” ì¤‘ì—” ì €ìž¥ë˜ì§€ ì•ŠìŠµë‹ˆë‹¤."));
         }
 
         SystemText = FText::FromString(text);
@@ -221,57 +227,56 @@ void UUIManager::RemoveSystemMessage()
 void UUIManager::SetSystemMessage(int MessageNum)
 {
     FString text;
-
     switch (MessageNum)
     {
-        case 1:
-            text = FString(TEXT("FÅ°¸¦ ´©¸£°Å³ª ¸¶¿ì½º ¿ÞÂÊ ¹öÆ°À» Å¬¸¯ÇÏ¿©\n´ëÈ­¸¦ ÁøÇàÇÒ ¼ö ÀÖ½À´Ï´Ù."));
-            break;
-        case 2:
-            text = FString(TEXT("MÅ°¸¦ ´­·¯ Á¶ÀÛ ¸Å´º¾óÀ» È®ÀÎÇÏ°í\n´Ù½Ã MÅ°¸¦ ´­·¯ Á¶ÀÛ ¸Å´º¾óÀ» ´ÝÀ¸¼¼¿ä."));
-            break;
-        case 3:
-            text = FString(TEXT("ÀÌÁ¦ ÁöÆÎÀÌ °¡±îÀÌ¿¡¼­ ¸¶¿ì½º ¿ÞÂÊ ¹öÆ°À» Å¬¸¯ÇÏ¿©\nÁöÆÎÀÌ¸¦ ÀåºñÇÏ¼¼¿ä."));
-            break;
-        case 4:
-            text = FString(TEXT("Æ÷Å»À» ÀÌ¿ëÇØ ´øÀüÀ¸·Î ÀÌµ¿ÇÏ¼¼¿ä."));
-            break;
-        case 5:
-            text = FString(TEXT("¼ýÀÚÅ° 1·Î ÇÑ °¡Áö ¸¶¹ýÀ» ¾µ ¼ö ÀÖ½À´Ï´Ù.\nÁØºñ°¡ µÇ¾ú´Ù¸é GÅ°¸¦ ´©¸£¼¼¿ä."));
-            break;
-        case 6:
-            text = FString(TEXT("·¹º§ 2°¡ µÇ¾ú½À´Ï´Ù!\nÀÌÁ¦ ¼ýÀÚÅ° 2·Î µÎ ¹øÂ° ¸¶¹ýÀ» ¾µ ¼ö ÀÖ½À´Ï´Ù."));
-            break;
-        case 7:
-            text = FString(TEXT("·¹º§ 3ÀÌ µÇ¾ú½À´Ï´Ù!\nÀÌÁ¦ ¼ýÀÚÅ° 3À¸·Î ¼¼ ¹øÂ° ¸¶¹ýÀ» ¾µ ¼ö ÀÖ½À´Ï´Ù."));
-            break;
-        case 8:
-            text = FString(TEXT("ÃàÇÏÇÕ´Ï´Ù!\nÀÌÁ¦ ¼ýÀÚÅ° 4·Î ³× ¹øÂ° ¸¶¹ýÀ» ¾µ ¼ö ÀÖ½À´Ï´Ù."));
-            break;
-        case 9:
-            text = FString(TEXT("·¹º§ 5¸¦ ´Þ¼ºÇß½À´Ï´Ù!\nÀÌÁ¦ ¼ýÀÚÅ° 5·Î ´Ù¼¸ ¹øÂ° ¸¶¹ýÀ» ¾µ ¼ö ÀÖ½À´Ï´Ù."));
-            break;
-        case 10:
-            text = FString(TEXT("¸¶¿ì½º ¿ÞÂÊ ¹öÆ°À» Å¬¸¯ÇÏ¿© µ¹À» ÁÝ°í\n¿òÁ÷ÀÌ´Â µ¹ °¡±îÀÌ¼­ ¸¶¿ì½º ¿ÞÂÊ ¹öÆ°À» Å¬¸¯ÇÏ¿©\nµ¹À» ³õÀ¸¼¼¿ä."));
-            break;
-        case 11:
-            text = FString(TEXT("°è´ÜÀ» ÅëÇØ ´ÙÀ½ Àå¼Ò·Î ÀÌµ¿ÇÏ¼¼¿ä."));
-            break;
-        case 12:
-            text = FString(TEXT("Áö±ÝºÎÅÍ ÀüÅõ°¡ ³¡³ª´Â ½ÃÁ¡±îÁö\nÀúÀåÀÌ µÇÁö ¾Ê½À´Ï´Ù."));
-            break;
-        case 13:
-            text = FString(TEXT("Æ÷Å»À» ÀÌ¿ëÇØ ´øÀü ÀÔ±¸·Î µ¹¾Æ°¡¼¼¿ä."));
-            break;
-        case 14:
-            text = FString(TEXT("¸¶¿ì½º ¿ÞÂÊ ¹öÆ°À» Å¬¸¯ÇÏ¿©\nµðºñ´® ÇÁ·¹½Ãµð¿òÀ» Ã¬±â¼¼¿ä."));
-            break;
-        case 15:
-            text = FString(TEXT("·¹º§ 5°¡ µÇ¾ú½À´Ï´Ù!\n¼ýÀÚÅ° 1~5·Î ¸ðµç ¸¶¹ýÀ» ¾µ ¼ö ÀÖ½À´Ï´Ù."));
-            break;
-        case 16:
-            text = FString(TEXT("ÀüÃ¼ È¸º¹ Æ÷¼ÇÀ» ¹Þ¾Ò½À´Ï´Ù!\nÇÊ¿äÇÒ ¶§ PÅ°¸¦ ´­·¯ »ç¿ëÇÏ¼¼¿ä."));
-            break;
+    case 1:
+        text = FString(TEXT("Fí‚¤ë¥¼ ëˆ„ë¥´ê±°ë‚˜ ë§ˆìš°ìŠ¤ ì™¼ìª½ ë²„íŠ¼ì„ í´ë¦­í•˜ì—¬\nëŒ€í™”ë¥¼ ì§„í–‰í•  ìˆ˜ ìžˆìŠµë‹ˆë‹¤."));
+        break;
+    case 2:
+        text = FString(TEXT("Mí‚¤ë¥¼ ëˆŒëŸ¬ ì¡°ìž‘ ë§¤ë‰´ì–¼ì„ í™•ì¸í•˜ê³ \në‹¤ì‹œ Mí‚¤ë¥¼ ëˆŒëŸ¬ ì¡°ìž‘ ë§¤ë‰´ì–¼ì„ ë‹«ìœ¼ì„¸ìš”."));
+        break;
+    case 3:
+        text = FString(TEXT("ì´ì œ ì§€íŒ¡ì´ ê°€ê¹Œì´ì—ì„œ ë§ˆìš°ìŠ¤ ì™¼ìª½ ë²„íŠ¼ì„ í´ë¦­í•˜ì—¬\nì§€íŒ¡ì´ë¥¼ ìž¥ë¹„í•˜ì„¸ìš”."));
+        break;
+    case 4:
+        text = FString(TEXT("í¬íƒˆì„ ì´ìš©í•´ ë˜ì „ìœ¼ë¡œ ì´ë™í•˜ì„¸ìš”."));
+        break;
+    case 5:
+        text = FString(TEXT("ìˆ«ìží‚¤ 1ë¡œ í•œ ê°€ì§€ ë§ˆë²•ì„ ì“¸ ìˆ˜ ìžˆìŠµë‹ˆë‹¤.\nì¤€ë¹„ê°€ ë˜ì—ˆë‹¤ë©´ Gí‚¤ë¥¼ ëˆ„ë¥´ì„¸ìš”."));
+        break;
+    case 6:
+        text = FString(TEXT("ë ˆë²¨ 2ê°€ ë˜ì—ˆìŠµë‹ˆë‹¤!\nì´ì œ ìˆ«ìží‚¤ 2ë¡œ ë‘ ë²ˆì§¸ ë§ˆë²•ì„ ì“¸ ìˆ˜ ìžˆìŠµë‹ˆë‹¤."));
+        break;
+    case 7:
+        text = FString(TEXT("ë ˆë²¨ 3ì´ ë˜ì—ˆìŠµë‹ˆë‹¤!\nì´ì œ ìˆ«ìží‚¤ 3ìœ¼ë¡œ ì„¸ ë²ˆì§¸ ë§ˆë²•ì„ ì“¸ ìˆ˜ ìžˆìŠµë‹ˆë‹¤."));
+        break;
+    case 8:
+        text = FString(TEXT("ì¶•í•˜í•©ë‹ˆë‹¤!\nì´ì œ ìˆ«ìží‚¤ 4ë¡œ ë„¤ ë²ˆì§¸ ë§ˆë²•ì„ ì“¸ ìˆ˜ ìžˆìŠµë‹ˆë‹¤."));
+        break;
+    case 9:
+        text = FString(TEXT("ë ˆë²¨ 5ë¥¼ ë‹¬ì„±í–ˆìŠµë‹ˆë‹¤!\nì´ì œ ìˆ«ìží‚¤ 5ë¡œ ë‹¤ì„¯ ë²ˆì§¸ ë§ˆë²•ì„ ì“¸ ìˆ˜ ìžˆìŠµë‹ˆë‹¤."));
+        break;
+    case 10:
+        text = FString(TEXT("ë§ˆìš°ìŠ¤ ì™¼ìª½ ë²„íŠ¼ì„ í´ë¦­í•˜ì—¬ ëŒì„ ì¤ê³ \nì›€ì§ì´ëŠ” ëŒ ê°€ê¹Œì´ì„œ ë§ˆìš°ìŠ¤ ì™¼ìª½ ë²„íŠ¼ì„ í´ë¦­í•˜ì—¬\nëŒì„ ë†“ìœ¼ì„¸ìš”."));
+        break;
+    case 11:
+        text = FString(TEXT("ê³„ë‹¨ì„ í†µí•´ ë‹¤ìŒ ìž¥ì†Œë¡œ ì´ë™í•˜ì„¸ìš”."));
+        break;
+    case 12:
+        text = FString(TEXT("ì§€ê¸ˆë¶€í„° ì „íˆ¬ê°€ ëë‚˜ëŠ” ì‹œì ê¹Œì§€\nì €ìž¥ì´ ë˜ì§€ ì•ŠìŠµë‹ˆë‹¤."));
+        break;
+    case 13:
+        text = FString(TEXT("í¬íƒˆì„ ì´ìš©í•´ ë˜ì „ ìž…êµ¬ë¡œ ëŒì•„ê°€ì„¸ìš”."));
+        break;
+    case 14:
+        text = FString(TEXT("ë§ˆìš°ìŠ¤ ì™¼ìª½ ë²„íŠ¼ì„ í´ë¦­í•˜ì—¬\në””ë¹„ëˆ” í”„ë ˆì‹œë””ì›€ì„ ì±™ê¸°ì„¸ìš”."));
+        break;
+    case 15:
+        text = FString(TEXT("ë ˆë²¨ 5ê°€ ë˜ì—ˆìŠµë‹ˆë‹¤!\nìˆ«ìží‚¤ 1~5ë¡œ ëª¨ë“  ë§ˆë²•ì„ ì“¸ ìˆ˜ ìžˆìŠµë‹ˆë‹¤."));
+        break;
+    case 16:
+        text = FString(TEXT("ì „ì²´ íšŒë³µ í¬ì…˜ì„ ë°›ì•˜ìŠµë‹ˆë‹¤!\ní•„ìš”í•  ë•Œ Pí‚¤ë¥¼ ëˆŒëŸ¬ ì‚¬ìš©í•˜ì„¸ìš”."));
+        break;
     }
 
     SystemMessageNum = MessageNum;
@@ -312,5 +317,35 @@ void UUIManager::RemoveEnemyHPBar()
         bEnemyHPBarVisible = false;
         EnemyHPBar->SetVisibility(ESlateVisibility::Hidden);
         // bCanDisplaySpeechBubble = false;
+    }
+}
+
+void UUIManager::FadeAndDialogue()
+{
+    if (FadeInOutClass)
+    {
+        FadeInOut = CreateWidget<UUserWidget>(GameManager, FadeInOutClass);
+
+        if (FadeInOut)
+        {
+            bIsFading = true;
+
+            AMain* Player = GameManager->GetPlayer();
+            uint32 FallCount = Player->GetFallCount();
+            if (Player->IsFallenInDungeon() && ((FallCount == 0 || FallCount >= 2)))
+            {
+                if (FallCount != 6)
+                    Player->SetFallCount(FallCount+1);
+            }
+
+            int dialogueNum = DialogueManager->GetDialogueNum();
+            if (dialogueNum == 11 || dialogueNum == 18 || dialogueNum == 20) // second dungeon food trap
+            {
+                Player->SetCanMove(false);
+                MainPlayerController->SetCinematicMode(true, true, true);
+
+            }
+            MainPlayerController->FadeOut();
+        }
     }
 }

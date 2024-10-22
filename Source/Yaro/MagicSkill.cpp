@@ -123,8 +123,8 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
             if (Main == OtherActor)
             {
                 Main->AddHP(150.f);
-                if (Main->GetHP() >= Main->GetMaxHP()) 
-                    Main->SetHP(Main->GetMaxHP());
+                if (Main->GetStat("HP") >= Main->GetStat("MaxHP"))
+                    Main->SetStat("HP", Main->GetStat("MaxHP"));
             }
             return;
         }

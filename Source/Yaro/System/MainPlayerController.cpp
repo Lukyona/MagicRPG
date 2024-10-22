@@ -25,14 +25,13 @@ void AMainPlayerController::BeginPlay()
     {
         DialogueManager = GameManager->GetDialogueManager();
         UIManager = GameManager->GetUIManager();
+        NPCManager = GameManager->GetNPCManager();
+        MainPlayer = GameManager->GetPlayer();
     }
-
 
     //카메라 회전 제한
     this->PlayerCameraManager->ViewPitchMin = -50.f; // 세로회전 위
     this->PlayerCameraManager->ViewPitchMax = 5.f; //아래
-
-    
 }
 
 
@@ -42,8 +41,6 @@ void AMainPlayerController::Tick(float DeltaTime)
 
     DialogueManager->Tick();
     UIManager->Tick();
-
-   if(Main == nullptr) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
 }
 
 int AMainPlayerController::WhichKeyDown()
@@ -71,38 +68,6 @@ int AMainPlayerController::WhichKeyDown()
     }
 
     return result;
-}
-
-
-
-void AMainPlayerController::FadeAndDialogue()
-{
-    if (WFadeInOut)
-    {
-        FadeInOut = CreateWidget<UUserWidget>(this, WFadeInOut);
-
-        if (FadeInOut)
-        {
-            bFadeOn = true;
-
-            if (bFallenPlayer && ((FallingCount == 0 || FallingCount >= 2)))
-            {
-                if(FallingCount != 6)
-                    FallingCount += 1;
-            }
-
-            int dialogueNum = DialogueManager->GetDialogueNum();
-            if (dialogueNum == 11 || dialogueNum == 18 || dialogueNum == 20) // second dungeon food trap
-            {
-                Main->SetCanMove(false);
-
-                SetCinematicMode(true, true, true);
-
-            }
-            FadeOut();
-        }
-    }
-    
 }
 
 

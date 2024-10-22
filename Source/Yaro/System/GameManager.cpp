@@ -11,6 +11,7 @@
 #include "Yaro/System/MainPlayerController.h"
 #include "Yaro/Character/Main.h"
 #include "Yaro/Character/YaroCharacter.h"
+#include "Item.h"
 
 
 void UGameManager::Init()
@@ -68,17 +69,17 @@ void UGameManager::SaveGame()
 
 	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
 
-	SaveGameInstance->PlayerGender = Gender;
-	SaveGameInstance->CharacterStats.HP = HP;
-	SaveGameInstance->CharacterStats.MaxHP = MaxHP;
-	SaveGameInstance->CharacterStats.MP = MP;
-	SaveGameInstance->CharacterStats.MaxMP = MaxMP;
-	SaveGameInstance->CharacterStats.SP = SP;
-	SaveGameInstance->CharacterStats.MaxSP = MaxSP;
-	SaveGameInstance->CharacterStats.Level = Level;
-	SaveGameInstance->CharacterStats.Exp = Exp;
-	SaveGameInstance->CharacterStats.MaxExp = MaxExp;
-	SaveGameInstance->CharacterStats.PotionNum = PotionNum;
+	SaveGameInstance->PlayerGender = Player->GetStat("Gender");
+	SaveGameInstance->CharacterStats.HP = Player->GetStat("HP");
+	SaveGameInstance->CharacterStats.MaxHP = Player->GetStat("MaxHP");
+	SaveGameInstance->CharacterStats.MP = Player->GetStat("MP");
+	SaveGameInstance->CharacterStats.MaxMP = Player->GetStat("MaxMP");
+	SaveGameInstance->CharacterStats.SP = Player->GetStat("SP");
+	SaveGameInstance->CharacterStats.MaxSP = Player->GetStat("MaxSP");
+	SaveGameInstance->CharacterStats.Level = Player->GetStat("Level");
+	SaveGameInstance->CharacterStats.Exp = Player->GetStat("Exp");
+	SaveGameInstance->CharacterStats.MaxExp = Player->GetStat("MaxExp");
+	SaveGameInstance->CharacterStats.PotionNum = Player->GetStat("PotionNum");
 
 	SaveGameInstance->DialogueNum = DialogueManager->GetDialogueNum();
 	SaveGameInstance->CharacterStats.FallCount = Player->GetFallCount();
@@ -100,9 +101,9 @@ void UGameManager::SaveGame()
 
 	SaveGameInstance->DeadEnemyList = DeadEnemies;
 
-	if (ItemInHand)
+	if (Player->GetItemInHand() != nullptr)
 	{
-		SaveGameInstance->CharacterStats.ItemName = ItemInHand->GetName();
+		SaveGameInstance->CharacterStats.ItemName = Player->GetItemInHand()->GetName();
 	}
 
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
@@ -121,16 +122,16 @@ void UGameManager::LoadGame()
 	DialogueManager->SetDialogueNum(LoadGameInstance->DialogueNum);
 	Player->SetFallCount(LoadGameInstance->CharacterStats.FallCount);
 
-	HP = LoadGameInstance->CharacterStats.HP;
-	MaxHP = LoadGameInstance->CharacterStats.MaxHP;
-	MP = LoadGameInstance->CharacterStats.MP;
-	MaxMP = LoadGameInstance->CharacterStats.MaxMP;
-	SP = LoadGameInstance->CharacterStats.SP;
-	MaxSP = LoadGameInstance->CharacterStats.MaxSP;
-	Level = LoadGameInstance->CharacterStats.Level;
-	Exp = LoadGameInstance->CharacterStats.Exp;
-	MaxExp = LoadGameInstance->CharacterStats.MaxExp;
-	PotionNum = LoadGameInstance->CharacterStats.PotionNum;
+	Player->SetStat("HP", LoadGameInstance->CharacterStats.HP);
+	Player->SetStat("MaxHP", LoadGameInstance->CharacterStats.MaxHP);
+	Player->SetStat("MP", LoadGameInstance->CharacterStats.MP);
+	Player->SetStat("MaxMP", LoadGameInstance->CharacterStats.MaxMP);
+	Player->SetStat("SP", LoadGameInstance->CharacterStats.SP);
+	Player->SetStat("MaxSP", LoadGameInstance->CharacterStats.MaxSP);
+	Player->SetStat("Level", LoadGameInstance->CharacterStats.Level);
+	Player->SetStat("Exp", LoadGameInstance->CharacterStats.Exp);
+	Player->SetStat("MaxExp", LoadGameInstance->CharacterStats.MaxExp);
+	Player->SetStat("PotionNum", LoadGameInstance->CharacterStats.PotionNum);
 
 
 	DeadEnemies = LoadGameInstance->DeadEnemyList;
@@ -142,32 +143,18 @@ void UGameManager::LoadGame()
 		NPCManager->GetNPC("Zizi")->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
 	}
 
-	if (SP < MaxSP && !recoverySP)
+	Player->InitializeStats();
+
+	FString ItemName = LoadGameInstance->CharacterStats.ItemName;
+	if (Player->GetItemMap() != nullptr)
 	{
-		recoverySP = true;
-		GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
-	}
-
-	if (HP < MaxHP)
-		GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);
-
-	if (MP < MaxMP)
-		GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
-
-
-	if (ObjectStorage)
-	{
-		if (Storage)
+		if (ItemName.Contains("Yellow") && Player->GetItemMap()->Contains("YellowStone")) // 저장할 때 손에 돌을 집은 상태였으면
 		{
-			FString ItemName = LoadGameInstance->CharacterStats.ItemName;
-
-			if (ItemName.Contains("Yellow") && Storage->ItemMap.Contains("YellowStone")) // 저장할 때 손에 돌을 집은 상태였으면
-			{
-				AItem* Item = GetWorld()->SpawnActor<AItem>(Storage->ItemMap["YellowStone"]);
-				Item->PickUp(this);
-			}
+			AItem* Item = GetWorld()->SpawnActor<AItem>(Player->GetItemMap()->FindRef("YellowStone"));
+			Item->PickUp(Player);
 		}
 	}
+
 
 	if (DialogueManager->GetDialogueNum() != 5)
 	{

@@ -11,24 +11,30 @@ class YARO_API AMainPlayerController : public APlayerController
 {
     GENERATED_BODY()
 
+protected:
     UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
     class UGameManager* GameManager;
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
         class UDialogueManager* DialogueManager;
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
         class UUIManager* UIManager;
+
+    UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+        class UNPCManager* NPCManager;
 
 public:
 
     UPROPERTY(BlueprintReadWrite)
-        class AMain* Main;
+        class AMain* MainPlayer;
 
     void SetMouseCursorVisibility(bool Value) { bShowMouseCursor = Value; }
 
     int WhichKeyDown(); // Find out pressed key, this will be SkillNum  
 
+    UFUNCTION(BlueprintImplementableEvent, Category = "Fade Events")
+        void FadeOut();
 
 protected:
     virtual void BeginPlay() override;

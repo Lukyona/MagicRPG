@@ -15,7 +15,6 @@ class YARO_API UNPCManager : public UObject
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
 	static UNPCManager* Instance;
 
 	UPROPERTY()
@@ -64,7 +63,7 @@ public:
 
 	void AddNPC(FString NPCName, AYaroCharacter* NPC);
 
-	UFUNCTION(BlurprintCallable)
+	UFUNCTION(BlueprintCallable)
 	void UpdateNPCPositions(int DialogueNum);
 
 	UFUNCTION(BlueprintCallable)
@@ -73,8 +72,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 		bool IsNPCInTalkRange();
 
+	UFUNCTION(BlueprintCallable)
 	AYaroCharacter* GetNPC(FString NPCName) const;
 
+	UFUNCTION(BlueprintCallable)
 	const TMap<FString, AYaroCharacter*>& GetNPCMap() const { return NPCMap; }
 
 	void MoveNPCToLocation(FString NPCName, FVector Location);
@@ -89,6 +90,7 @@ public:
 
 	void AllNpcDisableLookAt();
 
+	UFUNCTION(BlueprintCallable)
 	void AllNpcStopFollowPlayer();
 
 

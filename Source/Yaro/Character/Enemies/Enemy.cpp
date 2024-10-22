@@ -561,7 +561,7 @@ void AEnemy::Die()
 		}
 		SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
 
-		if (bAttackFromPlayer) Main->GetExp(EnemyExp);
+		if (bAttackFromPlayer) Main->GainExp(EnemyExp);
 	}
 }
 
@@ -582,16 +582,16 @@ void AEnemy::DeathEnd()
 
 	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second") && DeadEnemiesNum >= 15)
 	{
-		int Count = 0;
+		int EnemyCount = 0;
 		for (auto Enemy : GameManager->GetDeadEnemies())
 		{
 			if (Enemy.Contains("monster"))
 			{
-				Count++;
+				EnemyCount++;
 			}
 		}
 
-		if (Count == 3)
+		if (EnemyCount == 3)
 		{
 			NPCManager->AllNpcStopFollowPlayer();
 			GameManager->SaveGame();

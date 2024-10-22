@@ -31,6 +31,9 @@ class YARO_API UDialogueManager : public UObject
 	UPROPERTY()
 		class AMainPlayerController* MainPlayerController;
 
+	UPROPERTY()
+		class UDialogueUI* DialogueUI;
+
 	int DialogueNum = 0; // 0 - intro
 
 	bool bDialogueUIVisible;
@@ -70,6 +73,9 @@ public:
 		void CheckDialogueStartCondition();
 
 	UFUNCTION(BlueprintCallable)
+		UDialogueUI* GetDialogueUI() { return DialogueUI; }
+
+	UFUNCTION(BlueprintCallable)
 		int GetDialogueNum() const { return DialogueNum; }
 
 	void SetDialogueNum(int Value) { DialogueNum = Value; }
@@ -84,13 +90,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void RemoveDialogueUI();
-
-
-	UPROPERTY(BlueprintReadOnly)
-		class UDialogueUI* DialogueUI;
-
-	UPROPERTY(VisibleAnywhere)
-		TSubclassOf<class UUserWidget> DialogueUIClass;
 
 
 	UFUNCTION(BlueprintCallable)

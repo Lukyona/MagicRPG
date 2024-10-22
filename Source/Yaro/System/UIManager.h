@@ -51,7 +51,6 @@ class YARO_API UUIManager : public UObject
     UPROPERTY()
         uint8 SystemMessageNum;
 
-
     //Player can Targeting, then TargetArrow appear on Targeted enemy
     UPROPERTY()
         UUserWidget* TargetArrow;
@@ -65,13 +64,13 @@ class YARO_API UUIManager : public UObject
 
     FVector EnemyLocation;
 
-
-
+    UPROPERTY()
+    TSubclassOf<UUserWidget> FadeInOutClass;
 
     UPROPERTY()
         UUserWidget* FadeInOut;
 
-    bool bFadeOn = false;
+    bool bIsFading = false;
 
 
 public:
@@ -111,13 +110,14 @@ public:
     void RemoveTargetArrow();
     bool IsTargetArrowVisible() { return bTargetArrowVisible; }
 
-
     void DisplayEnemyHPBar();
     void RemoveEnemyHPBar();
 
-    UFUNCTION(BlueprintImplementableEvent, Category = "Fade Events")
-        void FadeOut();
-
     UFUNCTION(BlueprintCallable)
         void FadeAndDialogue();
+    bool IsFading() { return bIsFading; }
+    void SetIsFading(bool Value) { bIsFading = Value; }
+
+    UFUNCTION(BlueprintCallable)
+    UUserWidget* GetFadeInOut() const { return FadeInOut; }
 };
