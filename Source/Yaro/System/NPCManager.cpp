@@ -17,7 +17,6 @@ UNPCManager* UNPCManager::Instance = nullptr;
 void UNPCManager::Init()
 {
 	GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
-	GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
 	if (GameManager)
 	{
 		DialogueManager = GameManager->GetDialogueManager();

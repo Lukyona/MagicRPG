@@ -56,37 +56,37 @@ protected:
 	class UCameraComponent* FollowCamera;
 
 	// About CameraZoom
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraZoom")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "CameraZoom")
 	float MinZoomLength = 100.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraZoom")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "CameraZoom")
 	float MaxZoomLength = 800.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraZoom")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "CameraZoom")
 	float ZoomStep = 30.f;
 
 	// Base turn rates to scale turning functions for the camera
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
 	float BaseTurnRate;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
 	float BaseLookUpRate;
 
 
 	//플레이어 성별
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerInfo")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "PlayerInfo")
 	int Gender;
 
 	//달리는 상태인지 확인
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
 	bool bRunning;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bCanMove = true;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 		bool bFallenInDungeon = false; // 플레이어가 던전 범위 밖으로 추락했을 때 true
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 		int FallCount = 0;
 
 	/**
@@ -97,48 +97,48 @@ protected:
 
 	TMap<FString, float> PlayerStats;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float MaxHP;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float HP;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float MaxMP;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float MP;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float MaxSP;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float SP;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	int Level;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float Exp;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	float MaxExp;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		int PotionNum;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		int32 PotionNum;
 
 
 	// 스탯 자동 회복
 	FTimerHandle HPTimer;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player Stats")
 	float HPDelay;
 
 	FTimerHandle MPTimer;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player Stats")
 	float MPDelay;
 
 	FTimerHandle SPTimer;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player Stats")
 	float SPDelay;
 
 	bool recoverySP = false;
@@ -158,7 +158,7 @@ protected:
 
 	FTimerHandle DeathTimer;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	float DeathDelay;
 
 
@@ -226,6 +226,13 @@ public:
 	int GetFallCount() { return FallCount; }
 
 	void SetFallenInDungeon(bool Value) { bFallenInDungeon = Value; }
+
+	UFUNCTION(BlueprintCallable)
+	void SetPotionNum(int32 Num) { PotionNum = Num; }
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetPotionNum() const { return PotionNum; }
+
 
 	UFUNCTION(BlueprintCallable)
 	bool IsFallenInDungeon() { return bFallenInDungeon; }

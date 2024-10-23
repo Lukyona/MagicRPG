@@ -25,11 +25,12 @@ void UDialogueManager::Init()
     }
     else return;
 
-    static ConstructorHelpers::FClassFinder<UUserWidget> DialogueBPClass(TEXT("/Game/HUDandWigets/DialogueUI.DialogueUI_C"));
+    TSoftObjectPtr<UClass> DialogueBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/DialogueUI.DialogueUI_C'")));
 
-    if (ensure(DialogueBPClass.Class != nullptr))
+    if (ensure(DialogueBPClass.IsValid()))
     {
-        DialogueUI = CreateWidget<UDialogueUI>(GameManager, DialogueBPClass.Class);
+        DialogueBPClass.LoadSynchronous();
+        DialogueUI = CreateWidget<UDialogueUI>(GameManager, DialogueBPClass.Get());
     }
 
     if (DialogueUI != nullptr)

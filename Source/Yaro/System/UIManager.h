@@ -9,7 +9,7 @@
 /**
  *
  */
-UCLASS()
+UCLASS(BlueprintType)
 class YARO_API UUIManager : public UObject
 {
     GENERATED_BODY()

@@ -87,6 +87,7 @@ public:
 	void SetNPCLocation(FString NPCName, FVector Location);
 	void SetNPCLocation(AYaroCharacter* NPC, FVector Location);
 
+	UFUNCTION(BlueprintCallable)
 	void AllNpcMoveToPlayer();
 
 	void AllNpcLookAtPlayer();

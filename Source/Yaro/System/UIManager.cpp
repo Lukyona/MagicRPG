@@ -21,16 +21,17 @@ void UUIManager::Init()
     }
     else return;
 
-    static ConstructorHelpers::FClassFinder<UUserWidget> ControlGuideBPClass(TEXT("/Game/HUDandWigets/ControlGuide.ControlGuide_C"));
-    static ConstructorHelpers::FClassFinder<UUserWidget> MenuBPClass(TEXT("/Game/HUDandWigets/Menu.Menu_C"));
-    static ConstructorHelpers::FClassFinder<UUserWidget> SystemMessageBPClass(TEXT("/Game/HUDandWigets/SystemMessage.SystemMessage_C"));
-    static ConstructorHelpers::FClassFinder<UUserWidget> TargetArrowBPClass(TEXT("/Game/HUDandWigets/TargetArrow.TargetArrow_C"));
-    static ConstructorHelpers::FClassFinder<UUserWidget> EnemyHPBarBPClass(TEXT("/Game/HUDandWigets/EnemyHPBar.EnemyHPBar_C"));
-    static ConstructorHelpers::FClassFinder<UUserWidget> FadeInOutBPClass(TEXT("/Game/HUDandWigets/FadeInOut.FadeInOut_C"));
+    TSoftObjectPtr<UClass> ControlGuideBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/ControlGuide.ControlGuide_C")));
+    TSoftObjectPtr<UClass> MenuBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/Menu.Menu_C")));
+    TSoftObjectPtr<UClass> SystemMessageBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/SystemMessage.SystemMessage_C")));
+    TSoftObjectPtr<UClass> TargetArrowBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/TargetArrow.TargetArrow_C")));
+    TSoftObjectPtr<UClass> EnemyHPBarBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/EnemyHPBar.EnemyHPBar_C")));
+    TSoftObjectPtr<UClass> FadeInOutBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/FadeInOut.FadeInOut_C")));
 
-    if (ensure(ControlGuideBPClass.Class != nullptr))
+    if (ensure(ControlGuideBPClass.IsValid()))
     {
-        ControlGuide = CreateWidget<UUserWidget>(GameManager, ControlGuideBPClass.Class);
+        ControlGuideBPClass.LoadSynchronous();
+        ControlGuide = CreateWidget<UUserWidget>(GameManager, ControlGuideBPClass.Get());
         if (ControlGuide)
         {
             ControlGuide->AddToViewport();
@@ -38,9 +39,10 @@ void UUIManager::Init()
         }
     }
 
-    if (ensure(MenuBPClass.Class != nullptr))
+    if (ensure(MenuBPClass.IsValid()))
     {
-        Menu = CreateWidget<UUserWidget>(GameManager, MenuBPClass.Class);
+        MenuBPClass.LoadSynchronous();
+        Menu = CreateWidget<UUserWidget>(GameManager, MenuBPClass.Get());
         if (Menu)
         {
             Menu->AddToViewport();
@@ -48,9 +50,10 @@ void UUIManager::Init()
         }
     }
 
-    if (ensure(SystemMessageBPClass.Class != nullptr))
+    if (ensure(SystemMessageBPClass.IsValid()))
     {
-        SystemMessage = CreateWidget<UUserWidget>(GameManager, SystemMessageBPClass.Class);
+        SystemMessageBPClass.LoadSynchronous();
+        SystemMessage = CreateWidget<UUserWidget>(GameManager, SystemMessageBPClass.Get());
         if (SystemMessage)
         {
             SystemMessage->AddToViewport();
@@ -58,9 +61,10 @@ void UUIManager::Init()
         }
     }
 
-    if (ensure(TargetArrowBPClass.Class != nullptr))
+    if (ensure(TargetArrowBPClass.IsValid()))
     {
-        TargetArrow = CreateWidget<UUserWidget>(GameManager, TargetArrowBPClass.Class);
+        TargetArrowBPClass.LoadSynchronous();
+        TargetArrow = CreateWidget<UUserWidget>(GameManager, TargetArrowBPClass.Get());
         if (TargetArrow)
         {
             TargetArrow->AddToViewport();
@@ -71,9 +75,10 @@ void UUIManager::Init()
         TargetArrow->SetAlignmentInViewport(Alignment);
     }
 
-    if (ensure(EnemyHPBarBPClass.Class != nullptr))
+    if (ensure(EnemyHPBarBPClass.IsValid()))
     {
-        EnemyHPBar = CreateWidget<UUserWidget>(GameManager, EnemyHPBarBPClass.Class);
+        EnemyHPBarBPClass.LoadSynchronous();
+        EnemyHPBar = CreateWidget<UUserWidget>(GameManager, EnemyHPBarBPClass.Get());
         if (EnemyHPBar)
         {
             EnemyHPBar->AddToViewport();
@@ -84,9 +89,10 @@ void UUIManager::Init()
         EnemyHPBar->SetAlignmentInViewport(Alignment);
     }
 
-    if (ensure(FadeInOutBPClass.Class != nullptr))
+    if (ensure(FadeInOutBPClass.IsValid()))
     {
-        FadeInOutClass = FadeInOutBPClass.Class;
+        FadeInOutBPClass.LoadSynchronous();
+        FadeInOutClass = FadeInOutBPClass.Get();
     }
 }
 

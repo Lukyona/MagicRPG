@@ -9,7 +9,7 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(BlueprintType)
 class YARO_API UDialogueManager : public UObject
 {
 	GENERATED_BODY()
@@ -78,6 +78,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		int GetDialogueNum() const { return DialogueNum; }
 
+	UFUNCTION(BlueprintCallable)
 	void SetDialogueNum(int Value) { DialogueNum = Value; }
 
 	UFUNCTION(BlueprintCallable)
