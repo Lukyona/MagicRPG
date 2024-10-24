@@ -18,15 +18,21 @@
 
 void AMainPlayerController::BeginPlay()
 {
+    if (GetWorld()->GetName().Contains("Start")) return;
+
     Super::BeginPlay();
-    
+
     GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
     if (GameManager)
     {
         DialogueManager = GameManager->GetDialogueManager();
+        ///if (DialogueManager) DialogueManager->BeginPlay();
+
         UIManager = GameManager->GetUIManager();
-        NPCManager = GameManager->GetNPCManager();
-        MainPlayer = GameManager->GetPlayer();
+        //if (UIManager) UIManager->BeginPlay();
+
+        //NPCManager = GameManager->GetNPCManager();
+        //MainPlayer = GameManager->GetPlayer();
     }
 
     //카메라 회전 제한
@@ -37,10 +43,12 @@ void AMainPlayerController::BeginPlay()
 
 void AMainPlayerController::Tick(float DeltaTime)
 {
+    if (GetWorld()->GetName().Contains("Start")) return;
+
     Super::Tick(DeltaTime);
 
-    DialogueManager->Tick();
-    UIManager->Tick();
+    //DialogueManager->Tick();
+    //UIManager->Tick();
 }
 
 int AMainPlayerController::WhichKeyDown()

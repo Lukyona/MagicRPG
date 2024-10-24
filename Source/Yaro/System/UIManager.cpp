@@ -11,9 +11,10 @@
 
 UUIManager* UUIManager::Instance = nullptr;
 
-void UUIManager::Init()
+void UUIManager::BeginPlay()
 {
-    GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
+    if (Instance != nullptr) return;
+
     if (GameManager)
     {
         DialogueManager = GameManager->GetDialogueManager();
@@ -21,17 +22,16 @@ void UUIManager::Init()
     }
     else return;
 
-    TSoftObjectPtr<UClass> ControlGuideBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/ControlGuide.ControlGuide_C")));
-    TSoftObjectPtr<UClass> MenuBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/Menu.Menu_C")));
-    TSoftObjectPtr<UClass> SystemMessageBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/SystemMessage.SystemMessage_C")));
-    TSoftObjectPtr<UClass> TargetArrowBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/TargetArrow.TargetArrow_C")));
-    TSoftObjectPtr<UClass> EnemyHPBarBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/EnemyHPBar.EnemyHPBar_C")));
-    TSoftObjectPtr<UClass> FadeInOutBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/FadeInOut.FadeInOut_C")));
+    TSoftClassPtr<UUserWidget> ControlGuideBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/ControlGuide.ControlGuide_C")));
+    TSoftClassPtr<UUserWidget> MenuBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/Menu.Menu_C")));
+    TSoftClassPtr<UUserWidget> SystemMessageBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/SystemMessage.SystemMessage_C")));
+    TSoftClassPtr<UUserWidget> TargetArrowBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/TargetArrow.TargetArrow_C")));
+    TSoftClassPtr<UUserWidget> EnemyHPBarBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/EnemyHPBar.EnemyHPBar_C")));
+    TSoftClassPtr<UUserWidget> FadeInOutBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/FadeInOut.FadeInOut_C")));
 
     if (ensure(ControlGuideBPClass.IsValid()))
     {
-        ControlGuideBPClass.LoadSynchronous();
-        ControlGuide = CreateWidget<UUserWidget>(GameManager, ControlGuideBPClass.Get());
+        ControlGuide = CreateWidget<UUserWidget>(GameManager, Cast <UClass>(ControlGuideBPClass.Get()));
         if (ControlGuide)
         {
             ControlGuide->AddToViewport();
@@ -41,7 +41,6 @@ void UUIManager::Init()
 
     if (ensure(MenuBPClass.IsValid()))
     {
-        MenuBPClass.LoadSynchronous();
         Menu = CreateWidget<UUserWidget>(GameManager, MenuBPClass.Get());
         if (Menu)
         {
@@ -52,7 +51,6 @@ void UUIManager::Init()
 
     if (ensure(SystemMessageBPClass.IsValid()))
     {
-        SystemMessageBPClass.LoadSynchronous();
         SystemMessage = CreateWidget<UUserWidget>(GameManager, SystemMessageBPClass.Get());
         if (SystemMessage)
         {
@@ -63,7 +61,6 @@ void UUIManager::Init()
 
     if (ensure(TargetArrowBPClass.IsValid()))
     {
-        TargetArrowBPClass.LoadSynchronous();
         TargetArrow = CreateWidget<UUserWidget>(GameManager, TargetArrowBPClass.Get());
         if (TargetArrow)
         {
@@ -77,7 +74,6 @@ void UUIManager::Init()
 
     if (ensure(EnemyHPBarBPClass.IsValid()))
     {
-        EnemyHPBarBPClass.LoadSynchronous();
         EnemyHPBar = CreateWidget<UUserWidget>(GameManager, EnemyHPBarBPClass.Get());
         if (EnemyHPBar)
         {
@@ -91,7 +87,6 @@ void UUIManager::Init()
 
     if (ensure(FadeInOutBPClass.IsValid()))
     {
-        FadeInOutBPClass.LoadSynchronous();
         FadeInOutClass = FadeInOutBPClass.Get();
     }
 }
@@ -100,6 +95,15 @@ void UUIManager::Tick()
 {
     if (TargetArrow)
     {
+        UE_LOG(LogTemp, Warning, TEXT("bbbbbbbbbbbbbbbbbbbb"));
+
+       /* if (!TargetArrow->IsInViewport())
+        {
+            UE_LOG(LogTemp, Log, TEXT("safffasd"));
+            return;
+        }
+        if (TargetArrow->GetVisibility() == ESlateVisibility::Hidden) return;
+
         FVector2D PositionInViewport;
         MainPlayerController->ProjectWorldLocationToScreen(EnemyLocation, PositionInViewport);
 
@@ -112,8 +116,13 @@ void UUIManager::Tick()
         TargetArrow->SetPositionInViewport(PositionInViewport);
 
         FVector2D SizeInViewport = FVector2D(150.f, 15.f);
-        EnemyHPBar->SetDesiredSizeInViewport(SizeInViewport);
+        EnemyHPBar->SetDesiredSizeInViewport(SizeInViewport);*/
     }
+}
+
+void UUIManager::SetGameManager(UGameManager* Manager)
+{
+    this->GameManager = Manager;
 }
 
 void UUIManager::DisplayControlGuide()
@@ -126,7 +135,7 @@ void UUIManager::DisplayControlGuide()
             DisplaySystemMessage();
             FString text = TEXT("대화 중이거나 메뉴가 활성화된 상태에서는\n조작 매뉴얼을 볼 수 없습니다.");
             SystemText = FText::FromString(text);
-            GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([&]() {
+            MainPlayerController->GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([&]() {
 
                 if (bSystemMessageVisible) RemoveSystemMessage();
 

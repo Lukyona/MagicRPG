@@ -39,7 +39,7 @@ void AYaroCharacter::BeginPlay()
 	if (GameManager)
 	{
 		DialogueManager = GameManager->GetDialogueManager();
-		NPCManager = GameManager->GetNPCManager();
+		//NPCManager = GameManager->GetNPCManager();
 	}
 
 	AIController = Cast<AAIController>(GetController());

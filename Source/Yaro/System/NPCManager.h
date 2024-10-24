@@ -57,9 +57,12 @@ public:
 
 	void Init();
 
+	void SetGameManager(UGameManager* Manager);
+
 	FString EnumToString(const FString& EnumName, ENPCType EnumValue);
 
-	void InitializeNPCs();
+	UFUNCTION(BlueprintCallable)
+	void InitializeNPCs(UWorld* World);
 
 	void AddNPC(FString NPCName, AYaroCharacter* NPC);
 

@@ -18,15 +18,41 @@ void UGameManager::Init()
 {
 	Super::Init();
 
-    // 다이얼로그 매니저 생성 및 초기화
+    // 매니저들 생성
     DialogueManager = UDialogueManager::CreateInstance(this);
-	if(DialogueManager) DialogueManager->Init();
-
-	NPCManager = UNPCManager::CreateInstance(this);
-	if (NPCManager) NPCManager->Init();
+	if (DialogueManager) DialogueManager->SetGameManager(this);
 
 	UIManager = UUIManager::CreateInstance(this);
-	if (UIManager) UIManager->Init();
+	if (UIManager) UIManager->SetGameManager(this);
+
+	NPCManager = UNPCManager::CreateInstance(this);
+	if (NPCManager)
+	{
+		NPCManager->SetGameManager(this);
+		NPCManager->Init();
+	}
+}
+
+void UGameManager::Shutdown()
+{
+	Super::Shutdown();
+}
+
+void UGameManager::StartGameInstance()
+{
+	Super::StartGameInstance();
+}
+
+UUIManager* UGameManager::GetUIManager() const
+{
+	if (UIManager) return UIManager;
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("nonneoe"));
+
+	}
+	return nullptr;
+
 }
 
 AMain* UGameManager::GetPlayer()

@@ -40,11 +40,13 @@ public:
 	UDialogueManager* GetDialogueManager() const { return DialogueManager; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	UNPCManager* GetNPCManager() const { return NPCManager; }
+		UNPCManager* GetNPCManager() {
+		if (NPCManager) return NPCManager; else { UE_LOG(LogTemp, Warning, TEXT("GetNPCManager nulll")); return nullptr; }
+	}
 
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-		UUIManager* GetUIManager() const { return UIManager; }
+		UUIManager* GetUIManager() const; //{ return UIManager; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	AMain* GetPlayer();
@@ -59,6 +61,8 @@ public:
 
 
 	virtual void Init() override;
+	virtual void Shutdown() override;
+	virtual void StartGameInstance() override;
 
 
 	UFUNCTION(BlueprintCallable)

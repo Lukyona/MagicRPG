@@ -13,23 +13,27 @@
 
 UDialogueManager* UDialogueManager::Instance = nullptr; // 정적 멤버 변수 초기화
 
-void UDialogueManager::Init()
+void UDialogueManager::BeginPlay()
 {
-    GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
+    UE_LOG(LogTemp, Warning, TEXT("UDialogueManager::BeginPlay"));
+
     if (GameManager)
     {
-        NPCManager = GameManager->GetNPCManager();
-        UIManager = GameManager->GetUIManager();
-        Player = GameManager->GetPlayer();
-        MainPlayerController = GameManager->GetMainPlayerController();
+        if (GameManager->GetNPCManager() == nullptr)
+            UE_LOG(LogTemp, Warning, TEXT("nulll"))
+        else
+            UE_LOG(LogTemp, Warning, TEXT("notn ulll"));
+
+        //NPCManager = GameManager->GetNPCManager();
+        //UIManager = GameManager->GetUIManager();
+        //Player = GameManager->GetPlayer();
+        //MainPlayerController = GameManager->GetMainPlayerController();
     }
     else return;
 
-    TSoftObjectPtr<UClass> DialogueBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/DialogueUI.DialogueUI_C'")));
-
+    TSoftClassPtr<UUserWidget> DialogueBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/DialogueUI.DialogueUI_C")));
     if (ensure(DialogueBPClass.IsValid()))
     {
-        DialogueBPClass.LoadSynchronous();
         DialogueUI = CreateWidget<UDialogueUI>(GameManager, DialogueBPClass.Get());
     }
 
@@ -37,6 +41,8 @@ void UDialogueManager::Init()
     {
         DialogueUI->AddToViewport();
         DialogueUI->SetVisibility(ESlateVisibility::Hidden);
+
+        UE_LOG(LogTemp, Warning, TEXT("yesss"));
     }
 
     TArray<UObject*> Assets; // 동작 됨?
@@ -54,9 +60,9 @@ void UDialogueManager::Init()
         return A.GetName() < B.GetName();  // 이름(오름차순)으로 정렬
         });
 
-
-    SpeechBubble = GetWorld()->SpawnActor<AActor>(SpeechBubble_BP);
-
+    TSoftClassPtr<UUserWidget> SpeechBubbleBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/SpeechBubble.SpeechBubble_C")));
+    if (ensure(SpeechBubbleBPClass.IsValid()))
+        SpeechBubble = Player->GetWorld()->SpawnActor<AActor>(SpeechBubbleBPClass.Get());
 }
 
 void UDialogueManager::Tick()
@@ -65,6 +71,11 @@ void UDialogueManager::Tick()
     {
         SpeechBubble->SetActorRotation(GameManager->GetPlayer()->GetControlRotation() + FRotator(0.f, 180.f, 0.f));
     }
+}
+
+void UDialogueManager::SetGameManager(UGameManager* Manager)
+{
+    this->GameManager = Manager;
 }
 
 void UDialogueManager::CheckDialogueStartCondition()

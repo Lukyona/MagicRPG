@@ -47,8 +47,6 @@ class YARO_API UDialogueManager : public UObject
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 		//bool bCanDisplaySpeechBubble = false;
 
-	TSubclassOf<class AActor> SpeechBubble_BP;
-
 	UPROPERTY()
 	class AActor* SpeechBubble;
 
@@ -65,9 +63,11 @@ public:
 		return Instance;
 	}
 
-	void Init();
+	void BeginPlay();
 
 	void Tick();
+
+	void SetGameManager(UGameManager* Manager);
 
 	UFUNCTION(BlueprintCallable)
 		void CheckDialogueStartCondition();

@@ -118,16 +118,18 @@ bool AMain::IsInAir()
 // Called when the game starts or when spawned
 void AMain::BeginPlay()
 {
+	if (GetWorld()->GetName().Contains("Start")) return;
+
 	Super::BeginPlay();
 
 	GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
 	if (GameManager)
 	{
-		DialogueManager = GameManager->GetDialogueManager();
-		UIManager = GameManager->GetUIManager();
-		NPCManager = GameManager->GetNPCManager();
-		if (NPCManager)
-			NPCManager->InitializeNPCs();
+		//DialogueManager = GameManager->GetDialogueManager();
+		//if(ensure(GameManager->GetUIManager()))
+			//UE_LOG(LogTemp, Warning, TEXT("ngdfoof"));
+
+		//NPCManager = GameManager->GetNPCManager();
 	}
 
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapBegin);
@@ -148,6 +150,7 @@ void AMain::BeginPlay()
 void AMain::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if (GetLevel()->GetName().Contains("Start")) return;
 
     if (!MainPlayerController)
         MainPlayerController = Cast<AMainPlayerController>(GetController());

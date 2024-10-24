@@ -83,8 +83,10 @@ public:
         return Instance;
     }
 
-    void Init();
+    void BeginPlay();
     void Tick();
+
+    void SetGameManager(UGameManager* Manager);
 
     void DisplayControlGuide();
     void RemoveControlGuide();

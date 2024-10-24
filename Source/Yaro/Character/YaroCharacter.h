@@ -22,8 +22,7 @@ class AYaroCharacter : public AStudent
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
-	class UGameManager* GameManager;
+
 
 	UPROPERTY()
 	class UDialogueManager* DialogueManager;
@@ -32,7 +31,8 @@ class AYaroCharacter : public AStudent
 	class UNPCManager* NPCManager;
 
 protected:
-
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		class UGameManager* GameManager;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	class AAIController* AIController;
