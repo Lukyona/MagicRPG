@@ -74,7 +74,7 @@ class YARO_API UUIManager : public UObject
 
 
 public:
-    static UUIManager* CreateInstance(UObject* Outer)
+    static UUIManager* CreateInstance(UGameInstance* Outer)
     {
         if (Instance == nullptr)
         {

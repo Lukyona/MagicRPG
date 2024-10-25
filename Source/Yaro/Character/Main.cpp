@@ -125,11 +125,8 @@ void AMain::BeginPlay()
 	GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
 	if (GameManager)
 	{
-		//DialogueManager = GameManager->GetDialogueManager();
-		//if(ensure(GameManager->GetUIManager()))
-			//UE_LOG(LogTemp, Warning, TEXT("ngdfoof"));
-
-		//NPCManager = GameManager->GetNPCManager();
+		DialogueManager = GameManager->GetDialogueManager();
+		NPCManager = GameManager->GetNPCManager();
 	}
 
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapBegin);
@@ -384,7 +381,7 @@ void AMain::LMBDown() //Left Mouse Button Down
 		CombatTarget = nullptr;
 		bHasCombatTarget = false;
 	}
-
+	
 	// 다음 대사 출력 관련
 	if (DialogueManager->IsDialogueUIVisible()
 		&& DialogueManager->GetDialogueUI()->GetCurrentState() != 3

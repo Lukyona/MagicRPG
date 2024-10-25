@@ -18,10 +18,8 @@ void UNPCManager::Init()
 {
 	if (GameManager)
 	{
-		//DialogueManager = GameManager->GetDialogueManager();
-		//UIManager = GameManager->GetUIManager();
-
-		NPCMap = TMap<FString, AYaroCharacter*>();
+		DialogueManager = GameManager->GetDialogueManager();
+		UIManager = GameManager->GetUIManager();
 	}
 }
 
@@ -40,14 +38,15 @@ FString UNPCManager::EnumToString(const FString& EnumName, ENPCType EnumValue)
 
 void UNPCManager::InitializeNPCs(UWorld* World)
 {
-	if (World)
-		UE_LOG(LogTemp, Warning, TEXT("bbbbb"));
-	/*if (!World->GetName().Contains("Start") && NPCMap.Num() == 0)
+	UE_LOG(LogTemp, Warning, TEXT("3333333333"));
+
+	NPCMap.Empty();
+
+	if (!World->GetName().Contains("Start") && NPCMap.Num() == 0)
 	{
 		for (TActorIterator<AYaroCharacter> It(World); It; ++It)
 		{
 			AYaroCharacter* NPC = *It;
-
 			if (NPC)
 			{
 				FString NPCName = EnumToString(TEXT("ENPCType"), NPC->GetType());
@@ -60,7 +59,7 @@ void UNPCManager::InitializeNPCs(UWorld* World)
 		Vovo = GetNPC("Vovo");
 		Vivi = GetNPC("Vivi");
 		Zizi = GetNPC("Zizi");
-	}*/
+	}
 }
 
 void UNPCManager::AddNPC(FString NPCName, class AYaroCharacter* NPC)

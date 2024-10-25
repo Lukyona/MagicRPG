@@ -54,7 +54,7 @@ class YARO_API UDialogueManager : public UObject
 	TArray <class UDataTable*> DialogueDatas;
 
 public:
-	static UDialogueManager* CreateInstance(UObject* Outer)
+	static UDialogueManager* CreateInstance(UGameInstance* Outer)
 	{
 		if (Instance == nullptr)
 		{

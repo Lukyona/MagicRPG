@@ -20,14 +20,23 @@ void UGameManager::Init()
 
     // 매니저들 생성
     DialogueManager = UDialogueManager::CreateInstance(this);
-	if (DialogueManager) DialogueManager->SetGameManager(this);
+	if (DialogueManager)
+	{
+		DialogueManager->AddToRoot(); // 하지 않으면 매니저들의 멤버변수에 접근할 때 크래시 발생
+		DialogueManager->SetGameManager(this);
+	}
 
 	UIManager = UUIManager::CreateInstance(this);
-	if (UIManager) UIManager->SetGameManager(this);
+	if (UIManager)
+	{
+		UIManager->AddToRoot();
+		UIManager->SetGameManager(this);
+	}
 
 	NPCManager = UNPCManager::CreateInstance(this);
 	if (NPCManager)
 	{
+		NPCManager->AddToRoot();
 		NPCManager->SetGameManager(this);
 		NPCManager->Init();
 	}
@@ -36,6 +45,10 @@ void UGameManager::Init()
 void UGameManager::Shutdown()
 {
 	Super::Shutdown();
+	DialogueManager->RemoveFromRoot();
+	UIManager->RemoveFromRoot();
+	NPCManager->RemoveFromRoot();
+
 }
 
 void UGameManager::StartGameInstance()

@@ -15,19 +15,12 @@ UDialogueManager* UDialogueManager::Instance = nullptr; // 정적 멤버 변수 초기화
 
 void UDialogueManager::BeginPlay()
 {
-    UE_LOG(LogTemp, Warning, TEXT("UDialogueManager::BeginPlay"));
-
     if (GameManager)
     {
-        if (GameManager->GetNPCManager() == nullptr)
-            UE_LOG(LogTemp, Warning, TEXT("nulll"))
-        else
-            UE_LOG(LogTemp, Warning, TEXT("notn ulll"));
-
-        //NPCManager = GameManager->GetNPCManager();
-        //UIManager = GameManager->GetUIManager();
-        //Player = GameManager->GetPlayer();
-        //MainPlayerController = GameManager->GetMainPlayerController();
+        NPCManager = GameManager->GetNPCManager();
+        UIManager = GameManager->GetUIManager();
+        Player = GameManager->GetPlayer();
+        MainPlayerController = GameManager->GetMainPlayerController();
     }
     else return;
 
@@ -35,7 +28,12 @@ void UDialogueManager::BeginPlay()
     if (ensure(DialogueBPClass.IsValid()))
     {
         DialogueUI = CreateWidget<UDialogueUI>(GameManager, DialogueBPClass.Get());
+        UE_LOG(LogTemp, Warning, TEXT("DialogueBPClass IsValid"));
+
     }
+    else
+        UE_LOG(LogTemp, Warning, TEXT("DialogueBPClass InoontototnotsValid"));
+
 
     if (DialogueUI != nullptr)
     {

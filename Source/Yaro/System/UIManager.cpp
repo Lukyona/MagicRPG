@@ -13,8 +13,6 @@ UUIManager* UUIManager::Instance = nullptr;
 
 void UUIManager::BeginPlay()
 {
-    if (Instance != nullptr) return;
-
     if (GameManager)
     {
         DialogueManager = GameManager->GetDialogueManager();
@@ -36,6 +34,7 @@ void UUIManager::BeginPlay()
         {
             ControlGuide->AddToViewport();
             ControlGuide->SetVisibility(ESlateVisibility::Hidden);
+            UE_LOG(LogTemp, Warning, TEXT("ControlGuideBPClass IsValid"));
         }
     }
 
@@ -97,7 +96,7 @@ void UUIManager::Tick()
     {
         UE_LOG(LogTemp, Warning, TEXT("bbbbbbbbbbbbbbbbbbbb"));
 
-       /* if (!TargetArrow->IsInViewport())
+        if (!TargetArrow->IsInViewport())
         {
             UE_LOG(LogTemp, Log, TEXT("safffasd"));
             return;
@@ -116,7 +115,7 @@ void UUIManager::Tick()
         TargetArrow->SetPositionInViewport(PositionInViewport);
 
         FVector2D SizeInViewport = FVector2D(150.f, 15.f);
-        EnemyHPBar->SetDesiredSizeInViewport(SizeInViewport);*/
+        EnemyHPBar->SetDesiredSizeInViewport(SizeInViewport);
     }
 }
 

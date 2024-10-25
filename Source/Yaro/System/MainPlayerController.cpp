@@ -26,13 +26,13 @@ void AMainPlayerController::BeginPlay()
     if (GameManager)
     {
         DialogueManager = GameManager->GetDialogueManager();
-        ///if (DialogueManager) DialogueManager->BeginPlay();
+        if (DialogueManager) DialogueManager->BeginPlay();
 
         UIManager = GameManager->GetUIManager();
-        //if (UIManager) UIManager->BeginPlay();
+        if (UIManager) UIManager->BeginPlay();
 
-        //NPCManager = GameManager->GetNPCManager();
-        //MainPlayer = GameManager->GetPlayer();
+        NPCManager = GameManager->GetNPCManager();
+        MainPlayer = GameManager->GetPlayer();
     }
 
     //카메라 회전 제한

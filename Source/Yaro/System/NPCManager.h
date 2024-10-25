@@ -46,7 +46,7 @@ class YARO_API UNPCManager : public UObject
 		class AYaroCharacter* Zizi;
 
 public:
-	static UNPCManager* CreateInstance(UObject* Outer)
+	static UNPCManager* CreateInstance(UGameInstance* Outer)
 	{
 		if (Instance == nullptr)
 		{
