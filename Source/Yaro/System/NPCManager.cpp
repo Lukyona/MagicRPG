@@ -38,8 +38,6 @@ FString UNPCManager::EnumToString(const FString& EnumName, ENPCType EnumValue)
 
 void UNPCManager::InitializeNPCs(UWorld* World)
 {
-	UE_LOG(LogTemp, Warning, TEXT("3333333333"));
-
 	NPCMap.Empty();
 
 	if (!World->GetName().Contains("Start") && NPCMap.Num() == 0)

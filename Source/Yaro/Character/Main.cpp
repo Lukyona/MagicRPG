@@ -127,6 +127,7 @@ void AMain::BeginPlay()
 	{
 		DialogueManager = GameManager->GetDialogueManager();
 		NPCManager = GameManager->GetNPCManager();
+		UIManager = GameManager->GetUIManager();
 	}
 
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapBegin);

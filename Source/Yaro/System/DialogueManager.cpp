@@ -4,6 +4,8 @@
 #include "Yaro/System/DialogueManager.h"
 #include "EngineUtils.h"
 #include "Engine/DataTable.h"
+#include "Engine/StreamableManager.h"
+#include "Engine/AssetManager.h"
 #include "Yaro/System/GameManager.h"
 #include "Yaro/System/NPCManager.h"
 #include "Yaro/System/UIManager.h"
@@ -24,27 +26,29 @@ void UDialogueManager::BeginPlay()
     }
     else return;
 
+    if (DialogueNum == 0)
+    {
+        UIManager->CreateFadeWidget(false);
+    }
+
     TSoftClassPtr<UUserWidget> DialogueBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/DialogueUI.DialogueUI_C")));
+    
+    if (!DialogueBPClass.IsValid())
+        DialogueBPClass.LoadSynchronous();
+
     if (ensure(DialogueBPClass.IsValid()))
     {
         DialogueUI = CreateWidget<UDialogueUI>(GameManager, DialogueBPClass.Get());
-        UE_LOG(LogTemp, Warning, TEXT("DialogueBPClass IsValid"));
-
     }
-    else
-        UE_LOG(LogTemp, Warning, TEXT("DialogueBPClass InoontototnotsValid"));
-
 
     if (DialogueUI != nullptr)
     {
         DialogueUI->AddToViewport();
         DialogueUI->SetVisibility(ESlateVisibility::Hidden);
-
-        UE_LOG(LogTemp, Warning, TEXT("yesss"));
     }
 
-    TArray<UObject*> Assets; // 동작 됨?
-    EngineUtils::FindOrLoadAssetsByPath(TEXT("/Game/DialogueDatas"), Assets, EngineUtils::ATL_Class);
+    TArray<UObject*> Assets;
+    EngineUtils::FindOrLoadAssetsByPath(TEXT("/Game/DialogueDatas"), Assets, EngineUtils::ATL_Regular);
 
     for (UObject* Asset : Assets)
     {
@@ -58,7 +62,10 @@ void UDialogueManager::BeginPlay()
         return A.GetName() < B.GetName();  // 이름(오름차순)으로 정렬
         });
 
-    TSoftClassPtr<UUserWidget> SpeechBubbleBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/SpeechBubble.SpeechBubble_C")));
+    TSoftClassPtr<AActor> SpeechBubbleBPClass(FSoftObjectPath(TEXT("/Game/Blueprints/SpeechBubble_BP.SpeechBubble_BP_C")));
+    if (!SpeechBubbleBPClass.IsValid())
+        SpeechBubbleBPClass.LoadSynchronous();
+    
     if (ensure(SpeechBubbleBPClass.IsValid()))
         SpeechBubble = Player->GetWorld()->SpawnActor<AActor>(SpeechBubbleBPClass.Get());
 }
@@ -386,11 +393,10 @@ void UDialogueManager::DisplaySpeechBuubble(class AYaroCharacter* npc)
     if (SpeechBubble) //&& bCanDisplaySpeechBubble)
     {
         SBLocation = npc->GetActorLocation() + FVector(0.f, 0.f, 93.f);
-
         SpeechBubble->SetActorLocation(SBLocation);
         SpeechBubble->SetActorHiddenInGame(false);
 
-        //bSpeechBuubbleVisible = true;
+        bSpeechBuubbleVisible = true;
     }
 }
 

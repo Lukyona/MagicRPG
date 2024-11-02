@@ -25,11 +25,11 @@ void AMainPlayerController::BeginPlay()
     GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
     if (GameManager)
     {
-        DialogueManager = GameManager->GetDialogueManager();
-        if (DialogueManager) DialogueManager->BeginPlay();
-
         UIManager = GameManager->GetUIManager();
         if (UIManager) UIManager->BeginPlay();
+
+        DialogueManager = GameManager->GetDialogueManager();
+        if (DialogueManager) DialogueManager->BeginPlay();
 
         NPCManager = GameManager->GetNPCManager();
         MainPlayer = GameManager->GetPlayer();
@@ -47,8 +47,8 @@ void AMainPlayerController::Tick(float DeltaTime)
 
     Super::Tick(DeltaTime);
 
-    //DialogueManager->Tick();
-    //UIManager->Tick();
+    DialogueManager->Tick();
+    UIManager->Tick();
 }
 
 int AMainPlayerController::WhichKeyDown()

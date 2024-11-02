@@ -6,7 +6,6 @@
 #include "Yaro/System/DialogueManager.h"
 #include "Yaro/System/NPCManager.h"
 #include "Yaro/System/UIManager.h"
-#include "Yaro/System/PlayerStatsManager.h"
 #include "Yaro/System/YaroSaveGame.h"
 #include "Yaro/System/MainPlayerController.h"
 #include "Yaro/Character/Main.h"
@@ -59,13 +58,8 @@ void UGameManager::StartGameInstance()
 UUIManager* UGameManager::GetUIManager() const
 {
 	if (UIManager) return UIManager;
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("nonneoe"));
 
-	}
 	return nullptr;
-
 }
 
 AMain* UGameManager::GetPlayer()

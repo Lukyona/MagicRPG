@@ -20,12 +20,29 @@ void UUIManager::BeginPlay()
     }
     else return;
 
+    // 위젯들, 순서 있음
+    TSoftClassPtr<UUserWidget> SystemMessageBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/SystemMessage.SystemMessage_C")));
     TSoftClassPtr<UUserWidget> ControlGuideBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/ControlGuide.ControlGuide_C")));
     TSoftClassPtr<UUserWidget> MenuBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/Menu.Menu_C")));
-    TSoftClassPtr<UUserWidget> SystemMessageBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/SystemMessage.SystemMessage_C")));
     TSoftClassPtr<UUserWidget> TargetArrowBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/TargetArrow.TargetArrow_C")));
     TSoftClassPtr<UUserWidget> EnemyHPBarBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/EnemyHPBar.EnemyHPBar_C")));
     TSoftClassPtr<UUserWidget> FadeInOutBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/FadeInOut.FadeInOut_C")));
+
+    if (!SystemMessageBPClass.IsValid())
+        SystemMessageBPClass.LoadSynchronous();
+
+    if (ensure(SystemMessageBPClass.IsValid()))
+    {
+        SystemMessage = CreateWidget<UUserWidget>(GameManager, SystemMessageBPClass.Get());
+        if (SystemMessage)
+        {
+            SystemMessage->AddToViewport();
+            SystemMessage->SetVisibility(ESlateVisibility::Hidden);
+        }
+    }
+
+    if (!ControlGuideBPClass.IsValid())
+        ControlGuideBPClass.LoadSynchronous();
 
     if (ensure(ControlGuideBPClass.IsValid()))
     {
@@ -34,9 +51,11 @@ void UUIManager::BeginPlay()
         {
             ControlGuide->AddToViewport();
             ControlGuide->SetVisibility(ESlateVisibility::Hidden);
-            UE_LOG(LogTemp, Warning, TEXT("ControlGuideBPClass IsValid"));
         }
     }
+
+    if (!MenuBPClass.IsValid())
+        MenuBPClass.LoadSynchronous();
 
     if (ensure(MenuBPClass.IsValid()))
     {
@@ -48,15 +67,8 @@ void UUIManager::BeginPlay()
         }
     }
 
-    if (ensure(SystemMessageBPClass.IsValid()))
-    {
-        SystemMessage = CreateWidget<UUserWidget>(GameManager, SystemMessageBPClass.Get());
-        if (SystemMessage)
-        {
-            SystemMessage->AddToViewport();
-            SystemMessage->SetVisibility(ESlateVisibility::Hidden);
-        }
-    }
+    if (!TargetArrowBPClass.IsValid())
+        TargetArrowBPClass.LoadSynchronous();
 
     if (ensure(TargetArrowBPClass.IsValid()))
     {
@@ -71,6 +83,9 @@ void UUIManager::BeginPlay()
         TargetArrow->SetAlignmentInViewport(Alignment);
     }
 
+    if (!EnemyHPBarBPClass.IsValid())
+        EnemyHPBarBPClass.LoadSynchronous();
+
     if (ensure(EnemyHPBarBPClass.IsValid()))
     {
         EnemyHPBar = CreateWidget<UUserWidget>(GameManager, EnemyHPBarBPClass.Get());
@@ -84,6 +99,9 @@ void UUIManager::BeginPlay()
         EnemyHPBar->SetAlignmentInViewport(Alignment);
     }
 
+    if (!FadeInOutBPClass.IsValid())
+        FadeInOutBPClass.LoadSynchronous();
+
     if (ensure(FadeInOutBPClass.IsValid()))
     {
         FadeInOutClass = FadeInOutBPClass.Get();
@@ -94,14 +112,7 @@ void UUIManager::Tick()
 {
     if (TargetArrow)
     {
-        UE_LOG(LogTemp, Warning, TEXT("bbbbbbbbbbbbbbbbbbbb"));
-
-        if (!TargetArrow->IsInViewport())
-        {
-            UE_LOG(LogTemp, Log, TEXT("safffasd"));
-            return;
-        }
-        if (TargetArrow->GetVisibility() == ESlateVisibility::Hidden) return;
+        if (!TargetArrow->IsInViewport() || TargetArrow->GetVisibility() == ESlateVisibility::Hidden) return;
 
         FVector2D PositionInViewport;
         MainPlayerController->ProjectWorldLocationToScreen(EnemyLocation, PositionInViewport);

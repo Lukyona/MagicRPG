@@ -64,7 +64,6 @@ public:
 	}
 
 	void BeginPlay();
-
 	void Tick();
 
 	void SetGameManager(UGameManager* Manager);

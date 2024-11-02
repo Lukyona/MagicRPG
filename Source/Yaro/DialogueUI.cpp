@@ -23,10 +23,10 @@ void UDialogueUI::NativeConstruct()
     GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
     if (GameManager)
     {
-        //DialogueManager = GameManager->GetDialogueManager();
-        //NPCManager = GameManager->GetNPCManager();
-        //Player = GameManager->GetPlayer();
-        //MainPlayerController = GameManager->GetMainPlayerController();
+        DialogueManager = GameManager->GetDialogueManager();
+        NPCManager = GameManager->GetNPCManager();
+        Player = GameManager->GetPlayer();
+        MainPlayerController = GameManager->GetMainPlayerController();
     }
 
     if (NPCManager)

@@ -110,6 +110,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	int32 RowIndex;
 
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	int32 MessageIndex;
 
 	//플레이어 대답 버튼들 Visibility 때문에 어쩔 수 없이 만든 변수
