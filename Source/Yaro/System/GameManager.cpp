@@ -18,35 +18,99 @@ void UGameManager::Init()
 	Super::Init();
 
     // 매니저들 생성
-    DialogueManager = UDialogueManager::CreateInstance(this);
-	if (DialogueManager)
-	{
-		DialogueManager->AddToRoot(); // 하지 않으면 매니저들의 멤버변수에 접근할 때 크래시 발생
-		DialogueManager->SetGameManager(this);
-	}
+	TWeakObjectPtr<UGameManager> WeakGameManager = this;
 
-	UIManager = UUIManager::CreateInstance(this);
-	if (UIManager)
-	{
-		UIManager->AddToRoot();
-		UIManager->SetGameManager(this);
-	}
+	// 비동기 작업으로 메인 스레드에서 추가 초기화 진행
+	AsyncTask(ENamedThreads::GameThread, [WeakGameManager]()
+		{
+			if (WeakGameManager.IsValid())
+			{
+				UGameManager* GameManager = WeakGameManager.Get();
 
-	NPCManager = UNPCManager::CreateInstance(this);
-	if (NPCManager)
-	{
-		NPCManager->AddToRoot();
-		NPCManager->SetGameManager(this);
-		NPCManager->Init();
-	}
+				// DialogueManager 생성 및 유효성 체크
+				if (GameManager)
+				{
+					GameManager->DialogueManager = NewObject<UDialogueManager>(GameManager, UDialogueManager::StaticClass());
+					if (GameManager->DialogueManager && IsValid(GameManager->DialogueManager))
+					{
+						GameManager->DialogueManager->AddToRoot();
+						GameManager->DialogueManager->SetGameManager(GameManager);
+					}
+					else
+					{
+						UE_LOG(LogTemp, Error, TEXT("Failed to create DialogueManager or DialogueManager is invalid."));
+					}
+				}
+
+				// UIManager 생성 및 유효성 체크
+				if (GameManager)
+				{
+					GameManager->UIManager = NewObject<UUIManager>(GameManager, UUIManager::StaticClass());
+					if (GameManager->UIManager && IsValid(GameManager->UIManager))
+					{
+						GameManager->UIManager->AddToRoot();
+						GameManager->UIManager->SetGameManager(GameManager);
+					}
+					else
+					{
+						UE_LOG(LogTemp, Error, TEXT("Failed to create UIManager or UIManager is invalid."));
+					}
+				}
+
+				// NPCManager 생성 및 유효성 체크
+				if (GameManager)
+				{
+					GameManager->NPCManager = NewObject<UNPCManager>(GameManager, UNPCManager::StaticClass());
+					if (GameManager->NPCManager && IsValid(GameManager->NPCManager))
+					{
+						GameManager->NPCManager->AddToRoot();
+						GameManager->NPCManager->SetGameManager(GameManager);
+						GameManager->NPCManager->Init();
+					}
+					else
+					{
+						UE_LOG(LogTemp, Error, TEXT("Failed to create NPCManager or NPCManager is invalid."));
+					}
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("GameManager is not valid in AsyncTask."));
+			}
+		});
+	/*
+	AsyncTask(ENamedThreads::GameThread, [this]() // 항상 메인 스레드에서 실행하도록, 멀티스레딩 크래시 방지
+		{
+			DialogueManager = UDialogueManager::CreateInstance(this);
+			if (DialogueManager)
+			{
+				DialogueManager->SetGameManager(this);
+				DialogueManager->AddToRoot(); // 하지 않으면 매니저들의 멤버변수에 접근할 때 크래시 발생
+			}
+
+			UIManager = UUIManager::CreateInstance(this);
+			if (UIManager)
+			{
+				UIManager->SetGameManager(this);
+				UIManager->AddToRoot();
+			}
+
+			NPCManager = UNPCManager::CreateInstance(this);
+			if (NPCManager)
+			{
+				NPCManager->SetGameManager(this);
+				NPCManager->AddToRoot();
+				NPCManager->Init();
+			}
+		});*/
 }
 
 void UGameManager::Shutdown()
 {
 	Super::Shutdown();
-	DialogueManager->RemoveFromRoot();
-	UIManager->RemoveFromRoot();
-	NPCManager->RemoveFromRoot();
+	if(IsValid(DialogueManager)) DialogueManager->RemoveFromRoot();
+	if (IsValid(UIManager)) UIManager->RemoveFromRoot();
+	if(IsValid(NPCManager)) NPCManager->RemoveFromRoot();
 
 }
 
@@ -55,35 +119,22 @@ void UGameManager::StartGameInstance()
 	Super::StartGameInstance();
 }
 
-UUIManager* UGameManager::GetUIManager() const
-{
-	if (UIManager) return UIManager;
-
-	return nullptr;
-}
-
 AMain* UGameManager::GetPlayer()
 {
-	if (!Player)
+	ACharacter* PlayerPawn = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+	if (PlayerPawn)
 	{
-		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		if (PlayerController)
-		{
-			Player = Cast<AMain>(PlayerController->GetPawn());
-		}
+		Player = Cast<AMain>(PlayerPawn);
 	}
 	return Player;
 }
 
 AMainPlayerController* UGameManager::GetMainPlayerController()
 {
-	if (!MainPlayerController)
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (PlayerController)
 	{
-		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		if (PlayerController)
-		{
-			MainPlayerController = Cast<AMainPlayerController>(PlayerController);
-		}
+		MainPlayerController = Cast<AMainPlayerController>(PlayerController);
 	}
 	return MainPlayerController;
 }
@@ -102,17 +153,17 @@ void UGameManager::SaveGame()
 
 	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
 
-	SaveGameInstance->PlayerGender = Player->GetStat("Gender");
-	SaveGameInstance->CharacterStats.HP = Player->GetStat("HP");
-	SaveGameInstance->CharacterStats.MaxHP = Player->GetStat("MaxHP");
-	SaveGameInstance->CharacterStats.MP = Player->GetStat("MP");
-	SaveGameInstance->CharacterStats.MaxMP = Player->GetStat("MaxMP");
-	SaveGameInstance->CharacterStats.SP = Player->GetStat("SP");
-	SaveGameInstance->CharacterStats.MaxSP = Player->GetStat("MaxSP");
-	SaveGameInstance->CharacterStats.Level = Player->GetStat("Level");
-	SaveGameInstance->CharacterStats.Exp = Player->GetStat("Exp");
-	SaveGameInstance->CharacterStats.MaxExp = Player->GetStat("MaxExp");
-	SaveGameInstance->CharacterStats.PotionNum = Player->GetStat("PotionNum");
+	SaveGameInstance->PlayerGender = Player->GetStat(EPlayerStat::Gender);
+	SaveGameInstance->CharacterStats.HP = Player->GetStat(EPlayerStat::HP);
+	SaveGameInstance->CharacterStats.MaxHP = Player->GetStat(EPlayerStat::MaxHP);
+	SaveGameInstance->CharacterStats.MP = Player->GetStat(EPlayerStat::MP);
+	SaveGameInstance->CharacterStats.MaxMP = Player->GetStat(EPlayerStat::MaxMP);
+	SaveGameInstance->CharacterStats.SP = Player->GetStat(EPlayerStat::SP);
+	SaveGameInstance->CharacterStats.MaxSP = Player->GetStat(EPlayerStat::MaxSP);
+	SaveGameInstance->CharacterStats.Level = Player->GetStat(EPlayerStat::Level);
+	SaveGameInstance->CharacterStats.Exp = Player->GetStat(EPlayerStat::Exp);
+	SaveGameInstance->CharacterStats.MaxExp = Player->GetStat(EPlayerStat::MaxExp);
+	SaveGameInstance->CharacterStats.PotionNum = Player->GetStat(EPlayerStat::PotionNum);
 
 	SaveGameInstance->DialogueNum = DialogueManager->GetDialogueNum();
 	SaveGameInstance->CharacterStats.FallCount = Player->GetFallCount();
@@ -155,16 +206,16 @@ void UGameManager::LoadGame()
 	DialogueManager->SetDialogueNum(LoadGameInstance->DialogueNum);
 	Player->SetFallCount(LoadGameInstance->CharacterStats.FallCount);
 
-	Player->SetStat("HP", LoadGameInstance->CharacterStats.HP);
-	Player->SetStat("MaxHP", LoadGameInstance->CharacterStats.MaxHP);
-	Player->SetStat("MP", LoadGameInstance->CharacterStats.MP);
-	Player->SetStat("MaxMP", LoadGameInstance->CharacterStats.MaxMP);
-	Player->SetStat("SP", LoadGameInstance->CharacterStats.SP);
-	Player->SetStat("MaxSP", LoadGameInstance->CharacterStats.MaxSP);
-	Player->SetStat("Level", LoadGameInstance->CharacterStats.Level);
-	Player->SetStat("Exp", LoadGameInstance->CharacterStats.Exp);
-	Player->SetStat("MaxExp", LoadGameInstance->CharacterStats.MaxExp);
-	Player->SetStat("PotionNum", LoadGameInstance->CharacterStats.PotionNum);
+	Player->SetStat(EPlayerStat::HP, LoadGameInstance->CharacterStats.HP);
+	Player->SetStat(EPlayerStat::MaxHP, LoadGameInstance->CharacterStats.MaxHP);
+	Player->SetStat(EPlayerStat::MP, LoadGameInstance->CharacterStats.MP);
+	Player->SetStat(EPlayerStat::MaxMP, LoadGameInstance->CharacterStats.MaxMP);
+	Player->SetStat(EPlayerStat::SP, LoadGameInstance->CharacterStats.SP);
+	Player->SetStat(EPlayerStat::MaxSP, LoadGameInstance->CharacterStats.MaxSP);
+	Player->SetStat(EPlayerStat::Level, LoadGameInstance->CharacterStats.Level);
+	Player->SetStat(EPlayerStat::Exp, LoadGameInstance->CharacterStats.Exp);
+	Player->SetStat(EPlayerStat::MaxExp, LoadGameInstance->CharacterStats.MaxExp);
+	Player->SetStat(EPlayerStat::PotionNum, LoadGameInstance->CharacterStats.PotionNum);
 
 
 	DeadEnemies = LoadGameInstance->DeadEnemyList;
@@ -188,7 +239,6 @@ void UGameManager::LoadGame()
 		}
 	}
 
-
 	if (DialogueManager->GetDialogueNum() != 5)
 	{
 		if (DialogueManager->GetDialogueNum() == 15 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) return;
@@ -203,5 +253,7 @@ void UGameManager::LoadGame()
 		NPCManager->SetNPCLocation("Vovo", LoadGameInstance->NpcInfo.VovoLocation);
 		NPCManager->SetNPCLocation("Vivi", LoadGameInstance->NpcInfo.ViviLocation);
 		NPCManager->SetNPCLocation("Zizi", LoadGameInstance->NpcInfo.ZiziLocation);
+
+		NPCManager->UpdateNPCPositions(DialogueManager->GetDialogueNum());
 	}
 }

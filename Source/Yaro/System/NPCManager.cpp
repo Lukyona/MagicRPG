@@ -40,7 +40,7 @@ void UNPCManager::InitializeNPCs(UWorld* World)
 {
 	NPCMap.Empty();
 
-	if (!World->GetName().Contains("Start") && NPCMap.Num() == 0)
+	if (NPCMap.Num() == 0)
 	{
 		for (TActorIterator<AYaroCharacter> It(World); It; ++It)
 		{

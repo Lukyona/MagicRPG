@@ -40,13 +40,10 @@ public:
 	UDialogueManager* GetDialogueManager() const { return DialogueManager; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-		UNPCManager* GetNPCManager() {
-		if (NPCManager) return NPCManager; else { UE_LOG(LogTemp, Warning, TEXT("GetNPCManager nulll")); return nullptr; }
-	}
-
+		UNPCManager* GetNPCManager() { return NPCManager; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-		UUIManager* GetUIManager() const; //{ return UIManager; }
+		UUIManager* GetUIManager() { return UIManager; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	AMain* GetPlayer();

@@ -121,6 +121,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	bool bCanStartDialogue = true;
 
+	bool bShowSpeechBubble = true;
 
 public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
@@ -151,7 +152,7 @@ public:
 	void DialogueEvents();
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void SetSpeechBubbleLocation();
+	void ActivateSpeechBubble();
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void SpawnGriffon();

@@ -42,7 +42,6 @@ class YARO_API UDialogueManager : public UObject
 
 
 
-	FVector SBLocation;
 
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 		//bool bCanDisplaySpeechBubble = false;

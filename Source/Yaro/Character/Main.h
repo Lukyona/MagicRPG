@@ -17,6 +17,23 @@ enum class EMovementStatus :uint8
 
 };
 
+UENUM(BlueprintType)
+enum class EPlayerStat :uint8
+{
+	Gender,
+	MaxHP,
+	HP,
+	MaxMP,
+	MP,
+	MaxSP, 
+	SP,
+	Level,
+	MaxExp,
+	Exp,
+	PotionNum,
+};
+
+
 UCLASS()
 class YARO_API AMain : public AStudent
 {
@@ -89,43 +106,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 		int FallCount = 0;
 
-	/**
-	/*
-	/* Player Stats
-	/*
-	*/
-
-	TMap<FString, float> PlayerStats;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
-	float MaxHP;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
-	float HP;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
-	float MaxMP;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
-	float MP;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
-	float MaxSP;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
-	float SP;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
-	int Level;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
-	float Exp;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
-	float MaxExp;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-		int32 PotionNum;
+	TMap<EPlayerStat, float> PlayerStats;
 
 
 	// 스탯 자동 회복
@@ -198,13 +181,14 @@ public:
 
 	void InitializeStats();
 
-	float GetStat(FString StatName) const;
-	void SetStat(FString StatName, float Value);
+	UFUNCTION(BlueprintCallable)
+	float GetStat(EPlayerStat StatName) const;
+	UFUNCTION(BlueprintCallable)
+	void SetStat(EPlayerStat StatName, float Value);
 
-
-	void AddHP(float value) { HP += value; SetStat("HP", HP); }
-	void AddMP(float value) { MP += value; SetStat("MP", MP);}
-	void AddSP(float value) { SP += value; SetStat("SP", SP); }
+	void AddHP(float Value) { SetStat(EPlayerStat::HP, PlayerStats[EPlayerStat::HP] + Value);}
+	void AddMP(float Value) { SetStat(EPlayerStat::MP, PlayerStats[EPlayerStat::MP] + Value); }
+	void AddSP(float Value) { SetStat(EPlayerStat::SP, PlayerStats[EPlayerStat::SP] + Value); }
 
 	void RecoveryHP();
 	void RecoveryMP();
@@ -226,13 +210,6 @@ public:
 	int GetFallCount() { return FallCount; }
 
 	void SetFallenInDungeon(bool Value) { bFallenInDungeon = Value; }
-
-	UFUNCTION(BlueprintCallable)
-	void SetPotionNum(int32 Num) { PotionNum = Num; }
-
-	UFUNCTION(BlueprintCallable)
-	int32 GetPotionNum() const { return PotionNum; }
-
 
 	UFUNCTION(BlueprintCallable)
 	bool IsFallenInDungeon() { return bFallenInDungeon; }

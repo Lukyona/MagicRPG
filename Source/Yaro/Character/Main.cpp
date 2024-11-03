@@ -85,17 +85,17 @@ AMain::AMain()
 
 
 	//상태 정보 초기화
-	PlayerStats.Add("Gender", 0.f);
-	PlayerStats.Add("MaxHP", 300.f);
-	PlayerStats.Add("HP", 300.f);
-	PlayerStats.Add("MaxMP", 150.f);
-	PlayerStats.Add("MP", 150.f);
-	PlayerStats.Add("MaxSP", 300.f);
-	PlayerStats.Add("SP", 300.f);
-	PlayerStats.Add("Level", 1.f);
-	PlayerStats.Add("Exp", 0.f);
-	PlayerStats.Add("MaxExp", 60.f);
-	PlayerStats.Add("PotionNum", 0.f);
+	PlayerStats.Add(EPlayerStat::Gender, 0.f);
+	PlayerStats.Add(EPlayerStat::MaxHP, 300.f);
+	PlayerStats.Add(EPlayerStat::HP, 300.f);
+	PlayerStats.Add(EPlayerStat::MaxMP, 150.f);
+	PlayerStats.Add(EPlayerStat::MP, 150.f);
+	PlayerStats.Add(EPlayerStat::MaxSP, 300.f);
+	PlayerStats.Add(EPlayerStat::SP, 300.f);
+	PlayerStats.Add(EPlayerStat::Level, 1.f);
+	PlayerStats.Add(EPlayerStat::Exp, 0.f);
+	PlayerStats.Add(EPlayerStat::MaxExp, 60.f);
+	PlayerStats.Add(EPlayerStat::PotionNum, 0.f);
 
 
 	HPDelay = 3.f;
@@ -112,7 +112,7 @@ AMain::AMain()
 
 bool AMain::IsInAir()
 {
-	return MainAnimInstance->bIsInAir;;
+	return MainAnimInstance->bIsInAir;
 }
 
 // Called when the game starts or when spawned
@@ -137,8 +137,8 @@ void AMain::BeginPlay()
 	ItemSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapEnd);
 
 	// 현재 캐릭터 성별 정보 저장
-	if (this->GetName().Contains("Boy")) SetStat("Gender", 1);
-	if (this->GetName().Contains("Girl")) SetStat("Gender", 2);
+	if (this->GetName().Contains("Boy")) SetStat(EPlayerStat::Gender, 1);
+	if (this->GetName().Contains("Girl")) SetStat(EPlayerStat::Gender, 2);
 
 	// 아이템 정보 관련
 	Storage = GetWorld()->SpawnActor<AItemStorage>(ObjectStorage);
@@ -241,7 +241,7 @@ void AMain::MoveForward(float Value)
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 		AddMovementInput(Direction, Value);
 
-		if (bRunning && SP > 0.f) // 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
+		if (bRunning && PlayerStats[EPlayerStat::SP] > 0.f) // 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
 			AddSP(-1);
 	}
 }
@@ -257,19 +257,20 @@ void AMain::MoveRight(float Value)
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		AddMovementInput(Direction, Value);
 
-		if (bRunning && SP > 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
+		if (bRunning && PlayerStats[EPlayerStat::SP] > 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
 			AddSP(-1);
 	}
 }
 
 void AMain::Run(float Value)
 {
-	if (!Value || SP <= 0.f) // 쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
+	float currentSP = PlayerStats[EPlayerStat::SP];
+	if (!Value || currentSP <= 0.f) // 쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
 	{
 		bRunning = false;
 		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed; //속도 하향
 
-		if (SP < MaxSP && !recoverySP) // 스태미나 Full 상태가 아니면
+		if (currentSP < PlayerStats[EPlayerStat::MaxSP] && !recoverySP) // 스태미나 Full 상태가 아니면
 		{ // 스태미나 자동 회복
 			if (!GetWorldTimerManager().IsTimerActive(SPTimer))
 			{
@@ -278,7 +279,7 @@ void AMain::Run(float Value)
 			}
 		}
 	}
-	else if(!bRunning && SP >= 5.f) // 쉬프트키가 눌려있고 스태미나 5 이상에 달리는 상태가 아니면
+	else if(!bRunning && currentSP >= 5.f) // 쉬프트키가 눌려있고 스태미나 5 이상에 달리는 상태가 아니면
 	{
 		bRunning = true;
 		GetCharacterMovement()->MaxWalkSpeed = RunSpeed; // 속도 상향		
@@ -408,7 +409,7 @@ void AMain::Attack()
 	{
 		SetSkillNum(MainPlayerController->WhichKeyDown()); // 눌린 키로 어떤 스킬 사용인지 구분
 		
-		if (Level < GetSkillNum()) return;
+		if (PlayerStats[EPlayerStat::Level] < GetSkillNum()) return;
 
 		ToSpawn = AttackSkillData->FindRow<FAttackSkillData>("Attack", "")->Skills[GetSkillNum()-1];
 
@@ -517,13 +518,14 @@ void AMain::Targeting() //Targeting using Tap key
 	}
 }
 
-void AMain::Spawn() //Spawn Magic
+void AMain::Spawn() 
 {
-	if (ToSpawn && MP >= 15) // 마법 사용에 필요한 최소 MP가 15
+	float currentMP = PlayerStats[EPlayerStat::MP];
+	if (ToSpawn && currentMP >= 15) // 마법 사용에 필요한 최소 MP가 15
 	{
 		//If player have not enough MP, then player can't use magic
 		float MPCost = 10.f + GetSkillNum() * 5;
-        if (MP < MPCost) return;
+        if (currentMP < MPCost) return;
 
 		FTimerHandle WaitHandle;
 		GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
@@ -556,8 +558,8 @@ void AMain::Spawn() //Spawn Magic
 			}
 		}), 0.6f, false); // 0.6초 뒤 실행, 반복X
 
-		MP -= MPCost;
-		SetStat("MP", MP);
+		currentMP -= MPCost;
+		SetStat(EPlayerStat::MP, currentMP);
 
 		if(!GetWorldTimerManager().IsTimerActive(MPTimer))
 			GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
@@ -566,9 +568,10 @@ void AMain::Spawn() //Spawn Magic
 
 float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	if (HP - DamageAmount <= 0.f)
+	float currentHP = PlayerStats[EPlayerStat::HP];
+	if (currentHP - DamageAmount <= 0.f)
 	{
-		HP = 0.f;
+		currentHP = 0.f;
 		Die();
 		if (DamageCauser) // 확인 필요
 		{
@@ -581,7 +584,7 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 	}
 	else
 	{
-		HP -= DamageAmount;
+		currentHP -= DamageAmount;
 		// HP 자동 회복
 		if(!GetWorldTimerManager().IsTimerActive(HPTimer))
 			GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);	
@@ -608,7 +611,7 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 			}
 		}
 	}
-	SetStat("HP", HP);
+	SetStat(EPlayerStat::HP, currentHP);
 	return DamageAmount;
 }
 
@@ -667,8 +670,7 @@ void AMain::Revive() // if player is dead, spawn player at the initial location
 		MainAnimInstance->Montage_Play(CombatMontage);
 		MainAnimInstance->Montage_JumpToSection(FName("Revival"));
 		GetMesh()->bNoSkeletonUpdate = false;
-		HP += 50.f;
-		SetStat("HP", HP);
+		SetStat(EPlayerStat::HP, PlayerStats[EPlayerStat::HP] + 50);
 	}
 }
 
@@ -715,21 +717,20 @@ void AMain::ItemSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AAc
 
 void AMain::InitializeStats()
 {
-	if (SP < MaxSP && !recoverySP)
+	if (PlayerStats[EPlayerStat::SP] < PlayerStats[EPlayerStat::MaxSP] && !recoverySP)
 	{
 		recoverySP = true;
 		GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
 	}
 
-	if (HP < MaxHP)
+	if (PlayerStats[EPlayerStat::HP] < PlayerStats[EPlayerStat::MaxHP])
 		GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);
 
-	if (MP < MaxMP)
+	if (PlayerStats[EPlayerStat::MP] < PlayerStats[EPlayerStat::MaxMP])
 		GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
-
 }
 
-float AMain::GetStat(FString StatName) const
+float AMain::GetStat(EPlayerStat StatName) const
 {
 	if (PlayerStats.Contains(StatName))
 	{
@@ -738,7 +739,7 @@ float AMain::GetStat(FString StatName) const
 	return 0.f;
 }
 
-void AMain::SetStat(FString StatName, float Value)
+void AMain::SetStat(EPlayerStat StatName, float Value)
 {
 	if (PlayerStats.Contains(StatName))
 	{
@@ -748,36 +749,39 @@ void AMain::SetStat(FString StatName, float Value)
 
 void AMain::RecoveryHP()
 {
-	HP += 5.f;
-	if (HP >= MaxHP)
+	float currentHP = PlayerStats[EPlayerStat::HP] + 5.f;
+
+	if (currentHP >= PlayerStats[EPlayerStat::MaxHP])
 	{
-		HP = MaxHP;
+		currentHP = PlayerStats[EPlayerStat::MaxHP];
 		GetWorldTimerManager().ClearTimer(HPTimer);
 	}
-	SetStat("HP", HP);
+	SetStat(EPlayerStat::HP, currentHP);
 }
 
 void AMain::RecoveryMP()
 {
-	MP += 5.f;
-	if (MP >= MaxMP)
+	float currentMP = PlayerStats[EPlayerStat::MP] + 5.f;
+
+	if (currentMP >= PlayerStats[EPlayerStat::MaxMP])
 	{
-		MP = MaxMP;
+		currentMP = PlayerStats[EPlayerStat::MaxMP];
 		GetWorldTimerManager().ClearTimer(MPTimer);
 	}
-	SetStat("MP", MP);
+	SetStat(EPlayerStat::MP, currentMP);
 }
 
 void AMain::RecoverySP()
 {
-	SP += 1.f;
-	if (SP >= MaxSP)
+	float currentSP = PlayerStats[EPlayerStat::SP] +1.f;
+
+	if (currentSP >= PlayerStats[EPlayerStat::MaxSP])
 	{
-		SP = MaxSP;
+		currentSP = PlayerStats[EPlayerStat::MaxSP];
 		GetWorldTimerManager().ClearTimer(SPTimer);
 		recoverySP = false;
 	}
-	SetStat("SP", SP);
+	SetStat(EPlayerStat::SP, currentSP);
 }
 
 void AMain::ESCDown()
@@ -797,31 +801,41 @@ void AMain::ESCUp()
 
 void AMain::GainExp(float Value)
 {
-	if (Level == 5) return; // 최고 레벨일 때는 리턴
+	float currentLevel = PlayerStats[EPlayerStat::Level];
+	if (currentLevel == 5) return; // 최고 레벨일 때는 리턴
 
-	Exp += Value;
+	float currentExp = PlayerStats[EPlayerStat::Exp];
+	float MaxExp = PlayerStats[EPlayerStat::MaxExp];
 
-	if (Exp >= MaxExp) // 다음 레벨로의 경험치를 모두 채웠다면
+	currentExp += Value;
+
+	float currentHP = PlayerStats[EPlayerStat::HP];
+	float MaxHP = PlayerStats[EPlayerStat::MaxHP];
+	float currentMP = PlayerStats[EPlayerStat::MP];
+	float MaxMP = PlayerStats[EPlayerStat::MaxMP];
+	float currentSP = PlayerStats[EPlayerStat::SP];
+	float MaxSP = PlayerStats[EPlayerStat::MaxSP];
+
+	if (currentExp >= MaxExp) // 다음 레벨로의 경험치를 모두 채웠다면
 	{
-        Level += 1; // 레벨 업
+		currentLevel += 1; // 레벨 업
         if (LevelUpSound)
             UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
 
 		// 경험치 수치 update
-		if (Exp == MaxExp)
+		if (currentExp == MaxExp)
 		{
-            Exp = 0.f;
+			currentExp = 0.f;
 		}
 		else
 		{
-			float tmp = Exp - MaxExp;
-			Exp = tmp;
+			currentExp -= MaxExp;
 		}
 
-		if (Level == 5) Exp = MaxExp;
+		if (currentLevel == 5) currentExp = MaxExp;
 
 		// 레벨에 따른 상태 능력치 최대치 초기화
-		switch (Level)
+		switch ((int)currentLevel)
 		{
 			case 2:
 				MaxExp = 150.f;
@@ -852,24 +866,24 @@ void AMain::GainExp(float Value)
                 break;
 		}
 
-		HP += 100.f;
-		MP += 50.f;
-		SP += 100.f;
+		currentHP += 100.f;
+		currentMP += 50.f;
+		currentSP += 100.f;
 
-		if (HP > MaxHP) HP = MaxHP;
-		if (MP > MaxMP) MP = MaxMP;
-		if (SP > MaxSP) SP = MaxSP;
+		if (currentHP > MaxHP) currentHP = MaxHP;
+		if (currentMP > MaxMP) currentMP = MaxMP;
+		if (currentSP > MaxSP) currentSP = MaxSP;
 
 
-		SetStat("HP", HP);
-		SetStat("MaxHP", MaxHP);
-		SetStat("MP", MP);
-		SetStat("MaxMP", MaxMP);
-		SetStat("SP", SP);
-		SetStat("MaxSP", MaxSP);
-		SetStat("Level", Level);
-		SetStat("Exp", Exp);
-		SetStat("MaxExp", MaxExp);
+		SetStat(EPlayerStat::HP, currentHP);
+		SetStat(EPlayerStat::MaxHP, MaxHP);
+		SetStat(EPlayerStat::MP, currentMP);
+		SetStat(EPlayerStat::MaxMP, MaxMP);
+		SetStat(EPlayerStat::SP, currentSP);
+		SetStat(EPlayerStat::MaxSP, MaxSP);
+		SetStat(EPlayerStat::Level, currentLevel);
+		SetStat(EPlayerStat::Exp, currentExp);
+		SetStat(EPlayerStat::MaxExp, MaxExp);
 
         FTimerHandle Timer;
         GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
@@ -965,46 +979,38 @@ void AMain::SkipCombat() // 전투 스킵, 몬스터 제거
 
 void AMain::RecoverWithLogo() // get school icon in second stage
 {
-	HP += 150.f;
-	MP += 50.f;
-	SP += 50.f;
+	float currentHP = PlayerStats[EPlayerStat::HP] + 150.f;
+	float currentMP = PlayerStats[EPlayerStat::MP] + 50.f;
+	float currentSP = PlayerStats[EPlayerStat::SP] + 50.f;
 
-	if (HP >= MaxHP) HP = MaxHP;
-	if (MP >= MaxMP) MP = MaxMP;
-	if (SP >= MaxSP) SP = MaxSP;
+	float MaxHP = PlayerStats[EPlayerStat::MaxHP];
+	float MaxMP = PlayerStats[EPlayerStat::MaxMP];
+	float MaxSP = PlayerStats[EPlayerStat::MaxSP];
 
-	SetStat("HP", HP);
-	SetStat("MP", MP);
-	SetStat("SP", SP);
+	if (currentHP >= MaxHP) currentHP = MaxHP;
+	if (currentMP >= MaxMP) currentMP = MaxMP;
+	if (currentSP >= MaxSP) currentSP = MaxSP;
+
+	SetStat(EPlayerStat::HP, currentHP);
+	SetStat(EPlayerStat::MP, currentMP);
+	SetStat(EPlayerStat::SP, currentSP);
 }
 
 void AMain::SetLevel5() // level cheat, 즉시 최대 레벨 도달
 {
-	if (DialogueManager->GetDialogueNum() < 3 || Level == 5) return;
+	if (DialogueManager->GetDialogueNum() < 3 || PlayerStats[EPlayerStat::Level] == 5) return;
 
 	if (LevelUpSound != nullptr)
 		UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
 
-	Level = 5;
-	Exp = MaxExp;
-
-	MaxHP = 700.f;
-	MaxMP = 280.f;
-	MaxSP = 400.f;
-
-	HP = MaxHP;
-	MP = MaxMP;
-	SP = MaxSP;
-
-	SetStat("HP", HP);
-	SetStat("MaxHP", MaxHP);
-	SetStat("MP", MP);
-	SetStat("MaxMP", MaxMP);
-	SetStat("SP", SP);
-	SetStat("MaxSP", MaxSP);
-	SetStat("Level", Level);
-	SetStat("Exp", Exp);
-	SetStat("MaxExp", MaxExp);
+	SetStat(EPlayerStat::MaxHP, 700.f);
+	SetStat(EPlayerStat::MaxMP, 280.f);
+	SetStat(EPlayerStat::MaxSP, 400.f);
+	SetStat(EPlayerStat::HP, 700.f);
+	SetStat(EPlayerStat::MP, 480.f);
+	SetStat(EPlayerStat::SP, 400.f);
+	SetStat(EPlayerStat::Level, 5);
+	SetStat(EPlayerStat::Exp, PlayerStats[EPlayerStat::MaxExp]);
 
 	if (!UIManager->IsSystemMessageVisible())
 	{
@@ -1019,16 +1025,10 @@ void AMain::SetLevel5() // level cheat, 즉시 최대 레벨 도달
 
 void AMain::UsePotion()
 {
-	if (PotionNum <= 0 || DialogueManager->GetDialogueNum() < 3) return;
+	if (PlayerStats[EPlayerStat::PotionNum] <= 0 || DialogueManager->GetDialogueNum() < 3) return;
 
-	PotionNum--;
-
-	HP = MaxHP;
-	MP = MaxMP;
-	SP = MaxSP;
-
-	SetStat("HP", HP);
-	SetStat("MP", MP);
-	SetStat("SP", SP);
-	SetStat("PotionNum", PotionNum);
+	SetStat(EPlayerStat::HP, PlayerStats[EPlayerStat::MaxHP]);
+	SetStat(EPlayerStat::MP, PlayerStats[EPlayerStat::MaxMP]);
+	SetStat(EPlayerStat::SP, PlayerStats[EPlayerStat::MaxSP]);
+	SetStat(EPlayerStat::PotionNum, 0);
 }

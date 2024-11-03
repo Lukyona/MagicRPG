@@ -67,7 +67,8 @@ void UDialogueUI::AnimateMessage(const FString& Text)
     NPCText->SetText(FText::FromString(""));
     CharacterNameText->SetText(FText::FromString(Dialogue[RowIndex]->CharacterName.ToString()));
 
-    SetSpeechBubbleLocation();
+    if(bShowSpeechBubble)
+        ActivateSpeechBubble();
 
     GetWorld()->GetTimerManager().SetTimer(TextTimer, this, &UDialogueUI::OnAnimationTimerCompleted, 0.2f, false);
 }
@@ -295,48 +296,50 @@ void UDialogueUI::DialogueEvents()
                         DialogueManager->DisplaySpeechBuubble(Vovo);
                         break;
                     case 10:
-                        DialogueManager->RemoveSpeechBuubble();
-                    }
-                    return;
+                        bShowSpeechBubble = false;
+                        break;
+                }
+                return;
             }
 
             switch (RowIndex) // 1인칭 시점일 때
             {
                 case 1: // Momo, Set GetFollowCamera()'s Z value of Rotation
-                case 7:
                     NPCManager->OpenMouth(Momo);
+                    DialogueManager->DisplaySpeechBuubble(Momo);
+                case 7:
                     Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, -15.f, 0.f));
                     bInputDisabled = false;
-                    DialogueManager->DisplaySpeechBuubble(Momo);
                     break;
                 case 2: // Vivi
-                case 6:
                     NPCManager->OpenMouth(Vivi);
-                    Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
                     DialogueManager->DisplaySpeechBuubble(Vivi);
+                case 6:
+                    Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
                     break;
                 case 3: // Luko
-                case 8:
                     NPCManager->OpenMouth(Luko);
-                    Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, -25.f, 0.f));
                     DialogueManager->DisplaySpeechBuubble(Luko);
+                case 8:
+                    Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, -25.f, 0.f));
                     break;
                 case 4: // Zizi
                     NPCManager->OpenMouth(Zizi);
-                    Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, 13.f, 0.f));
                     DialogueManager->DisplaySpeechBuubble(Zizi);
+                    Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, 13.f, 0.f));
                     break;
                 case 5: // Vovo
                 case 9:
                     NPCManager->OpenMouth(Vovo);
-                    Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, 30.f, 0.f));
                     DialogueManager->DisplaySpeechBuubble(Vovo);
+                    Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, 30.f, 0.f));
                     if (RowIndex == 5 && MessageIndex == 2)
                         Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, 5.f, 0.f));
                     break;
                 case 10: // npc go
                     Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
                     Player->GetCameraBoom()->TargetArmLength = 500.f;
+                    bShowSpeechBubble = false;
                     DialogueManager->RemoveSpeechBuubble();
 
                     // npc move except luko              
@@ -356,6 +359,7 @@ void UDialogueUI::DialogueEvents()
                             Player->SetInterpToCharacter(true);
                             Player->SetTargetCharacter(Luko);
                             GetWorld()->GetTimerManager().ClearTimer(Timer);
+                            bShowSpeechBubble = true;
                         }), 2.f, false); // 2초 뒤 루코 대화
                     AutoCloseDialogue();
                     return;
@@ -387,7 +391,7 @@ void UDialogueUI::DialogueEvents()
                 break;
             case 4:
                 Luko->SetInterpToCharacter(true);
-                Luko->SetTargetCharacter(Luko);
+                Luko->SetTargetCharacter(Player);
                 break;
             }
         }
@@ -448,6 +452,7 @@ void UDialogueUI::DialogueEvents()
                     }
                     RowIndex = 8;
                     bInputDisabled = true;
+                    bShowSpeechBubble = false;
                 case 9:
                 case 10:
                 case 11:
@@ -462,6 +467,7 @@ void UDialogueUI::DialogueEvents()
             switch (RowIndex)
             {
                 case 0:
+                    bShowSpeechBubble = true;
                     //MainPlayerController->bCanDisplaySpeechBubble = true;
                     break;
                 case 2:
