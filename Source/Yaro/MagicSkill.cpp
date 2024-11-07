@@ -136,8 +136,6 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
             {
                 if (index == 0)
                 {
-                    Enemy->SetAttackFromPlayer(true);
-
                     if (!Main) SetMain();
                     if (Main->GetCombatTarget() == nullptr)
                     {

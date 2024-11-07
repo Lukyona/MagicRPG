@@ -88,23 +88,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
 	float BaseLookUpRate;
 
-
-	//플레이어 성별
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "PlayerInfo")
-	int Gender;
-
 	//달리는 상태인지 확인
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
 	bool bRunning;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	bool bCanMove = true;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-		bool bFallenInDungeon = false; // 플레이어가 던전 범위 밖으로 추락했을 때 true
+	bool bFallenInDungeon = false; // 플레이어가 던전 범위 밖으로 추락했을 때 true
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-		int FallCount = 0;
+	int32 FallCount = 0;
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
@@ -177,11 +169,12 @@ public:
 	FORCEINLINE void SetMovementStatus(EMovementStatus Status) { MovementStatus = Status; }
 	FORCEINLINE EMovementStatus GetMovementStatus() { return MovementStatus; }
 
+	UFUNCTION(BlueprintCallable)
 	void SetCanMove(bool value) { bCanMove = value; }
 
 	void InitializeStats();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	float GetStat(EPlayerStat StatName) const;
 	UFUNCTION(BlueprintCallable)
 	void SetStat(EPlayerStat StatName, float Value);
@@ -206,12 +199,16 @@ public:
 	void SetItemInHand(AItem* item) { ItemInHand = item; }
 	AItem* GetItemInHand() { return ItemInHand; }
 
-	void SetFallCount(uint8 Count) { FallCount = Count; }
-	int GetFallCount() { return FallCount; }
+	UFUNCTION(BlueprintCallable)
+	void SetFallCount(int32 Count) { FallCount = Count; }
 
-	void SetFallenInDungeon(bool Value) { bFallenInDungeon = Value; }
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	int32 GetFallCount() { return FallCount; }
 
 	UFUNCTION(BlueprintCallable)
+	void SetFallenInDungeon(bool Value) { bFallenInDungeon = Value; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	bool IsFallenInDungeon() { return bFallenInDungeon; }
 
 	bool IsInAir();

@@ -40,7 +40,7 @@ class YARO_API UDialogueManager : public UObject
 
 	bool bSpeechBuubbleVisible;
 
-
+	ACharacter* SpeakingTarget;
 
 
 	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
@@ -90,9 +90,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void RemoveDialogueUI();
 
-
-	UFUNCTION(BlueprintCallable)
-		void DialogueEvents();
+		void DialogueEndEvents();
 
 	UFUNCTION(BlueprintCallable)
 		void DisplaySpeechBuubble(class AYaroCharacter* npc);

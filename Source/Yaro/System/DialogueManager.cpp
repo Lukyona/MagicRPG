@@ -26,11 +26,6 @@ void UDialogueManager::BeginPlay()
     }
     else return;
 
-    if (DialogueNum == 0)
-    {
-        UIManager->CreateFadeWidget(false);
-    }
-
     TSoftClassPtr<UUserWidget> DialogueBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/DialogueUI.DialogueUI_C")));
 
     if (!DialogueBPClass.IsValid())
@@ -70,6 +65,8 @@ void UDialogueManager::Tick()
 {
     if (bSpeechBuubbleVisible)
     {
+        FVector SBLocation = SpeakingTarget->GetActorLocation() + FVector(0.f, 0.f, 95.f);
+        SpeechBubble->SetActorLocation(SBLocation);
         SpeechBubble->SetActorRotation(GameManager->GetPlayer()->GetControlRotation() + FRotator(0.f, 180.f, 0.f));
     }
 }
@@ -81,15 +78,7 @@ void UDialogueManager::SetGameManager(UGameManager* Manager)
 
 void UDialogueManager::CheckDialogueStartCondition()
 {
-    if (GameManager->IsSkipping() || (!Player->IsDead() && NPCManager->IsNPCInTalkRange()))
-    {
-        DisplayDialogueUI();
-    }
-    else
-    {
-        FTimerHandle TimerHandle;
-        GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UDialogueManager::CheckDialogueStartCondition, 2.f, false);
-    }
+    NPCManager->UpdateNPCPositions(DialogueNum);
 }
 
 void UDialogueManager::DisplayDialogueUI()
@@ -100,13 +89,6 @@ void UDialogueManager::DisplayDialogueUI()
 
         if (UIManager->IsControlGuideVisible()) UIManager->RemoveControlGuide();
 
-        uint8 FallCount = Player->GetFallCount();
-        if (Player->IsFallenInDungeon() && (FallCount == 1 || FallCount == 5))
-        {
-            DialogueUI->InitializeDialogue(DialogueDatas.Last(0));
-        }
-
-        bDialogueUIVisible = true;
         
         if (!Player->IsFallenInDungeon())
         {
@@ -184,8 +166,16 @@ void UDialogueManager::DisplayDialogueUI()
                 break;
             }
         }
-
+        else // 두번째 던전에서 추락했을 때
+        {
+            uint8 FallCount = Player->GetFallCount();
+            if (FallCount == 1) 
+            {
+                DialogueUI->InitializeDialogue(DialogueDatas.Last(0));
+            }
+        }
         DialogueUI->SetVisibility(ESlateVisibility::Visible);
+        bDialogueUIVisible = true;
 
         FInputModeGameAndUI InputMode;
         MainPlayerController->SetInputMode(InputMode);
@@ -200,7 +190,7 @@ void UDialogueManager::RemoveDialogueUI()
         if (!Player->IsFallenInDungeon())
         {
             DialogueNum++;
-            DialogueEvents();
+            DialogueEndEvents();
         }
         else
         {
@@ -220,7 +210,7 @@ void UDialogueManager::RemoveDialogueUI()
     }
 }
 
-void UDialogueManager::DialogueEvents()
+void UDialogueManager::DialogueEndEvents()
 {
     RemoveSpeechBuubble();
     
@@ -255,6 +245,7 @@ void UDialogueManager::DialogueEvents()
         NPCManager->GetNPC("Luko")->SetTargetCharacter(nullptr);
         GameManager->SaveGame();
         UIManager->SetSystemMessage(5);
+        GameManager->SetIsSkippable(true);
         break;
     case 4: // move to boat
         MainPlayerController->SetCinematicMode(false, true, true);
@@ -398,8 +389,7 @@ void UDialogueManager::DisplaySpeechBuubble(class AYaroCharacter* npc)
 
     if (SpeechBubble) //&& bCanDisplaySpeechBubble)
     {
-        FVector SBLocation = npc->GetActorLocation() + FVector(0.f, 0.f, 93.f);
-        SpeechBubble->SetActorLocation(SBLocation);
+        SpeakingTarget = npc;
         SpeechBubble->SetActorHiddenInGame(false);
 
         bSpeechBuubbleVisible = true;

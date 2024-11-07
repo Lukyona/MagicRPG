@@ -523,6 +523,12 @@ void AEnemy::AttackEnd()
 
 float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
+	MagicAttack = Cast<AMagicSkill>(DamageCauser);
+
+	int index = MagicAttack->index;
+	if(index == 0) 
+		bAttackFromPlayer = true;
+
 	if (Health - DamageAmount <= 0.f) // Decrease Health
 	{
 		Health = 0.f;
@@ -538,9 +544,7 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 		Health -= DamageAmount;
 	}
 
-	MagicAttack = Cast<AMagicSkill>(DamageCauser);
 	////UE_LOG(LogTemp, Log, TEXT("attck %s"), *MagicAttack->GetName());
-
 	return DamageAmount;
 }
 
@@ -554,6 +558,8 @@ void AEnemy::Die()
 
 		if (DeathSound && !GameManager->IsSkipping()) UGameplayStatics::PlaySound2D(this, DeathSound);
 
+		if (bAttackFromPlayer) Main->GainExp(EnemyExp);
+
 		if (AnimInstance && !GameManager->IsSkipping())
 		{
 			AnimInstance->Montage_Play(CombatMontage);
@@ -561,7 +567,6 @@ void AEnemy::Die()
 		}
 		SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
 
-		if (bAttackFromPlayer) Main->GainExp(EnemyExp);
 	}
 }
 
@@ -660,7 +665,7 @@ void AEnemy::HitEnd()
 	*/
 	if (index == 0)
 	{
-		SetAttackFromPlayer(true);
+		bAttackFromPlayer = true;
 		if ((CombatTarget == nullptr || CombatTarget != Main))
 		{
 			if (CombatTarget)
@@ -672,10 +677,6 @@ void AEnemy::HitEnd()
 			}
 			if (Main->GetMovementStatus() != EMovementStatus::EMS_Dead) MoveToTarget(Main);
 		}
-	}
-	else
-	{
-		SetAttackFromPlayer(false);
 	}
 
 	// When enemy doesn't have any combat target and enemy doesn't follow player,  Ai(npc) attacks enemy

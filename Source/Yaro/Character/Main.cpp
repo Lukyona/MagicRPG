@@ -882,7 +882,6 @@ void AMain::GainExp(float Value)
 		SetStat(EPlayerStat::SP, currentSP);
 		SetStat(EPlayerStat::MaxSP, MaxSP);
 		SetStat(EPlayerStat::Level, currentLevel);
-		SetStat(EPlayerStat::Exp, currentExp);
 		SetStat(EPlayerStat::MaxExp, MaxExp);
 
         FTimerHandle Timer;
@@ -891,6 +890,9 @@ void AMain::GainExp(float Value)
 				UIManager->RemoveSystemMessage();
         }), 3.f, false);
 	}
+
+	SetStat(EPlayerStat::Exp, currentExp);
+
 }
 
 const TMap<FString, TSubclassOf<class AItem>>* AMain::GetItemMap()

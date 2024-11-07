@@ -29,12 +29,15 @@ class YARO_API UGameManager : public UGameInstance
 	UPROPERTY()
 		TArray<FString> DeadEnemies;
 
+	FTimerHandle SaveTimer;
+
+	bool bIsSaveAllowed = true;
+
 public:
 
 	UPROPERTY(BlueprintReadWrite)
 		TSubclassOf<APawn> PlayerClass;
 
-	FTimerHandle SaveTimer; 
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	UDialogueManager* GetDialogueManager() const { return DialogueManager; }
@@ -81,5 +84,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetIsSkippable(bool bSkippable) { bIsSkippable = bSkippable; }
 
+	void SetIsSaveAllowed(bool Value) { bIsSaveAllowed = Value; }
 
 };

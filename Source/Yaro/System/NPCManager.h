@@ -72,7 +72,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void SetPositionsForDialogue();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 		bool IsNPCInTalkRange();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)

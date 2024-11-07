@@ -141,15 +141,14 @@ AMainPlayerController* UGameManager::GetMainPlayerController()
 
 void UGameManager::SaveGame()
 {
-	if (DialogueManager->GetDialogueNum() >= 23) return;
+	if (DialogueManager->GetDialogueNum() >= 23 || !bIsSaveAllowed) return;
 
 	if (DialogueManager->IsDialogueUIVisible() || DialogueManager->GetDialogueNum() == 21
 		|| Player->IsInAir() || Player->IsFallenInDungeon())
 	{
-		GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &UGameManager::SaveGame, 1.f, false);
+		GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &UGameManager::SaveGame, 2.f, false);
 		return;
 	}
-
 
 	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
 
@@ -217,7 +216,6 @@ void UGameManager::LoadGame()
 	Player->SetStat(EPlayerStat::MaxExp, LoadGameInstance->CharacterStats.MaxExp);
 	Player->SetStat(EPlayerStat::PotionNum, LoadGameInstance->CharacterStats.PotionNum);
 
-
 	DeadEnemies = LoadGameInstance->DeadEnemyList;
 
 	if (DialogueManager->GetDialogueNum() < 4)
@@ -254,6 +252,9 @@ void UGameManager::LoadGame()
 		NPCManager->SetNPCLocation("Vivi", LoadGameInstance->NpcInfo.ViviLocation);
 		NPCManager->SetNPCLocation("Zizi", LoadGameInstance->NpcInfo.ZiziLocation);
 
-		NPCManager->UpdateNPCPositions(DialogueManager->GetDialogueNum());
+	}
+	else // 배로 이동 중
+	{
+		bIsSaveAllowed = false;
 	}
 }

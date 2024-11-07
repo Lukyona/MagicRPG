@@ -67,8 +67,7 @@ void UDialogueUI::AnimateMessage(const FString& Text)
     NPCText->SetText(FText::FromString(""));
     CharacterNameText->SetText(FText::FromString(Dialogue[RowIndex]->CharacterName.ToString()));
 
-    if(bShowSpeechBubble)
-        ActivateSpeechBubble();
+    ActivateSpeechBubble();
 
     GetWorld()->GetTimerManager().SetTimer(TextTimer, this, &UDialogueUI::OnAnimationTimerCompleted, 0.2f, false);
 }
@@ -238,20 +237,9 @@ void UDialogueUI::DialogueEvents()
 
             if (RowIndex == 7)
             {
-                Player->SetFallCount(2);
                 AutoCloseDialogue();
                 NPCManager->AllNpcDisableLookAt();
-                Player->SetFallenInDungeon(false);
-                return;
-            }
-        }
-        else if (Player->GetFallCount() == 6)
-        {
-            if (RowIndex == 0) RowIndex = 7;
-
-            if (RowIndex == 8)
-            {
-                AutoCloseDialogue();
+                NPCManager->AllNpcMoveToPlayer();
                 Player->SetFallenInDungeon(false);
                 return;
             }
@@ -295,9 +283,6 @@ void UDialogueUI::DialogueEvents()
                     case 9:
                         DialogueManager->DisplaySpeechBuubble(Vovo);
                         break;
-                    case 10:
-                        bShowSpeechBubble = false;
-                        break;
                 }
                 return;
             }
@@ -339,7 +324,6 @@ void UDialogueUI::DialogueEvents()
                 case 10: // npc go
                     Player->GetFollowCamera()->SetRelativeRotation(FRotator(0.f, 0.f, 0.f));
                     Player->GetCameraBoom()->TargetArmLength = 500.f;
-                    bShowSpeechBubble = false;
                     DialogueManager->RemoveSpeechBuubble();
 
                     // npc move except luko              
@@ -359,7 +343,6 @@ void UDialogueUI::DialogueEvents()
                             Player->SetInterpToCharacter(true);
                             Player->SetTargetCharacter(Luko);
                             GetWorld()->GetTimerManager().ClearTimer(Timer);
-                            bShowSpeechBubble = true;
                         }), 2.f, false); // 2초 뒤 루코 대화
                     AutoCloseDialogue();
                     return;
@@ -435,6 +418,11 @@ void UDialogueUI::DialogueEvents()
                 if (SelectedReply == 1 || SelectedReply == 3)
                 {
                     AutoCloseDialogue();
+                    FTimerHandle Timer;
+                    GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
+                        {
+                            GameManager->SetIsSaveAllowed(false);
+                        }), 2.f, false); // 2초 뒤부터 다음 던전 입장 전까지 저장 불가
                     return;
                 }
                 break;
@@ -452,7 +440,7 @@ void UDialogueUI::DialogueEvents()
                     }
                     RowIndex = 8;
                     bInputDisabled = true;
-                    bShowSpeechBubble = false;
+                    //bShowSpeechBubble = false;
                 case 9:
                 case 10:
                 case 11:
@@ -467,7 +455,7 @@ void UDialogueUI::DialogueEvents()
             switch (RowIndex)
             {
                 case 0:
-                    bShowSpeechBubble = true;
+                    GameManager->SetIsSaveAllowed(true);
                     //MainPlayerController->bCanDisplaySpeechBubble = true;
                     break;
                 case 2:
@@ -1109,7 +1097,6 @@ void UDialogueUI::DialogueEvents()
         {
             RowIndex = 23;
         }
-
     }
    
     //UE_LOG(LogTemp, Log, TEXT("pass77"));

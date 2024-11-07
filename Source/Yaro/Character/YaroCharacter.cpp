@@ -609,10 +609,12 @@ void AYaroCharacter::MoveToLocation() // Vivi, Vovo, Zizi만 실행
 				// 목표 지점 이동을 모두 끝내고, 모모 혹은 플레이어가 골렘과 전투 중이면 골렘 쪽으로 이동
 				if (NPCManager->GetNPC("Momo")->CombatTarget && NPCManager->GetNPC("Momo")->CombatTarget->GetName().Contains("Golem"))
 				{
+					GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
 					AIController->MoveToActor(NPCManager->GetNPC("Momo")->CombatTarget);
 				}
                 if (Player->GetCombatTarget() && Player->GetCombatTarget()->GetName().Contains("Golem"))
                 {
+					GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
                     AIController->MoveToActor(Player->GetCombatTarget());
                 }
 			}

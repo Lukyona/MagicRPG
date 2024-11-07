@@ -169,8 +169,6 @@ public: // Get, Set
 	FRotator GetLookAtRotationYaw(FVector Target);
 
 
-	void SetAttackFromPlayer(bool value) { bAttackFromPlayer = value; }
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Info")
 	TSubclassOf<UDamageType> DamageTypeClass;
 
@@ -264,5 +262,4 @@ public:
 	// 공격받은 뒤
 	UFUNCTION(BlueprintCallable)
 	void HitEnd();
-
 };

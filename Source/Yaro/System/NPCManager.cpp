@@ -291,6 +291,7 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		MoveNPCToLocation(Vovo, FVector(630.f, 970.f, 1840.f));
 		MoveNPCToLocation(Vivi, FVector(710.f, 995.f, 1840.f));
 		MoveNPCToLocation(Zizi, FVector(690.f, 930.f, 1840.f));
+
 		break;
 	case 9: //if ItemInHand is null, the stone have to put on the floor (this is check in blueprint)
 		UIManager->SetSystemMessage(10);

@@ -170,7 +170,7 @@ void UUIManager::RemoveControlGuide()
             GameManager->GetPlayer()->SetCanMove(true);
             SetSystemMessage(3);
 
-            DialogueManager->DialogueEvents();
+            DialogueManager->DialogueEndEvents();
         }
     }
 }
@@ -358,12 +358,6 @@ void UUIManager::FadeAndDialogue()
             bIsFading = true;
 
             AMain* Player = GameManager->GetPlayer();
-            uint32 FallCount = Player->GetFallCount();
-            if (Player->IsFallenInDungeon() && ((FallCount == 0 || FallCount >= 2)))
-            {
-                if (FallCount != 6)
-                    Player->SetFallCount(FallCount+1);
-            }
 
             int dialogueNum = DialogueManager->GetDialogueNum();
             if (dialogueNum == 11 || dialogueNum == 18 || dialogueNum == 20) // second dungeon food trap

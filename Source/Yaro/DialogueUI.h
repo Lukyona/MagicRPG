@@ -121,8 +121,6 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	bool bCanStartDialogue = true;
 
-	bool bShowSpeechBubble = true;
-
 public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
 	void OnAnimationShowMessageUI();
