@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Yaro/MagicSkill.h"
 #include "Engine/DataTable.h"
 #include "AttackSkillData.generated.h"
 

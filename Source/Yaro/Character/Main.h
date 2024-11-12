@@ -291,7 +291,7 @@ public:
 
 	void Escape(); // press E key, spawn player at the other location
 
-	void ShowManual();
+	void ShowControlGuide();
 
 	void StartDialogue();
 

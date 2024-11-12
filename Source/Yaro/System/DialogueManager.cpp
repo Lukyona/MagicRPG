@@ -45,7 +45,7 @@ void UDialogueManager::BeginPlay()
     if (DialogueDatas.Num() == 0)
     {
         TArray<UObject*> Assets;
-        EngineUtils::FindOrLoadAssetsByPath(TEXT("/Game/DialogueDatas"), Assets, EngineUtils::ATL_Regular);
+        EngineUtils::FindOrLoadAssetsByPath(TEXT("/Game/DataTables/DialogueDatas"), Assets, EngineUtils::ATL_Regular);
 
         for (UObject* Asset : Assets)
         {
@@ -85,8 +85,13 @@ void UDialogueManager::DisplayDialogueUI()
 {
     if (DialogueUI)
     {
-        if (!DialogueUI->CanStartDialogue()) return;
-
+        if (!DialogueUI->CanStartDialogue())
+        {
+            FTimerHandle TimerHandle;
+            GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UDialogueManager::DisplayDialogueUI, 1.f, false);
+            return;
+        }
+           
         if (UIManager->IsControlGuideVisible()) UIManager->RemoveControlGuide();
 
         
@@ -220,31 +225,31 @@ void UDialogueManager::DialogueEndEvents()
         NPCManager->GetNPC("Luko")->MoveToPlayer();
         break;
     case 2:
-        if (UIManager->GetSystemMessageNum() != 3)
+        if (UIManager->GetSystemMessageNum() != 4)
         {
             Player->SetInterpToCharacter(false);
             Player->SetTargetCharacter(nullptr);
             GetWorld()->GetTimerManager().ClearTimer(NPCManager->GetNPC("Luko")->GetMoveTimer());
             NPCManager->MoveNPCToLocation("Luko", FVector(5200.f, 35.f, 100.f));
-            UIManager->SetSystemMessage(16);
+            UIManager->SetSystemMessage(2);
 
             FTimerHandle TimerHandle;
             GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([&]() {
-                UIManager->SetSystemMessage(2);
+                UIManager->SetSystemMessage(3);
                 }), 2.5f, false);
             return;
         }
         MainPlayerController->SetCinematicMode(false, true, true);
         if (Player->GetEquippedWeapon() == nullptr) // get the wand
         {
-            UIManager->SetSystemMessage(3);
+            UIManager->SetSystemMessage(4);
         }
         break;
     case 3: // enter the first dungeon
         NPCManager->GetNPC("Luko")->SetInterpToCharacter(false);
         NPCManager->GetNPC("Luko")->SetTargetCharacter(nullptr);
         GameManager->SaveGame();
-        UIManager->SetSystemMessage(5);
+        UIManager->SetSystemMessage(6);
         GameManager->SetIsSkippable(true);
         break;
     case 4: // move to boat
@@ -300,7 +305,7 @@ void UDialogueManager::DialogueEndEvents()
             NPCManager->MoveNPCToLocation("Vovo", FVector(8.f, -3585.f, 684.f));
             NPCManager->MoveNPCToLocation("Vivi", FVector(8.f, -3585.f, 684.f));
             NPCManager->MoveNPCToLocation("Zizi", FVector(8.f, -3585.f, 684.f));
-            UIManager->SetSystemMessage(13);
+            UIManager->SetSystemMessage(14);
         }
         if (DialogueNum == 11)
         {
@@ -327,7 +332,7 @@ void UDialogueManager::DialogueEndEvents()
     case 15:
         DialogueUI->SetInputDisabled(false);
         Player->SetCanMove(true);
-        UIManager->SetSystemMessage(11);
+        UIManager->SetSystemMessage(12);
         NPCManager->AllNpcMoveToPlayer();
         break;
     case 16:
@@ -351,7 +356,7 @@ void UDialogueManager::DialogueEndEvents()
         DialogueUI->SetInputDisabled(false);
         Player->SetCanMove(true);
         NPCManager->AllNpcMoveToPlayer();
-        UIManager->SetSystemMessage(12);
+        UIManager->SetSystemMessage(13);
         GameManager->SaveGame();
 
         FTimerHandle TimerHandle;
@@ -369,7 +374,7 @@ void UDialogueManager::DialogueEndEvents()
         {
             MainPlayerController->SetCinematicMode(false, true, true);
             Player->SetCanMove(true);
-            UIManager->SetSystemMessage(14);
+            UIManager->SetSystemMessage(15);
         }
         break;
     }

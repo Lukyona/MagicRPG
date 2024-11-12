@@ -7,6 +7,7 @@
 #include "System/DialogueManager.h"
 #include "System/MainPlayerController.h"
 #include "Character/Main.h"
+#include "Structs/SystemMessageData.h"
 
 
 UUIManager* UUIManager::Instance = nullptr;
@@ -106,6 +107,8 @@ void UUIManager::BeginPlay()
     {
         FadeInOutClass = FadeInOutBPClass.Get();
     }
+
+    SystemMessageData = LoadObject<UDataTable>(nullptr, TEXT("/Game/DataTables/DT_SystemMessage"));
 }
 
 void UUIManager::Tick()
@@ -165,10 +168,10 @@ void UUIManager::RemoveControlGuide()
     {
         bControlGuideVisible = false;
         ControlGuide->SetVisibility(ESlateVisibility::Hidden);
-        if (DialogueManager->GetDialogueNum() == 2 && SystemMessageNum != 4)
+        if (DialogueManager->GetDialogueNum() == 2 && SystemMessageNum < 4)
         {
             GameManager->GetPlayer()->SetCanMove(true);
-            SetSystemMessage(3);
+            SetSystemMessage(4);
 
             DialogueManager->DialogueEndEvents();
         }
@@ -252,60 +255,12 @@ void UUIManager::RemoveSystemMessage()
 
 void UUIManager::SetSystemMessage(int MessageNum)
 {
-    FString text;
-    switch (MessageNum)
-    {
-    case 1:
-        text = FString(TEXT("F키를 누르거나 마우스 왼쪽 버튼을 클릭하여\n대화를 진행할 수 있습니다."));
-        break;
-    case 2:
-        text = FString(TEXT("M키를 눌러 조작 매뉴얼을 확인하고\n다시 M키를 눌러 조작 매뉴얼을 닫으세요."));
-        break;
-    case 3:
-        text = FString(TEXT("이제 지팡이 가까이에서 마우스 왼쪽 버튼을 클릭하여\n지팡이를 장비하세요."));
-        break;
-    case 4:
-        text = FString(TEXT("포탈을 이용해 던전으로 이동하세요."));
-        break;
-    case 5:
-        text = FString(TEXT("숫자키 1로 한 가지 마법을 쓸 수 있습니다.\n준비가 되었다면 G키를 누르세요."));
-        break;
-    case 6:
-        text = FString(TEXT("레벨 2가 되었습니다!\n이제 숫자키 2로 두 번째 마법을 쓸 수 있습니다."));
-        break;
-    case 7:
-        text = FString(TEXT("레벨 3이 되었습니다!\n이제 숫자키 3으로 세 번째 마법을 쓸 수 있습니다."));
-        break;
-    case 8:
-        text = FString(TEXT("축하합니다!\n이제 숫자키 4로 네 번째 마법을 쓸 수 있습니다."));
-        break;
-    case 9:
-        text = FString(TEXT("레벨 5를 달성했습니다!\n이제 숫자키 5로 다섯 번째 마법을 쓸 수 있습니다."));
-        break;
-    case 10:
-        text = FString(TEXT("마우스 왼쪽 버튼을 클릭하여 돌을 줍고\n움직이는 돌 가까이서 마우스 왼쪽 버튼을 클릭하여\n돌을 놓으세요."));
-        break;
-    case 11:
-        text = FString(TEXT("계단을 통해 다음 장소로 이동하세요."));
-        break;
-    case 12:
-        text = FString(TEXT("지금부터 전투가 끝나는 시점까지\n저장이 되지 않습니다."));
-        break;
-    case 13:
-        text = FString(TEXT("포탈을 이용해 던전 입구로 돌아가세요."));
-        break;
-    case 14:
-        text = FString(TEXT("마우스 왼쪽 버튼을 클릭하여\n디비눔 프레시디움을 챙기세요."));
-        break;
-    case 15:
-        text = FString(TEXT("레벨 5가 되었습니다!\n숫자키 1~5로 모든 마법을 쓸 수 있습니다."));
-        break;
-    case 16:
-        text = FString(TEXT("전체 회복 포션을 받았습니다!\n필요할 때 P키를 눌러 사용하세요."));
-        break;
-    }
+    if (!SystemMessageData) return;
 
-    SystemText = FText::FromString(text);
+    FName Index = FName(*FString::FromInt(MessageNum));
+    FText text = SystemMessageData->FindRow<FSystemMessage>(Index, "")->MessageText;
+
+    SystemText = text;
     SystemMessageNum = MessageNum;
     DisplaySystemMessage();
 }

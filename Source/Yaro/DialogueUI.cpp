@@ -418,11 +418,6 @@ void UDialogueUI::DialogueEvents()
                 if (SelectedReply == 1 || SelectedReply == 3)
                 {
                     AutoCloseDialogue();
-                    FTimerHandle Timer;
-                    GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
-                        {
-                            GameManager->SetIsSaveAllowed(false);
-                        }), 2.f, false); // 2초 뒤부터 다음 던전 입장 전까지 저장 불가
                     return;
                 }
                 break;

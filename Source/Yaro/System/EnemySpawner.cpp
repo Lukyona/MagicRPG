@@ -51,27 +51,6 @@ void AEnemySpawner::SpawnEnemies()
 			UE_LOG(LogTemp, Log, TEXT("nope"));
 
 		}
-
-		/*AMain* Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
-		
-		for (int j = 0; j < Main->Enemies.Num(); j++)
-		{
-			if (Main->Enemies[i] == Enemy->Name)
-			{
-				Enemy->Destroy();
-				UE_LOG(LogTemp, Log, TEXT("des"));
-
-				break;
-			}
-		}*/
-		/*for (auto& DeadEnemyName : LoadGameInstance->DeadEnemyList)
-		{
-			if (DeadEnemyName == Enemy->Name)
-			{
-				Enemy->Destroy();
-				break;
-			}
-		}*/
 	}
 }
 

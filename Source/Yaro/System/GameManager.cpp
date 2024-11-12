@@ -191,7 +191,8 @@ void UGameManager::SaveGame()
 
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
 
-	if (DialogueManager->GetDialogueNum() == 18 && UIManager->GetSystemMessageNum() == 12) return;
+	if (DialogueManager->GetDialogueNum() == 5 ||
+		(DialogueManager->GetDialogueNum() == 18 && UIManager->GetSystemMessageNum() == 13)) return;
 
 	GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &UGameManager::SaveGame, 1.f, false);
 }

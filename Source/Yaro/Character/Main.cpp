@@ -207,7 +207,7 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AMain::StartDialogue);
 
-    PlayerInputComponent->BindAction("ShowManual", IE_Pressed, this, &AMain::ShowManual);
+    PlayerInputComponent->BindAction("ShowControlGuide", IE_Pressed, this, &AMain::ShowControlGuide);
 
 	PlayerInputComponent->BindAction("Escape", IE_Pressed, this, &AMain::Escape);
 
@@ -279,7 +279,7 @@ void AMain::Run(float Value)
 			}
 		}
 	}
-	else if(!bRunning && currentSP >= 5.f) // 쉬프트키가 눌려있고 스태미나 5 이상에 달리는 상태가 아니면
+	else if(!bRunning && currentSP >= 30.f) // 쉬프트키가 눌려있고 스태미나 5 이상에 달리는 상태가 아니면
 	{
 		bRunning = true;
 		GetCharacterMovement()->MaxWalkSpeed = RunSpeed; // 속도 상향		
@@ -319,6 +319,7 @@ void AMain::CameraZoom(const float Value)
 void AMain::LMBDown() //Left Mouse Button Down
 {
 	bLMBDown = true;
+	if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return; // 중복 재생 방지
 
 	// 아이템 상호작용 몽타주 관련
 	{
@@ -839,27 +840,27 @@ void AMain::GainExp(float Value)
 		{
 			case 2:
 				MaxExp = 150.f;
-				UIManager->SetSystemMessage(6);
+				UIManager->SetSystemMessage(7);
 				MaxHP = 350.f;
 				MaxMP = 175.f;
 				MaxSP = 325.f;
 				break;
 			case 3:
 				MaxExp = 250.f;
-				UIManager->SetSystemMessage(7);
+				UIManager->SetSystemMessage(8);
                 MaxHP = 450.f;
                 MaxMP = 200.f;
                 MaxSP = 350.f;
 				break;
 			case 4:
 				MaxExp = 360.f;
-				UIManager->SetSystemMessage(8);
+				UIManager->SetSystemMessage(9);
                 MaxHP = 600.f;
                 MaxMP = 230.f;
                 MaxSP = 375.f;
 				break;
             case 5:
-				UIManager->SetSystemMessage(9);
+				UIManager->SetSystemMessage(10);
                 MaxHP = 700.f;
                 MaxMP = 280.f;
                 MaxSP = 400.f;
@@ -927,8 +928,10 @@ void AMain::PlayMontageWithItem()
 	MainAnimInstance->Montage_Play(NormalMontage);
 }
 
-void AMain::ShowManual()
+void AMain::ShowControlGuide()
 {
+	if (DialogueManager->GetDialogueNum() < 2 || UIManager->GetSystemMessageNum() < 3) return;
+
 	if (UIManager->IsControlGuideVisible()) UIManager->RemoveControlGuide();
 	else UIManager->DisplayControlGuide();
 }
@@ -1016,7 +1019,7 @@ void AMain::SetLevel5() // level cheat, 즉시 최대 레벨 도달
 
 	if (!UIManager->IsSystemMessageVisible())
 	{
-		UIManager->SetSystemMessage(15);
+		UIManager->SetSystemMessage(16);
 		FTimerHandle Timer;
 		GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
 		{

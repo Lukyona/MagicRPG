@@ -254,7 +254,6 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 {
 	uint32 EnemyCount = 0;
 	uint32 DeadEnemiesNum = GameManager->GetDeadEnemies().Num();
-
 	switch (DialogueNum)
 	{
 	case 3: // after golem died
@@ -293,8 +292,8 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		MoveNPCToLocation(Zizi, FVector(690.f, 930.f, 1840.f));
 
 		break;
-	case 9: //if ItemInHand is null, the stone have to put on the floor (this is check in blueprint)
-		UIManager->SetSystemMessage(10);
+	case 9: //if ItemInHand is null, the stone have to put on the floor (check in blueprint)
+		UIManager->SetSystemMessage(11);
 		AllNpcLookAtPlayer();
 		AllNpcStopFollowPlayer();
 		MoveNPCToLocation(Momo, FVector(5307.f, -3808.f, -2122.f));
@@ -311,7 +310,7 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 
 			if (EnemyCount == 5)
 			{
-				DialogueManager->CheckDialogueStartCondition();
+				DialogueManager->DisplayDialogueUI();
 			}
 		}
 		break;
@@ -323,6 +322,9 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 
 			if (EnemyCount == 3) DialogueManager->DisplayDialogueUI();
 		}
+		break;
+	case 15:
+
 		break;
 	case 16:
 		MoveNPCToLocation(Vivi, FVector(105.f, 3176.f, 182.f));
@@ -351,7 +353,7 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 			MoveNPCToLocation(Vovo, FVector(8.f, -3585.f, 684.f));
 			MoveNPCToLocation(Vivi, FVector(8.f, -3585.f, 684.f));
 			MoveNPCToLocation(Zizi, FVector(8.f, -3585.f, 684.f));
-			UIManager->SetSystemMessage(13);
+			UIManager->SetSystemMessage(14);
 		}
 		else if (DeadEnemiesNum == 0) //동굴
 		{

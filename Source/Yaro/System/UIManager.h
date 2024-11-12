@@ -37,7 +37,9 @@ class YARO_API UUIManager : public UObject
 
     bool bMenuVisible = false;
 
-
+    UPROPERTY()
+        class UDataTable* SystemMessageData;
+        
     UPROPERTY()
         FText SystemText;
 

@@ -4,41 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Engine/DataTable.h" // generated.h 위에 써야함
 #include "Yaro/Character/YaroCharacter.h"
+#include "Yaro/Structs/DialogueData.h"
 #include "DialogueUI.generated.h"
 /**
  * 
  */
-USTRUCT(BlueprintType)
-struct FPlayerReplies
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FText ReplyText;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int32 AnswerIndex;
-
-};
-
-USTRUCT(BlueprintType)
-struct FNPCDialogue : public FTableRowBase
-{
-	GENERATED_USTRUCT_BODY()
-
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName CharacterName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FText> Messages;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FPlayerReplies> PlayerReplies;
-};
-
 UCLASS()
 class YARO_API UDialogueUI : public UUserWidget
 {
