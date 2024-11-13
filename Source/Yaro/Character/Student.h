@@ -64,7 +64,7 @@ protected:
 	UDataTable* AttackSkillData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
-	TWeakObjectPtr<class AMagicSkill> MagicAttack;
+		TWeakObjectPtr<class AMagicSkill> MagicAttack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
 	TSubclassOf<class AMagicSkill> ToSpawn;

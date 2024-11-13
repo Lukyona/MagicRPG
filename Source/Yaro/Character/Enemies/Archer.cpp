@@ -5,9 +5,10 @@
 
 AArcher::AArcher()
 {
+	EnemyType = EEnemyType::Archer;
+
 	SetAgroSphere(430.f);
 	SetCombatSphere(400.f);
-
 
 	//This is the default value, each enemy has different health.
 	InitHealth(450.f);

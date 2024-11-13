@@ -3,6 +3,8 @@
 
 AGoblin::AGoblin()
 {
+	EnemyType = EEnemyType::Goblin;
+
 	SetAgroSphere(500.f);
 	SetCombatSphere(110.f);
 

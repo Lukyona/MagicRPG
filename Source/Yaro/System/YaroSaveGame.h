@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "Character/Enemies/Enemy.h"
 #include "YaroSaveGame.generated.h"
 
 USTRUCT(BlueprintType)
@@ -56,10 +57,6 @@ struct FNpcStats
 {
     GENERATED_BODY()
 
-    //UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
-    //float HP;
-
-
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
     FVector MomoLocation;
 
@@ -99,6 +96,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Basic)
 	int32 PlayerGender = 0;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Basic)
+	FName WorldName;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Basic)
     int32 DialogueNum = 0;
 
@@ -106,7 +106,7 @@ public:
 	FCharacterStats CharacterStats;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Basic)
-	TArray<FString> DeadEnemyList;
+	TMap<EEnemyType, int32> DeadEnemyList;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Basic)
 	FNpcStats NpcInfo;

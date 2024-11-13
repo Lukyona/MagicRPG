@@ -5,6 +5,8 @@
 
 ALittleDino::ALittleDino()
 {
+	EnemyType = EEnemyType::LittleDino;
+
 	SetAgroSphere(200.f);
 	SetCombatSphere(30.f);
 

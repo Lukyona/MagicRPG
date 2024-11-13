@@ -5,6 +5,8 @@
 
 ALittleMonster::ALittleMonster()
 {
+	EnemyType = EEnemyType::LittleMonster;
+
 	SetAgroSphere(200.f);
 	SetCombatSphere(75.f);
 

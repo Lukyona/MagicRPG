@@ -86,13 +86,6 @@ void AYaroCharacter::MoveToPlayer()
 			}
 		}
 
-		if (DialogueManager->GetDialogueNum() < 3)
-		{
-			// 대화 넘버 1에서 루코 혼자 플레이어에게로 이동, 루코 제외 전부 리턴
-			if (!(DialogueManager->GetDialogueNum() == 1 && NPCType == ENPCType::Luko))
-				return;
-		}
-
 		for (auto NPC : NPCManager->GetNPCMap())
 		{
 			// 다른 npc의 인식 범위에 몬스터가 있으면 도와주러 감, 단 첫번째 던전은 제외
@@ -627,9 +620,9 @@ float AYaroCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& 
 	// 보스 스테이지 제외 리턴
 	if (!UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) 
 		return DamageAmount;
-
-
+	
 	MagicAttack = Cast<AMagicSkill>(DamageCauser);
+	if (MagicAttack == nullptr) return DamageAmount;
 
 	int TargetIndex = MagicAttack->index;
 	

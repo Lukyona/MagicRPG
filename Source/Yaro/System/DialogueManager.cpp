@@ -94,7 +94,6 @@ void UDialogueManager::DisplayDialogueUI()
            
         if (UIManager->IsControlGuideVisible()) UIManager->RemoveControlGuide();
 
-        
         if (!Player->IsFallenInDungeon())
         {
             switch (DialogueNum)
@@ -258,6 +257,12 @@ void UDialogueManager::DialogueEndEvents()
         NPCManager->MoveNPCToLocation("Vovo", FVector(630.f, 970.f, 1840.f));
         Player->SetInterpToCharacter(false);
         Player->SetTargetCharacter(nullptr);
+        {
+            FTimerHandle TimerHandle;
+            GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([&]() {
+                GameManager->SetIsSaveAllowed(false);
+                }), 2.f, false);
+        }
         break;
     case 5:
         DialogueUI->ClearAutoDialogueTimer();

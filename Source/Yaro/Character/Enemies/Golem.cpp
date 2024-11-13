@@ -9,6 +9,8 @@
 
 AGolem::AGolem()
 {
+	EnemyType = EEnemyType::Golem;
+
 	SetAgroSphere(700.f);
 	SetCombatSphere(200.f);
 

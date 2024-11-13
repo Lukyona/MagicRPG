@@ -594,6 +594,7 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) // 보스 스테이지
 	{
 		MagicAttack = Cast<AMagicSkill>(DamageCauser);
+		if (MagicAttack == nullptr) return DamageAmount;
 
 		int TargetIndex = MagicAttack->index;
 
@@ -607,7 +608,6 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 					NPC.Value->MoveToTarget(BossEnemy); // 보스 몬스터에게 이동
 					GetWorldTimerManager().ClearTimer(NPC.Value->GetMoveTimer());
 					NPC.Value->GetAIController()->StopMovement();
-					//UE_LOG(LogTemp, Log, TEXT("yesyesyes main %s"), *NPCList[i]->GetName());
 				}
 			}
 		}

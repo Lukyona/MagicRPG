@@ -5,6 +5,8 @@
 
 ABoss::ABoss()
 {
+	EnemyType = EEnemyType::Boss;
+
 	SetAgroSphere(750.f);
 	SetCombatSphere(600.f);
 

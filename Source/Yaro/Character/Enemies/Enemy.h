@@ -16,6 +16,12 @@ enum class EEnemyMovementStatus :uint8
 	EMS_Dead			UMETA(DeplayName = "Dead"),
 };
 
+UENUM(BlueprintType)
+enum class EEnemyType :uint8
+{
+	Goblin, Grux, Golem, LittleDino, Lizard, Archer, LizardShaman, Spider, LittleMonster, Boss
+};
+
 UCLASS()
 class YARO_API AEnemy : public ACharacter
 {
@@ -50,8 +56,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Info")
 	float EnemyExp;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Info")
-	FString Name;
+	UPROPERTY()
+		EEnemyType EnemyType;
 
 	// Enemy's back to their initial location
 	FVector InitialLocation;

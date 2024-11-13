@@ -440,7 +440,7 @@ void UDialogueUI::DialogueEvents()
                 case 10:
                 case 11:
                     // GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("first"));
-                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 3.f, false);
+                    GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 2.5f, false);
                     break;
             }
         }

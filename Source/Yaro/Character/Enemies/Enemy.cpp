@@ -62,8 +62,9 @@ void AEnemy::BeginPlay()
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 
-	InitialLocation = GetActorLocation(); // Set initial enemy location
+	InitialLocation = GetActorLocation(); 
 	InitialRotation = GetActorRotation();
+
 }
 
 void AEnemy::SetAgroSphere(float value)
@@ -155,7 +156,7 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 	{
 		if (AgroSound && AgroTargets.Num() == 0) // 인식 범위에 아무도 없었으면 인식 사운드 재생
 		{
-			if(!(UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && GameManager->GetDeadEnemies().Num() == 5))
+			if(!UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss"))
 				UGameplayStatics::PlaySound2D(this, AgroSound);
 		}
 
@@ -552,8 +553,10 @@ void AEnemy::Die()
 {
 	if (EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead)
 	{
-		GameManager->AddDeadEnemy(Name);
+		GameManager->UpdateDeadEnemy(EnemyType);
+
 		if (AIController) AIController->StopMovement();
+
 		SetInterpToTarget(false);
 
 		if (DeathSound && !GameManager->IsSkipping()) UGameplayStatics::PlaySound2D(this, DeathSound);
@@ -585,18 +588,9 @@ void AEnemy::DeathEnd()
 		GameManager->GetDialogueManager()->DisplayDialogueUI();
 	}
 
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second") && DeadEnemiesNum >= 15)
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second"))
 	{
-		int EnemyCount = 0;
-		for (auto Enemy : GameManager->GetDeadEnemies())
-		{
-			if (Enemy.Contains("monster"))
-			{
-				EnemyCount++;
-			}
-		}
-
-		if (EnemyCount == 3)
+		if ((EnemyType == EEnemyType::Spider && GameManager->GetDeadEnemies()[EnemyType] == 5) || (EnemyType == EEnemyType::LittleMonster && GameManager->GetDeadEnemies()[EnemyType] == 8))
 		{
 			NPCManager->AllNpcStopFollowPlayer();
 			GameManager->SaveGame();

@@ -5,6 +5,8 @@
 
 AGrux::AGrux()
 {
+	EnemyType = EEnemyType::Grux;
+
 	SetAgroSphere(600.f);
 	SetCombatSphere(200.f);
 

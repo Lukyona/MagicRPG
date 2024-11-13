@@ -5,6 +5,8 @@
 
 ALizardShaman::ALizardShaman()
 {
+	EnemyType = EEnemyType::LizardShaman;
+
 	SetAgroSphere(600.f);
 	SetCombatSphere(400.f);
 

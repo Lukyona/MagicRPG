@@ -17,10 +17,9 @@ void UGameManager::Init()
 {
 	Super::Init();
 
-    // 매니저들 생성
 	TWeakObjectPtr<UGameManager> WeakGameManager = this;
 
-	// 비동기 작업으로 메인 스레드에서 추가 초기화 진행
+	// 비동기 작업으로 메인 스레드에서 초기화 진행
 	AsyncTask(ENamedThreads::GameThread, [WeakGameManager]()
 		{
 			if (WeakGameManager.IsValid())
@@ -78,31 +77,17 @@ void UGameManager::Init()
 				UE_LOG(LogTemp, Error, TEXT("GameManager is not valid in AsyncTask."));
 			}
 		});
-	/*
-	AsyncTask(ENamedThreads::GameThread, [this]() // 항상 메인 스레드에서 실행하도록, 멀티스레딩 크래시 방지
-		{
-			DialogueManager = UDialogueManager::CreateInstance(this);
-			if (DialogueManager)
-			{
-				DialogueManager->SetGameManager(this);
-				DialogueManager->AddToRoot(); // 하지 않으면 매니저들의 멤버변수에 접근할 때 크래시 발생
-			}
-
-			UIManager = UUIManager::CreateInstance(this);
-			if (UIManager)
-			{
-				UIManager->SetGameManager(this);
-				UIManager->AddToRoot();
-			}
-
-			NPCManager = UNPCManager::CreateInstance(this);
-			if (NPCManager)
-			{
-				NPCManager->SetGameManager(this);
-				NPCManager->AddToRoot();
-				NPCManager->Init();
-			}
-		});*/
+	
+	DeadEnemies.Add(EEnemyType::Goblin, 0);
+	DeadEnemies.Add(EEnemyType::Grux, 0);
+	DeadEnemies.Add(EEnemyType::Golem, 0);
+	DeadEnemies.Add(EEnemyType::LittleDino, 0);
+	DeadEnemies.Add(EEnemyType::Lizard, 0);
+	DeadEnemies.Add(EEnemyType::Archer, 0);
+	DeadEnemies.Add(EEnemyType::LizardShaman, 0);
+	DeadEnemies.Add(EEnemyType::Spider, 0);
+	DeadEnemies.Add(EEnemyType::LittleMonster, 0);
+	DeadEnemies.Add(EEnemyType::Boss, 0);
 }
 
 void UGameManager::Shutdown()
@@ -164,6 +149,7 @@ void UGameManager::SaveGame()
 	SaveGameInstance->CharacterStats.MaxExp = Player->GetStat(EPlayerStat::MaxExp);
 	SaveGameInstance->CharacterStats.PotionNum = Player->GetStat(EPlayerStat::PotionNum);
 
+	SaveGameInstance->WorldName = FName(*GetWorld()->GetName());
 	SaveGameInstance->DialogueNum = DialogueManager->GetDialogueNum();
 	SaveGameInstance->CharacterStats.FallCount = Player->GetFallCount();
 
@@ -191,8 +177,7 @@ void UGameManager::SaveGame()
 
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
 
-	if (DialogueManager->GetDialogueNum() == 5 ||
-		(DialogueManager->GetDialogueNum() == 18 && UIManager->GetSystemMessageNum() == 13)) return;
+	if (DialogueManager->GetDialogueNum() == 18 && UIManager->GetSystemMessageNum() == 13) return;
 
 	GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &UGameManager::SaveGame, 1.f, false);
 }
@@ -238,23 +223,21 @@ void UGameManager::LoadGame()
 		}
 	}
 
-	if (DialogueManager->GetDialogueNum() != 5)
-	{
-		if (DialogueManager->GetDialogueNum() == 15 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) return;
+	if (DialogueManager->GetDialogueNum() == 15 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) return;
+	if (DialogueManager->GetDialogueNum() == 4 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second")) return;
 
-		Player->SetActorLocation(LoadGameInstance->CharacterStats.Location);
-		Player->SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
+	Player->SetActorLocation(LoadGameInstance->CharacterStats.Location);
+	Player->SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
 
-		if (DialogueManager->GetDialogueNum() == 19) return;
+	if (DialogueManager->GetDialogueNum() == 19) return;
 
-		NPCManager->SetNPCLocation("Momo", LoadGameInstance->NpcInfo.MomoLocation);
-		NPCManager->SetNPCLocation("Luko", LoadGameInstance->NpcInfo.LukoLocation);
-		NPCManager->SetNPCLocation("Vovo", LoadGameInstance->NpcInfo.VovoLocation);
-		NPCManager->SetNPCLocation("Vivi", LoadGameInstance->NpcInfo.ViviLocation);
-		NPCManager->SetNPCLocation("Zizi", LoadGameInstance->NpcInfo.ZiziLocation);
+	NPCManager->SetNPCLocation("Momo", LoadGameInstance->NpcInfo.MomoLocation);
+	NPCManager->SetNPCLocation("Luko", LoadGameInstance->NpcInfo.LukoLocation);
+	NPCManager->SetNPCLocation("Vovo", LoadGameInstance->NpcInfo.VovoLocation);
+	NPCManager->SetNPCLocation("Vivi", LoadGameInstance->NpcInfo.ViviLocation);
+	NPCManager->SetNPCLocation("Zizi", LoadGameInstance->NpcInfo.ZiziLocation);
 
-	}
-	else // 배로 이동 중
+	if (DialogueManager->GetDialogueNum() == 4)
 	{
 		bIsSaveAllowed = false;
 	}

@@ -5,6 +5,8 @@
 
 ALizard::ALizard()
 {
+	EnemyType = EEnemyType::Lizard;
+
 	SetAgroSphere(450.f);
 	SetCombatSphere(110.f);
 

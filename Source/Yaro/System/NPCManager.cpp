@@ -104,6 +104,9 @@ bool UNPCManager::IsNPCInTalkRange()
 
 		if (distance >= 1300.f) // npc와 너무 멀면 대화 불가
 			return false;
+
+		if (NPC.Value->GetAgroTargets().Num() != 0) // 전투 중이 아니어야 함
+			return false;
 	}
 	return true;
 }
@@ -257,19 +260,16 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 	switch (DialogueNum)
 	{
 	case 3: // after golem died
-		for (auto Enemy : GameManager->GetDeadEnemies())
+		if (GameManager->GetDeadEnemies()[EEnemyType::Golem] == 1 && DeadEnemiesNum == 9)
 		{
-			if (Enemy.Contains("Golem") && DeadEnemiesNum == 9)
-			{
-				MoveNPCToLocation(Momo, FVector(594.f, -1543.f, 2531.f));
-				MoveNPCToLocation(Luko, FVector(494.f, -1629.f, 2561.f));
-				MoveNPCToLocation(Vovo, FVector(903.f, -1767.f, 2574.f));
-				MoveNPCToLocation(Vivi, FVector(790.f, -1636.f, 2566.f));
-				MoveNPCToLocation(Zizi, FVector(978.f, -1650.f, 2553.f));
+			MoveNPCToLocation(Momo, FVector(594.f, -1543.f, 2531.f));
+			MoveNPCToLocation(Luko, FVector(494.f, -1629.f, 2561.f));
+			MoveNPCToLocation(Vovo, FVector(903.f, -1767.f, 2574.f));
+			MoveNPCToLocation(Vivi, FVector(790.f, -1636.f, 2566.f));
+			MoveNPCToLocation(Zizi, FVector(978.f, -1650.f, 2553.f));
 
-				DialogueManager->DisplayDialogueUI();
-				return;
-			}
+			DialogueManager->DisplayDialogueUI();
+			return;
 		}
 		Luko->MoveToPlayer();
 		Momo->MoveToPlayer();
@@ -303,28 +303,14 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		MoveNPCToLocation(Zizi, FVector(5538.f, -3696.f, -2115.f));
 		break;
 	case 12:
-		for (auto Enemy : GameManager->GetDeadEnemies())
+		if (GameManager->GetDeadEnemies()[EEnemyType::Spider] == 5)
 		{
-			if (Enemy.Contains("spider")) // Event enemies in second dungeon
-				EnemyCount++;
-
-			if (EnemyCount == 5)
-			{
-				DialogueManager->DisplayDialogueUI();
-			}
+			DialogueManager->DisplayDialogueUI();
 		}
 		break;
 	case 14:
-		for (auto Enemy : GameManager->GetDeadEnemies())
-		{
-			if (Enemy.Contains("monster")) // Final enemies in second dungeon
-				EnemyCount++;
-
-			if (EnemyCount == 3) DialogueManager->DisplayDialogueUI();
-		}
-		break;
-	case 15:
-
+			if (GameManager->GetDeadEnemies()[EEnemyType::LittleMonster] == 3)
+				DialogueManager->DisplayDialogueUI();
 		break;
 	case 16:
 		MoveNPCToLocation(Vivi, FVector(105.f, 3176.f, 182.f));
@@ -332,7 +318,6 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		MoveNPCToLocation(Luko, FVector(184.f, 3317.f, 182.f));
 		MoveNPCToLocation(Vovo, FVector(-140.f, 3370.f, 182.f));
 		MoveNPCToLocation(Zizi, FVector(68.f, 3398.f, 184.f));
-		//풀어MainPlayerController->DialogueUI->SelectedReply = 2;
 		break;
 	case 17:
 		MoveNPCToLocation(Vivi, FVector(100.f, 1997.f, 182.f));
