@@ -178,6 +178,8 @@ void UDialogueManager::DisplayDialogueUI()
                 DialogueUI->InitializeDialogue(DialogueDatas.Last(0));
             }
         }
+
+        UIManager->RemoveHUD();
         DialogueUI->SetVisibility(ESlateVisibility::Visible);
         bDialogueUIVisible = true;
 
@@ -210,6 +212,8 @@ void UDialogueManager::RemoveDialogueUI()
         MainPlayerController->SetInputMode(InputModeGameOnly);
         MainPlayerController->SetMouseCursorVisibility(false);
         
+        UIManager->DisplayHUD();
+
         if (GameManager->IsSkipping()) GameManager->SetIsSkipping(false);
     }
 }

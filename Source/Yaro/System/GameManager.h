@@ -58,7 +58,7 @@ public:
 	// 배열을 const 참조로 반환하여 배열의 복사가 일어나지 않도록, 마지막 const는 이 함수가 객체의 멤버 변수를 변경하지 않는 것을 의미
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	const TMap<EEnemyType, int32>& GetDeadEnemies() { return DeadEnemies; }
-	void UpdateDeadEnemy(EEnemyType EnemyType) { DeadEnemies[EnemyType]++; }
+	void UpdateDeadEnemy(EEnemyType EnemyType);
 
 
 	virtual void Init() override;

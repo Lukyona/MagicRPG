@@ -53,7 +53,7 @@ void AMainPlayerController::Tick(float DeltaTime)
 
 int AMainPlayerController::WhichKeyDown()
 {
-    int result;
+    int result = 0;
     if (WasInputKeyJustPressed(EKeys::One) || WasInputKeyJustPressed(EKeys::NumPadOne))
     {
         result = 1;

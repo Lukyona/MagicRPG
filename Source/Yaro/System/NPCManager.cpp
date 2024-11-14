@@ -255,12 +255,11 @@ void UNPCManager::SetPositionsForDialogue()
 
 void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 npc들 이동 및 위치 설정
 {
-	uint32 EnemyCount = 0;
 	uint32 DeadEnemiesNum = GameManager->GetDeadEnemies().Num();
 	switch (DialogueNum)
 	{
 	case 3: // after golem died
-		if (GameManager->GetDeadEnemies()[EEnemyType::Golem] == 1 && DeadEnemiesNum == 9)
+		if (GameManager->GetDeadEnemies().Find(EEnemyType::Golem) != nullptr && DeadEnemiesNum == 9)
 		{
 			MoveNPCToLocation(Momo, FVector(594.f, -1543.f, 2531.f));
 			MoveNPCToLocation(Luko, FVector(494.f, -1629.f, 2561.f));
@@ -303,14 +302,20 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		MoveNPCToLocation(Zizi, FVector(5538.f, -3696.f, -2115.f));
 		break;
 	case 12:
-		if (GameManager->GetDeadEnemies()[EEnemyType::Spider] == 5)
 		{
-			DialogueManager->DisplayDialogueUI();
+			const int32* spiderCount = GameManager->GetDeadEnemies().Find(EEnemyType::Spider);
+			if (*spiderCount == 5)
+			{
+				DialogueManager->DisplayDialogueUI();
+			}
 		}
 		break;
 	case 14:
-			if (GameManager->GetDeadEnemies()[EEnemyType::LittleMonster] == 3)
+		{
+			const int32* monsterCount = GameManager->GetDeadEnemies().Find(EEnemyType::LittleMonster);
+			if (*monsterCount == 3)
 				DialogueManager->DisplayDialogueUI();
+		}
 		break;
 	case 16:
 		MoveNPCToLocation(Vivi, FVector(105.f, 3176.f, 182.f));

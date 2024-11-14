@@ -22,12 +22,28 @@ void UUIManager::BeginPlay()
     else return;
 
     // 위젯들, 순서 있음
+    TSoftClassPtr<UUserWidget> HUDBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/HUDOverlay.HUDOverlay_C")));
     TSoftClassPtr<UUserWidget> SystemMessageBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/SystemMessage.SystemMessage_C")));
     TSoftClassPtr<UUserWidget> ControlGuideBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/ControlGuide.ControlGuide_C")));
     TSoftClassPtr<UUserWidget> MenuBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/Menu.Menu_C")));
     TSoftClassPtr<UUserWidget> TargetArrowBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/TargetArrow.TargetArrow_C")));
     TSoftClassPtr<UUserWidget> EnemyHPBarBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/EnemyHPBar.EnemyHPBar_C")));
     TSoftClassPtr<UUserWidget> FadeInOutBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/FadeInOut.FadeInOut_C")));
+
+    if(!GetWorld()->GetName().Contains("2"))
+    {
+        if (!HUDBPClass.IsValid())
+            HUDBPClass.LoadSynchronous();
+        if (ensure(HUDBPClass.IsValid()))
+        {
+            HUDOverlay = CreateWidget<UUserWidget>(GameManager, HUDBPClass.Get());
+            if (HUDOverlay)
+            {
+                HUDOverlay->AddToViewport();
+                HUDOverlay->SetVisibility(ESlateVisibility::Hidden);
+            }
+        }
+    }
 
     if (!SystemMessageBPClass.IsValid())
         SystemMessageBPClass.LoadSynchronous();
@@ -138,6 +154,22 @@ void UUIManager::SetGameManager(UGameManager* Manager)
     this->GameManager = Manager;
 }
 
+void UUIManager::DisplayHUD()
+{
+    if (HUDOverlay)
+    {
+        HUDOverlay->SetVisibility(ESlateVisibility::Visible);
+    }
+}
+
+void UUIManager::RemoveHUD()
+{
+    if (HUDOverlay)
+    {
+        HUDOverlay->SetVisibility(ESlateVisibility::Hidden);
+    }
+}
+
 void UUIManager::DisplayControlGuide()
 {
     if (ControlGuide)
@@ -148,7 +180,7 @@ void UUIManager::DisplayControlGuide()
             DisplaySystemMessage();
             FString text = TEXT("대화 중이거나 메뉴가 활성화된 상태에서는\n조작 매뉴얼을 볼 수 없습니다.");
             SystemText = FText::FromString(text);
-            MainPlayerController->GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([&]() {
+            GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([&]() {
 
                 if (bSystemMessageVisible) RemoveSystemMessage();
 

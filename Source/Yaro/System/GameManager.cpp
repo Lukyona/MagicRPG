@@ -12,7 +12,6 @@
 #include "Yaro/Character/YaroCharacter.h"
 #include "Item.h"
 
-
 void UGameManager::Init()
 {
 	Super::Init();
@@ -77,17 +76,6 @@ void UGameManager::Init()
 				UE_LOG(LogTemp, Error, TEXT("GameManager is not valid in AsyncTask."));
 			}
 		});
-	
-	DeadEnemies.Add(EEnemyType::Goblin, 0);
-	DeadEnemies.Add(EEnemyType::Grux, 0);
-	DeadEnemies.Add(EEnemyType::Golem, 0);
-	DeadEnemies.Add(EEnemyType::LittleDino, 0);
-	DeadEnemies.Add(EEnemyType::Lizard, 0);
-	DeadEnemies.Add(EEnemyType::Archer, 0);
-	DeadEnemies.Add(EEnemyType::LizardShaman, 0);
-	DeadEnemies.Add(EEnemyType::Spider, 0);
-	DeadEnemies.Add(EEnemyType::LittleMonster, 0);
-	DeadEnemies.Add(EEnemyType::Boss, 0);
 }
 
 void UGameManager::Shutdown()
@@ -240,5 +228,17 @@ void UGameManager::LoadGame()
 	if (DialogueManager->GetDialogueNum() == 4)
 	{
 		bIsSaveAllowed = false;
+	}
+}
+
+void UGameManager::UpdateDeadEnemy(EEnemyType EnemyType)
+{
+	if (DeadEnemies.Find(EnemyType))
+	{
+		DeadEnemies[EnemyType]++;
+	}
+	else
+	{
+		DeadEnemies.Add(EnemyType, 1);
 	}
 }

@@ -268,6 +268,8 @@ public:
  
 	TArray<AEnemy*> GetTargets() { return Targets; }
 
+	void StartMisson();
+
 	void SetAutoTargeting(bool value) { bAutoTargeting = value; }
 
 	void Targeting();

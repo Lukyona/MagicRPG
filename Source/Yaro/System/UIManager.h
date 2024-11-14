@@ -27,6 +27,10 @@ class YARO_API UUIManager : public UObject
 
 
     UPROPERTY()
+        UUserWidget* HUDOverlay;
+
+
+    UPROPERTY()
         UUserWidget* ControlGuide;
 
     bool bControlGuideVisible = false;
@@ -89,6 +93,10 @@ public:
     void Tick();
 
     void SetGameManager(UGameManager* Manager);
+
+    UFUNCTION(BlueprintCallable)
+        void DisplayHUD();
+        void RemoveHUD();
 
     void DisplayControlGuide();
     void RemoveControlGuide();

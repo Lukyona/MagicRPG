@@ -215,6 +215,9 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAction("UsePotion", IE_Pressed, this, &AMain::UsePotion);
 
+	PlayerInputComponent->BindAction("Start", IE_Pressed, this, &AMain::StartMisson);
+
+
 
 	// Axis는 매 프레임마다 호출
 	//“키 이름”, bind할 함수가 있는 클래스의 인스턴스, bind할 함수의 주소
@@ -319,6 +322,29 @@ void AMain::CameraZoom(const float Value)
 void AMain::LMBDown() //Left Mouse Button Down
 {
 	bLMBDown = true;
+	// Targeting Off
+	if (CombatTarget)
+	{
+		if (UIManager->IsTargetArrowVisible())
+		{ // 화살표 및 체력바 제거
+			UIManager->RemoveTargetArrow();
+			UIManager->RemoveEnemyHPBar();
+		}
+		// 전투 타겟 해제
+		CombatTarget = nullptr;
+		bHasCombatTarget = false;
+	}
+
+	// 다음 대사 출력 관련
+	if (DialogueManager->IsDialogueUIVisible()
+		&& DialogueManager->GetDialogueUI()->GetCurrentState() != 3
+		&& !UIManager->IsMenuVisible())
+	{
+		if (DialogueManager->GetDialogueUI()->IsInputDisabled()) return;
+		else DialogueManager->GetDialogueUI()->Interact();
+	}
+
+
 	if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return; // 중복 재생 방지
 
 	// 아이템 상호작용 몽타주 관련
@@ -370,28 +396,6 @@ void AMain::LMBDown() //Left Mouse Button Down
 				MainAnimInstance->Montage_JumpToSection(FName("PickStone"), NormalMontage); // 돌 챙기기
 			}
 		}
-	}
-
-	// Targeting Off
-	if (CombatTarget)
-	{
-		if (UIManager->IsTargetArrowVisible())
-		{ // 화살표 및 체력바 제거
-			UIManager->RemoveTargetArrow();
-			UIManager->RemoveEnemyHPBar();
-		}
-		// 전투 타겟 해제
-		CombatTarget = nullptr;
-		bHasCombatTarget = false;
-	}
-	
-	// 다음 대사 출력 관련
-	if (DialogueManager->IsDialogueUIVisible()
-		&& DialogueManager->GetDialogueUI()->GetCurrentState() != 3
-		&& !UIManager->IsMenuVisible())
-	{
-		if (DialogueManager->GetDialogueUI()->IsInputDisabled()) return;
-		else DialogueManager->GetDialogueUI()->Interact();
 	}
 }
 
@@ -926,6 +930,30 @@ void AMain::PlayMontageWithItem()
 
 	// 몽타주 재생
 	MainAnimInstance->Montage_Play(NormalMontage);
+}
+
+void AMain::StartMisson()
+{
+	if (DialogueManager->GetDialogueNum() == 3 && UIManager->IsSystemMessageVisible())
+	{
+		UIManager->RemoveSystemMessage();
+
+		MainPlayerController->SetCinematicMode(false, true, true);
+
+		NPCManager->GetNPC("Vovo")->MoveToLocation();
+		NPCManager->GetNPC("Vivi")->MoveToLocation();
+		NPCManager->GetNPC("Zizi")->MoveToLocation();
+
+		NPCManager->GetNPC("Momo")->MoveToPlayer();
+		NPCManager->GetNPC("Luko")->MoveToPlayer();
+
+		FString SoundPath = TEXT("/Game/SoundEffectsAndBgm/the-buccaneers-haul.the-buccaneers-haul");
+		USoundBase* LoadedSound = LoadObject<USoundBase>(nullptr, *SoundPath);
+		if (LoadedSound)
+		{
+			UGameplayStatics::PlaySound2D(this, LoadedSound);
+		}
+	}
 }
 
 void AMain::ShowControlGuide()
