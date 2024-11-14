@@ -118,8 +118,6 @@ void AYaroCharacter::MoveToPlayer()
         }
         else //가깝다면 속도 낮춰 걷기
         {
-			UE_LOG(LogTemp, Warning, TEXT("%s"), *GetName());
-
 			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 			TeleportCount = 0;
         }
@@ -587,7 +585,6 @@ void AYaroCharacter::MoveToLocation() // Vivi, Vovo, Zizi만 실행
 
 			if (index <= 3)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("%f"), distance);
 				if (AIController && distance <= 70.f) // 목표 지점과 가까울 때
 				{
 					index++;

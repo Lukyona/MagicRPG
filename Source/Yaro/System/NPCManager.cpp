@@ -255,27 +255,31 @@ void UNPCManager::SetPositionsForDialogue()
 
 void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 npc들 이동 및 위치 설정
 {
-	uint32 DeadEnemiesNum = GameManager->GetDeadEnemies().Num();
 	switch (DialogueNum)
 	{
 	case 3: // after golem died
-		if (GameManager->GetDeadEnemies().Find(EEnemyType::Golem) != nullptr && DeadEnemiesNum == 9)
+		if (GameManager->GetDeadEnemies().Find(EEnemyType::Golem) != nullptr)
 		{
-			MoveNPCToLocation(Momo, FVector(594.f, -1543.f, 2531.f));
-			MoveNPCToLocation(Luko, FVector(494.f, -1629.f, 2561.f));
-			MoveNPCToLocation(Vovo, FVector(903.f, -1767.f, 2574.f));
-			MoveNPCToLocation(Vivi, FVector(790.f, -1636.f, 2566.f));
-			MoveNPCToLocation(Zizi, FVector(978.f, -1650.f, 2553.f));
+			const int32* GoblinCont = GameManager->GetDeadEnemies().Find(EEnemyType::Goblin);
+			const int32* GruxCont = GameManager->GetDeadEnemies().Find(EEnemyType::Grux);
 
-			DialogueManager->DisplayDialogueUI();
-			return;
+			if ((*GoblinCont + *GruxCont) == 8)
+			{
+				MoveNPCToLocation(Momo, FVector(594.f, -1543.f, 2531.f));
+				MoveNPCToLocation(Luko, FVector(494.f, -1629.f, 2561.f));
+				MoveNPCToLocation(Vovo, FVector(903.f, -1767.f, 2574.f));
+				MoveNPCToLocation(Vivi, FVector(790.f, -1636.f, 2566.f));
+				MoveNPCToLocation(Zizi, FVector(978.f, -1650.f, 2553.f));
+
+				DialogueManager->DisplayDialogueUI();
+				return;
+			}
 		}
 		Luko->MoveToPlayer();
 		Momo->MoveToPlayer();
 		Vovo->MoveToLocation();
 		Vivi->MoveToLocation();
 		Zizi->MoveToLocation();
-		//NpcGo = true;
 		break;
 	case 4: // npc move to boat and wait player
 		Momo->SetActorRotation(FRotator(0.f, 85.f, 0.f));
@@ -303,8 +307,8 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		break;
 	case 12:
 		{
-			const int32* spiderCount = GameManager->GetDeadEnemies().Find(EEnemyType::Spider);
-			if (*spiderCount == 5)
+			const int32* SpiderCount = GameManager->GetDeadEnemies().Find(EEnemyType::Spider);
+			if (*SpiderCount == 5)
 			{
 				DialogueManager->DisplayDialogueUI();
 			}
@@ -312,8 +316,8 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		break;
 	case 14:
 		{
-			const int32* monsterCount = GameManager->GetDeadEnemies().Find(EEnemyType::LittleMonster);
-			if (*monsterCount == 3)
+			const int32* MonsterCount = GameManager->GetDeadEnemies().Find(EEnemyType::LittleMonster);
+			if (*MonsterCount == 3)
 				DialogueManager->DisplayDialogueUI();
 		}
 		break;
@@ -332,11 +336,15 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		MoveNPCToLocation(Zizi, FVector(18.f, 2105.f, 184.f));
 		break;
 	case 18:
-		if (DeadEnemiesNum == 5)
-			DialogueManager->DisplayDialogueUI();
+		if (GameManager->GetDeadEnemies().Find(EEnemyType::Boss) != nullptr)
+		{
+			const int32* shamanCount = GameManager->GetDeadEnemies().Find(EEnemyType::LizardShaman);
+			if (*shamanCount == 7)
+				DialogueManager->DisplayDialogueUI();
+		}
 		break;
-	case 19:
-		if (DeadEnemiesNum == 5)//보스맵, 포탈로 이동
+	case 19: // 보스 처치 후
+		if (GetWorld()->GetName().Contains("Boss"))
 		{
 			MoveNPCToLocation(Momo, FVector(8.f, -3585.f, 684.f));
 			MoveNPCToLocation(Luko, FVector(8.f, -3585.f, 684.f));
@@ -345,7 +353,7 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 			MoveNPCToLocation(Zizi, FVector(8.f, -3585.f, 684.f));
 			UIManager->SetSystemMessage(14);
 		}
-		else if (DeadEnemiesNum == 0) //동굴
+		else if (GetWorld()->GetName().Contains("Cave")) 
 		{
 			DialogueManager->DisplayDialogueUI();
 		}

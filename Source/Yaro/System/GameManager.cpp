@@ -123,6 +123,8 @@ void UGameManager::SaveGame()
 		return;
 	}
 
+	if (SaveTimer.IsValid()) SaveTimer.Invalidate();
+
 	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
 
 	SaveGameInstance->PlayerGender = Player->GetStat(EPlayerStat::Gender);
