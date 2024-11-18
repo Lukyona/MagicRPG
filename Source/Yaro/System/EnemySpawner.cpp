@@ -19,8 +19,6 @@ void AEnemySpawner::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot("Defalut", 0));
-
 	if (!bSpawnLater)
 	{
 		SpawnEnemies();
@@ -35,22 +33,27 @@ void AEnemySpawner::Tick(float DeltaTime)
 
 void AEnemySpawner::SpawnEnemies()
 {
-	if (!LoadGameInstance)
+	int32 count = 0;
+	if (UGameplayStatics::DoesSaveGameExist("Default", 0)) // 저장 정보 존재하면
 	{
-		LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
-		LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot("Defalut", 0));
+		UYaroSaveGame* LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot("Default", 0));
+		int32* deadCount = LoadGameInstance->DeadEnemyList.Find(EnemyType);
+		if (deadCount != nullptr)
+		{
+			count = NumberOfEnemies - *deadCount;
+			if (count <= 0) return;
+		}
+		else
+			count = NumberOfEnemies;
+	}
+	else
+	{
+		count = NumberOfEnemies;
 	}
 
-	for (int i = 0; i < NumberOfEnemies; i++)
+	for (int i = 0; i < count; i++)
 	{
-		Enemy = GetWorld()->SpawnActor<AEnemy>(EnemyType, SpawnTransform[i]);
-		//Enemy->Name = EnemyName[i];
-
-		if (!LoadGameInstance)
-		{
-			UE_LOG(LogTemp, Log, TEXT("nope"));
-
-		}
+		SpawnedEnemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, SpawnTransform[i]);
 	}
 }
 

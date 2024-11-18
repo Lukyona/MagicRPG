@@ -109,7 +109,6 @@ void AEnemy::EnableSecondWeaponCollision()
 	CombatCollision2->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 }
 
-
 // Called every frame
 void AEnemy::Tick(float DeltaTime)
 {
@@ -163,7 +162,6 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 		AStudent* target = Cast<AStudent>(OtherActor);
 
 		if (!target) return;
-		//UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapBegin %s"), *target->GetName());
 
 		for (int i = 0; i < AgroTargets.Num(); i++)
 		{
@@ -206,8 +204,6 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 				}
 			}
 			
-            //UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapEnd %s"), *target->GetName());
-
 			if (AgroTarget != nullptr && AgroTarget != Main) //npc를 쫓아가던 중이면(인식 범위 나간 것도 npc)
 			{
 				AgroTarget = nullptr;
@@ -249,8 +245,6 @@ void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent
 
 		if (target)
 		{			
-			//UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapBegin %s"), *OtherActor->GetName());
-
 			for (int i = 0; i < CombatTargets.Num(); i++)
 			{
 				if (target == CombatTargets[i]) return;
@@ -277,8 +271,6 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 	if (OtherActor && Alive())
 	{
 		AStudent* target = Cast<AStudent>(OtherActor);
-		////UE_LOG(LogTemp, Log, TEXT("CombatSphere On Overlap End"));
-		//UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapEnd %s"), *OtherActor->GetName());
 
 		if (!target) return;
 
@@ -545,7 +537,6 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 		Health -= DamageAmount;
 	}
 
-	////UE_LOG(LogTemp, Log, TEXT("attck %s"), *MagicAttack->GetName());
 	return DamageAmount;
 }
 
@@ -569,7 +560,6 @@ void AEnemy::Die()
 			AnimInstance->Montage_JumpToSection(FName("Death"), CombatMontage);
 		}
 		SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
-
 	}
 }
 
@@ -578,32 +568,53 @@ void AEnemy::DeathEnd()
 	GetMesh()->bPauseAnims = true;
 	GetMesh()->bNoSkeletonUpdate = true;
 	
-	uint32 DeadEnemiesNum = GameManager->GetDeadEnemies().Num();
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first") && DeadEnemiesNum == 9) // 첫번째 던전 클리어했는지, 골렘 이후 대화가 정상
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) // 첫번째 던전 클리어했는지
 	{
-		GameManager->SaveGame();
-		if (NPCManager->GetNPC("Momo")->GetTeleportCount() == 0) GetWorldTimerManager().ClearTimer(NPCManager->GetNPC("Momo")->GetMoveTimer());
-		if (NPCManager->GetNPC("Luko")->GetTeleportCount() == 0) GetWorldTimerManager().ClearTimer(NPCManager->GetNPC("Luko")->GetMoveTimer());
-
-		GameManager->GetDialogueManager()->DisplayDialogueUI();
-	}
-
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second"))
-	{
-		if ((EnemyType == EEnemyType::Spider && GameManager->GetDeadEnemies()[EnemyType] == 5) || (EnemyType == EEnemyType::LittleMonster && GameManager->GetDeadEnemies()[EnemyType] == 8))
+		if (GameManager->GetDeadEnemies().Find(EEnemyType::Golem) != nullptr)
 		{
-			NPCManager->AllNpcStopFollowPlayer();
-			GameManager->SaveGame();
-			GameManager->GetDialogueManager()->DisplayDialogueUI();
+			const int32* GoblinCount = GameManager->GetDeadEnemies().Find(EEnemyType::Goblin);
+			const int32* GruxCount = GameManager->GetDeadEnemies().Find(EEnemyType::Grux);
+			if (GoblinCount != nullptr && GruxCount != nullptr)
+			{
+				if ((*GoblinCount + *GruxCount) == 8)
+				{
+					GameManager->SaveGame();
+					if (NPCManager->GetNPC("Momo")->GetTeleportCount() == 0) NPCManager->GetNPC("Momo")->ClearPlayerFollowTimer();
+					if (NPCManager->GetNPC("Luko")->GetTeleportCount() == 0) NPCManager->GetNPC("Luko")->ClearPlayerFollowTimer();
+
+					GameManager->GetDialogueManager()->DisplayDialogueUI();
+				}
+			}
+		}
+	}
+	
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second")) // 거미 처치 후 혹은 마지막 몬스터 처치 후
+	{
+		if (GameManager->GetDeadEnemies().Find(EnemyType) != nullptr)
+		{
+			if ((EnemyType == EEnemyType::Spider && GameManager->GetDeadEnemies()[EnemyType] == 5)
+				|| (EnemyType == EEnemyType::LittleMonster && GameManager->GetDeadEnemies()[EnemyType] == 3))
+			{
+				NPCManager->AllNpcStopFollowPlayer();
+				GameManager->SaveGame();
+				GameManager->GetDialogueManager()->DisplayDialogueUI();
+			}
 		}
 	}
 
-	if ((UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && DeadEnemiesNum == 5))
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) // 보스 스테이지 클리어 후
 	{
+		if (GameManager->GetDeadEnemies().Find(EEnemyType::Boss) != nullptr)
+		{
+			const int32* shamanCount = GameManager->GetDeadEnemies().Find(EEnemyType::LizardShaman);
+				if (*shamanCount == 7)
+					GameManager->GetDialogueManager()->DisplayDialogueUI();
+		}
+
 		GameManager->SaveGame();
 		GameManager->GetDialogueManager()->DisplayDialogueUI();
 	}
-	
+
 	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::Disappear, DeathDelay);
 }
 
@@ -630,9 +641,12 @@ void AEnemy::SphereCollisionDisabled()
 void AEnemy::Disappear()
 {
 	CombatCollisionDisabled();
-
 	SphereCollisionDisabled();
-	
+
+	GetWorldTimerManager().ClearTimer(MovingTimer);
+	GetWorldTimerManager().ClearTimer(CheckHandle);
+	GetWorldTimerManager().ClearTimer(AttackTimer);
+	GetWorldTimerManager().ClearTimer(DeathTimer);
 	Destroy();
 }
 
@@ -729,7 +743,6 @@ void AEnemy::CheckLocation()
 				Count = 0;
 				SetActorRotation(InitialRotation);
 				GetWorldTimerManager().ClearTimer(CheckHandle);
-
 			}
 		}
 		else

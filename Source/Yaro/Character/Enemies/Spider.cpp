@@ -5,6 +5,8 @@
 
 ASpider::ASpider()
 {
+	EnemyType = EEnemyType::Spider;
+
 	SetAgroSphere(450.f);
 	SetCombatSphere(70.f);
 

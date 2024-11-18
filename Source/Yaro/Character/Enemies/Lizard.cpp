@@ -20,7 +20,6 @@ ALizard::ALizard()
 	EnemyExp = 45.f;
 
 	AttackDelay = 0.3f;
-
 }
 
 void ALizard::BeginPlay()

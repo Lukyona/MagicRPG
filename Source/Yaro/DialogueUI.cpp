@@ -517,8 +517,6 @@ void UDialogueUI::DialogueEvents()
             {
             case 0: // player jump to the plane
                 RowIndex = 4;
-                NPCManager->AllNpcLookAtPlayer();
-                NPCManager->AllNpcStopFollowPlayer();
                 Momo->GetAIController()->MoveToLocation(FVector(5307.f, -3808.f, -2122.f));
                 Luko->GetAIController()->MoveToLocation(FVector(5239.f, -3865.f, -2117.f));
                 Vovo->GetAIController()->MoveToLocation(FVector(5433.f, -3855.f, -2117.f));

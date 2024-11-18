@@ -45,8 +45,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	class AMain* Player;
 
-	UPROPERTY(BlueprintReadWrite)
-	FTimerHandle MoveTimer; // move to player
+	UPROPERTY(BlueprintReadOnly)
+	FTimerHandle PlayerFollowTimer;
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
@@ -91,8 +91,6 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite)
 	FTimerHandle TeamMoveTimer; // vovo, vivi, zizi
-
-
 
 	FTimerHandle TeleportTimer;
 
@@ -169,11 +167,12 @@ public:
 	
 	int GetTeleportCount() { return TeleportCount; }
 
-	FTimerHandle& GetMoveTimer() { return MoveTimer; }
-
 	TArray<AEnemy*> GetAgroTargets() { return AgroTargets; }
 
 	void ClearTeamMoveTimer();
+
+	UFUNCTION(BlueprintCallable)
+	void ClearPlayerFollowTimer();
 
 	UFUNCTION(BlueprintCallable)
 	void ClearAllTimer();

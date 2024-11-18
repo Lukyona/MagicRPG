@@ -77,13 +77,10 @@ void AYaroCharacter::MoveToPlayer()
 
 	if (CombatTarget == nullptr && !bAttacking && !bOverlappingCombatSphere && AgroTargets.Num() == 0) // 전투 중이 아닐 때
 	{
-		if (DialogueManager->IsDialogueUIVisible()) // 대화 중에는 대부분 이동X
+		if (DialogueManager->IsDialogueUIVisible() || DialogueManager->GetDialogueNum() == 9) // 대화 중에는 대부분 이동X
 		{
-			if (DialogueManager->GetDialogueNum() != 6) // 특정 시점 제외하고 플레이어를 따라가기
-			{
-				GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
-				return;
-			}
+			GetWorldTimerManager().SetTimer(PlayerFollowTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
+			return;
 		}
 
 		for (auto NPC : NPCManager->GetNPCMap())
@@ -97,9 +94,7 @@ void AYaroCharacter::MoveToPlayer()
 				GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
 				MoveToTarget(NPC.Value->AgroTargets[0]);
 
-				//if(!GetWorldTimerManager().IsTimerActive(MoveTimer))
-					GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 1.f);
-
+				GetWorldTimerManager().SetTimer(PlayerFollowTimer, this, &AYaroCharacter::MoveToPlayer, 1.f);
 				return;
 			}
 		}
@@ -132,10 +127,10 @@ void AYaroCharacter::MoveToPlayer()
 	else // 전투 중
 	{
 		if(UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first"))
-			GetWorldTimerManager().ClearTimer(TeleportTimer); 
+			TeleportTimer.Invalidate();
 	}
 
-	GetWorldTimerManager().SetTimer(MoveTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
+	GetWorldTimerManager().SetTimer(PlayerFollowTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
 }
 
 void AYaroCharacter::Teleport()
@@ -159,7 +154,7 @@ void AYaroCharacter::Teleport()
 		if (AIController)
 		{
 			TeleportCount = 0;
-			GetWorldTimerManager().ClearTimer(TeleportTimer);
+			TeleportTimer.Invalidate();
 		}
 	}
 	else // 플레이어와 거리가 멀면 계속 텔레포트 카운트 증감
@@ -629,7 +624,7 @@ float AYaroCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& 
 	if (TargetIndex == 11 && AgroTargets.Num() == 0) 
 	{
 		AEnemy* BossEnemy = Cast<AEnemy>(UGameplayStatics::GetActorOfClass(GetWorld(), Boss));
-		GetWorldTimerManager().ClearTimer(MoveTimer);
+		ClearPlayerFollowTimer();
 		AIController->StopMovement();
 		MoveToTarget(BossEnemy); // 보스에게 이동
 	}
@@ -686,7 +681,7 @@ void AYaroCharacter::MoveToSafeLocation() // 안전한 위치로 이동, 몬스터와의 안전
 	}
 	else // 몬스터와의 안전 거리 확보됨
 	{
-		GetWorldTimerManager().ClearTimer(SafeDistanceTimer);
+		SafeDistanceTimer.Invalidate();
 		return;
 	}
 
@@ -700,13 +695,21 @@ void AYaroCharacter::MoveToSafeLocation() // 안전한 위치로 이동, 몬스터와의 안전
 void AYaroCharacter::ClearTeamMoveTimer()
 {
 	GetWorldTimerManager().ClearTimer(TeamMoveTimer);
+	TeamMoveTimer.Invalidate();
+}
+
+void AYaroCharacter::ClearPlayerFollowTimer()
+{
+	GetWorldTimerManager().ClearTimer(PlayerFollowTimer);
+	PlayerFollowTimer.Invalidate();
 }
 
 void AYaroCharacter::ClearAllTimer()
 {
-	GetWorldTimerManager().ClearTimer(TeamMoveTimer);
-	GetWorldTimerManager().ClearTimer(MoveTimer);
+	ClearTeamMoveTimer();
+	ClearPlayerFollowTimer();
 	GetWorldTimerManager().ClearTimer(MagicSpawnTimer);
+	MagicSpawnTimer.Invalidate();
 }
 
 void AYaroCharacter::Smile() // 웃는 표정

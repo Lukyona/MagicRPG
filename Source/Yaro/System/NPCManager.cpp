@@ -308,7 +308,7 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 	case 12:
 		{
 			const int32* SpiderCount = GameManager->GetDeadEnemies().Find(EEnemyType::Spider);
-			if (*SpiderCount == 5)
+			if (SpiderCount != nullptr && *SpiderCount == 5)
 			{
 				DialogueManager->DisplayDialogueUI();
 			}
@@ -317,7 +317,7 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 	case 14:
 		{
 			const int32* MonsterCount = GameManager->GetDeadEnemies().Find(EEnemyType::LittleMonster);
-			if (*MonsterCount == 3)
+			if (MonsterCount != nullptr && *MonsterCount == 3)
 				DialogueManager->DisplayDialogueUI();
 		}
 		break;
@@ -338,8 +338,8 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 	case 18:
 		if (GameManager->GetDeadEnemies().Find(EEnemyType::Boss) != nullptr)
 		{
-			const int32* shamanCount = GameManager->GetDeadEnemies().Find(EEnemyType::LizardShaman);
-			if (*shamanCount == 7)
+			const int32* ShamanCount = GameManager->GetDeadEnemies().Find(EEnemyType::LizardShaman);
+			if (ShamanCount && *ShamanCount == 7)
 				DialogueManager->DisplayDialogueUI();
 		}
 		break;
@@ -423,7 +423,7 @@ void UNPCManager::AllNpcStopFollowPlayer()
 	for (auto NPC : NPCMap)
 	{
 		NPC.Value->GetAIController()->StopMovement();
-		NPC.Value->GetWorld()->GetTimerManager().ClearTimer(NPC.Value->GetMoveTimer());
+		NPC.Value->ClearPlayerFollowTimer();
 	}
 }
 

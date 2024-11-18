@@ -68,7 +68,7 @@ void AMagicSkill::BeginPlay()
         {
             SetLocation();
         }
-    }), 0.1f, false);
+    }), 0.05f, false);
 
 
 }

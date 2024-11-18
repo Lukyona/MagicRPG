@@ -16,30 +16,24 @@ public:
 	// Sets default values for this actor's properties
 	AEnemySpawner();
 
-	class AEnemy* Enemy;
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<class AEnemy> EnemyClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<class AEnemy> EnemyType;
+	EEnemyType EnemyType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int NumberOfEnemies;
-
-	FTransform tmp; 
+	int32 NumberOfEnemies;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FTransform> SpawnTransform;
 
-	FString tmp2;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FString> EnemyName;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bSpawnLater = false;
 
-	UYaroSaveGame* LoadGameInstance;
+	AEnemy* SpawnedEnemy;
 
-protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 

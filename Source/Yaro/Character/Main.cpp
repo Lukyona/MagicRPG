@@ -610,7 +610,7 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 				{
 					AEnemy* BossEnemy = Cast<AEnemy>(UGameplayStatics::GetActorOfClass(GetWorld(), NPC.Value->GetBoss()));
 					NPC.Value->MoveToTarget(BossEnemy); // 보스 몬스터에게 이동
-					GetWorldTimerManager().ClearTimer(NPC.Value->GetMoveTimer());
+					NPC.Value->ClearPlayerFollowTimer();
 					NPC.Value->GetAIController()->StopMovement();
 				}
 			}
@@ -916,7 +916,7 @@ void AMain::PlayMontageWithItem()
 
 	if (DialogueManager->GetDialogueNum() == 9 && ItemInHand)
 	{
-		if(ItemInHand->GetName().Contains("Yellow"))
+		if(ItemInHand->GetName().Contains("Yellow") || CurrentOverlappedActor != nullptr)
 			LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
 	}
 	else if (DialogueManager->GetDialogueNum() == 21 && CurrentOverlappedActor->GetName().Contains("Divinum"))

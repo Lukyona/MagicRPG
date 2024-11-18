@@ -232,7 +232,7 @@ void UDialogueManager::DialogueEndEvents()
         {
             Player->SetInterpToCharacter(false);
             Player->SetTargetCharacter(nullptr);
-            GetWorld()->GetTimerManager().ClearTimer(NPCManager->GetNPC("Luko")->GetMoveTimer());
+            NPCManager->GetNPC("Luko")->ClearPlayerFollowTimer();
             NPCManager->MoveNPCToLocation("Luko", FVector(5200.f, 35.f, 100.f));
             UIManager->SetSystemMessage(2);
 

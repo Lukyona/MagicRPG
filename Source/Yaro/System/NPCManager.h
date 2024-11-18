@@ -93,6 +93,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void AllNpcMoveToPlayer();
 
+	UFUNCTION(BlueprintCallable)
 	void AllNpcLookAtPlayer();
 
 	void AllNpcDisableLookAt();

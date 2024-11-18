@@ -235,6 +235,9 @@ void UGameManager::LoadGame()
 
 void UGameManager::UpdateDeadEnemy(EEnemyType EnemyType)
 {
+	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EEnemyType"), true);
+	//FString type = EnumPtr->GetNameStringByIndex(static_cast<uint8>(EnemyType));
+
 	if (DeadEnemies.Find(EnemyType))
 	{
 		DeadEnemies[EnemyType]++;
