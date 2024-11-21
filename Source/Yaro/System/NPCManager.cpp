@@ -346,11 +346,10 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 	case 19: // 보스 처치 후
 		if (GetWorld()->GetName().Contains("Boss"))
 		{
-			MoveNPCToLocation(Momo, FVector(8.f, -3585.f, 684.f));
-			MoveNPCToLocation(Luko, FVector(8.f, -3585.f, 684.f));
-			MoveNPCToLocation(Vovo, FVector(8.f, -3585.f, 684.f));
-			MoveNPCToLocation(Vivi, FVector(8.f, -3585.f, 684.f));
-			MoveNPCToLocation(Zizi, FVector(8.f, -3585.f, 684.f));
+			for (auto NPC : NPCMap)
+			{
+				NPC.Value->Destroy();
+			}
 			UIManager->SetSystemMessage(14);
 		}
 		else if (GetWorld()->GetName().Contains("Cave")) 

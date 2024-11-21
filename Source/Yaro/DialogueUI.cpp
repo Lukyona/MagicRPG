@@ -226,10 +226,10 @@ void UDialogueUI::DialogueEvents()
 
     if (Player->IsFallenInDungeon())
     {
-        bInputDisabled = false;
-
         if (Player->GetFallCount() == 1)
         {
+            bInputDisabled = false;
+
             if (RowIndex == 0)
             {
                 NPCManager->AllNpcLookAtPlayer();
@@ -366,7 +366,6 @@ void UDialogueUI::DialogueEvents()
             {
             case 0:
             case 2:
-                //DialogueManager->bCanDisplaySpeechBubble = true;
                 break;
             case 1:
                 break;
@@ -401,7 +400,6 @@ void UDialogueUI::DialogueEvents()
                 Vovo->SetTargetCharacter(Player);
                 Player->SetInterpToCharacter(true);
                 Player->SetTargetCharacter(Vovo);
-                //DialogueManager->bCanDisplaySpeechBubble = true;
                 break;
             case 5:
                 if (SelectedReply == 1) RowIndex = 7;
@@ -435,11 +433,9 @@ void UDialogueUI::DialogueEvents()
                     }
                     RowIndex = 8;
                     bInputDisabled = true;
-                    //bShowSpeechBubble = false;
                 case 9:
                 case 10:
                 case 11:
-                    // GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("first"));
                     GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 2.5f, false);
                     break;
             }
@@ -451,7 +447,6 @@ void UDialogueUI::DialogueEvents()
             {
                 case 0:
                     GameManager->SetIsSaveAllowed(true);
-                    //MainPlayerController->bCanDisplaySpeechBubble = true;
                     break;
                 case 2:
                     Momo->SetTargetCharacter(Vivi);
@@ -652,7 +647,6 @@ void UDialogueUI::DialogueEvents()
                     GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 2.f, false);
                     break;
                 case 6://다시 카메라 플레이어쪽으로 돌리기
-                    //MainPlayerController->bCanDisplaySpeechBubble = true;
                     bInputDisabled = false;
                     Player->GetFollowCamera()->SetRelativeRotation((FRotator(0.f, 0.f, 0.f)));
                     Player->GetCameraBoom()->SocketOffset = FVector(0.f, 0.f, 70.f);
@@ -900,7 +894,6 @@ void UDialogueUI::DialogueEvents()
                     break;
                 case 18:
                     if (MessageIndex == 0) DialogueManager->RemoveSpeechBuubble();
-                    //if (MessageIndex == 1) MainPlayerController->bCanDisplaySpeechBubble = true;
                     Luko->SetTargetCharacter(Momo);
                     Luko->SetInterpToCharacter(true);
                     Vovo->SetTargetCharacter(Momo);
@@ -1088,11 +1081,11 @@ void UDialogueUI::DialogueEvents()
 
         if (DNum == 23)
         {
+            DialogueManager->RemoveSpeechBuubble();
             RowIndex = 23;
         }
     }
    
-    //UE_LOG(LogTemp, Log, TEXT("pass77"));
     AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString());
 }
 

@@ -111,7 +111,6 @@ void UDialogueManager::DisplayDialogueUI()
                     UIManager->FadeAndDialogue();
                     return;
                 }
-                //bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[2]);
                 UIManager->SetIsFading(false);
                 break;
@@ -119,7 +118,6 @@ void UDialogueManager::DisplayDialogueUI()
                 DialogueUI->InitializeDialogue(DialogueDatas[2]);
                 break;
             case 5: // second dungeon
-                //bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[3]);
                 break;
             case 6: // triggerbox1 overplap
@@ -127,7 +125,6 @@ void UDialogueManager::DisplayDialogueUI()
             case 8: // triggerbox3, player go over the other side
             case 9: // plane2 up
             case 10: // Npcs went over the other side
-                //if (DialogueNum == 8 || DialogueNum == 9) bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[4]);
                 break;
             case 11: // discover food table trap
@@ -140,7 +137,6 @@ void UDialogueManager::DisplayDialogueUI()
                     if (DialogueNum == 18) GameManager->SaveGame();
                     return;
                 }
-                //bCanDisplaySpeechBubble = true;
                 if (DialogueNum == 11)
                     DialogueUI->InitializeDialogue(DialogueDatas[5]);
                 else if (DialogueNum == 16 || DialogueNum == 18)
@@ -152,20 +148,16 @@ void UDialogueManager::DisplayDialogueUI()
             case 12: // after combat with spiders
             case 13: // before combat with final monsters in second dungeon
             case 14: // after combat with little monsters
-                //bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[5]);
                 break;
             case 15: // boss level enter
             case 17: // be ready to combat with boss 
-               // bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[6]);
                 break;
             case 19: // back to cave
             case 21: // griffons come
             case 22: // last talk
             case 23:
-               // if (DialogueNum != 23)
-                 //   bCanDisplaySpeechBubble = true;
                 DialogueUI->InitializeDialogue(DialogueDatas[7]);
                 break;
             }
@@ -200,6 +192,7 @@ void UDialogueManager::RemoveDialogueUI()
         }
         else
         {
+            Player->SetFallenInDungeon(false);
             Player->SetCanMove(true);
             if (bSpeechBuubbleVisible)
                 RemoveSpeechBuubble();
@@ -213,6 +206,7 @@ void UDialogueManager::RemoveDialogueUI()
         MainPlayerController->SetMouseCursorVisibility(false);
         
         UIManager->DisplayHUD();
+        GameManager->SaveGame();
 
         if (GameManager->IsSkipping()) GameManager->SetIsSkipping(false);
     }
@@ -356,7 +350,6 @@ void UDialogueManager::DialogueEndEvents()
         DialogueUI->SetInputDisabled(false);
         MainPlayerController->SetCinematicMode(false, true, true);
         Player->SetCanMove(true);
-
         if (DialogueNum == 23)
             NPCManager->MoveNPCToLocation("Vivi", FVector(625.f, 318.f, 153.f));
         break;
@@ -401,7 +394,7 @@ void UDialogueManager::DisplaySpeechBuubble(class AYaroCharacter* npc)
             SpeechBubble = Player->GetWorld()->SpawnActor<AActor>(SpeechBubbleBPClass.Get());
     }
 
-    if (SpeechBubble) //&& bCanDisplaySpeechBubble)
+    if (SpeechBubble)
     {
         SpeakingTarget = npc;
         SpeechBubble->SetActorHiddenInGame(false);
@@ -414,7 +407,6 @@ void UDialogueManager::RemoveSpeechBuubble()
 {
     if (SpeechBubble)
     {
-       // bCanDisplaySpeechBubble = false;
         bSpeechBuubbleVisible = false;
         SpeechBubble->SetActorHiddenInGame(true);
     }

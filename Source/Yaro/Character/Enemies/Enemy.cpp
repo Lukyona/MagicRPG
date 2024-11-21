@@ -602,17 +602,16 @@ void AEnemy::DeathEnd()
 		}
 	}
 
-	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) // 보스 스테이지 클리어 후
+	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss"))
 	{
 		if (GameManager->GetDeadEnemies().Find(EEnemyType::Boss) != nullptr)
 		{
-			const int32* shamanCount = GameManager->GetDeadEnemies().Find(EEnemyType::LizardShaman);
-				if (*shamanCount == 7)
-					GameManager->GetDialogueManager()->DisplayDialogueUI();
+			const int32* ShamanCount = GameManager->GetDeadEnemies().Find(EEnemyType::LizardShaman);
+			if (ShamanCount && *ShamanCount == 7)
+			{
+				GameManager->GetDialogueManager()->DisplayDialogueUI();
+			}
 		}
-
-		GameManager->SaveGame();
-		GameManager->GetDialogueManager()->DisplayDialogueUI();
 	}
 
 	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::Disappear, DeathDelay);

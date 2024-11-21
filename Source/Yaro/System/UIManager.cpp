@@ -330,7 +330,6 @@ void UUIManager::RemoveEnemyHPBar()
     {
         bEnemyHPBarVisible = false;
         EnemyHPBar->SetVisibility(ESlateVisibility::Hidden);
-        // bCanDisplaySpeechBubble = false;
     }
 }
 
@@ -351,7 +350,6 @@ void UUIManager::FadeAndDialogue()
             {
                 Player->SetCanMove(false);
                 MainPlayerController->SetCinematicMode(true, true, true);
-
             }
             MainPlayerController->FadeOutEvent();
         }

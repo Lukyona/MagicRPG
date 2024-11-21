@@ -47,8 +47,6 @@ protected:
 		class AYaroCharacter* Zizi;
 
 
-	virtual void NativeConstruct() override;
-
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* NPCText;
 
@@ -92,7 +90,11 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	bool bCanStartDialogue = true;
 
+	virtual void NativeConstruct() override;
+
+
 public:
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
 	void OnAnimationShowMessageUI();
 

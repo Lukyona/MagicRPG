@@ -6,9 +6,6 @@
 #include "Student.h"
 #include "Main.generated.h"
 
-// 블루프린트에서 쓰려면 다이나믹 멀티캐스트여야함
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_Dynamic);
-
 UENUM(BlueprintType)
 enum class EMovementStatus :uint8
 {
@@ -33,24 +30,23 @@ enum class EPlayerStat :uint8
 	PotionNum,
 };
 
-
 UCLASS()
 class YARO_API AMain : public AStudent
 {
 	GENERATED_BODY()
 
 protected:
-	    UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UGameManager* GameManager;
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UGameManager* GameManager;
 
-	    UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UDialogueManager* DialogueManager;
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UDialogueManager* DialogueManager;
 
-	    UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UUIManager* UIManager;
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UUIManager* UIManager;
 
-	    UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UNPCManager* NPCManager;
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UNPCManager* NPCManager;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	EMovementStatus MovementStatus;
@@ -98,10 +94,8 @@ protected:
 
 	int32 FallCount = 0;
 
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
 	TMap<EPlayerStat, float> PlayerStats;
-
 
 	// 스탯 자동 회복
 	FTimerHandle HPTimer;
@@ -214,7 +208,48 @@ public:
 	bool IsInAir();
 	bool IsDead() { return MovementStatus == EMovementStatus::EMS_Dead ? true : false; }
 
-	
+	void PlayMontageWithItem();
+
+	TArray<AEnemy*> GetTargets() { return Targets; }
+
+	void StartMisson();
+
+	void SetAutoTargeting(bool value) { bAutoTargeting = value; }
+
+	void Targeting();
+
+	void Attack() override;
+	void AttackEnd() override;
+
+	void Spawn() override;
+
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	void Die();
+
+	UFUNCTION(BlueprintCallable)
+		void DeathEnd();
+
+	void Revive();
+
+	UFUNCTION(BlueprintCallable)
+		void RevivalEnd();
+
+	void Escape(); // press E key, spawn player at the other location
+
+	void ShowControlGuide();
+
+	void StartDialogue();
+
+
+
+
+	UFUNCTION(BlueprintCallable)
+		void RecoverWithLogo();
+
+	void UsePotion();
+
+	void SetLevel5();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -264,63 +299,4 @@ public:
 	void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 	void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
-	void PlayMontageWithItem();
- 
-	TArray<AEnemy*> GetTargets() { return Targets; }
-
-	void StartMisson();
-
-	void SetAutoTargeting(bool value) { bAutoTargeting = value; }
-
-	void Targeting();
-
-	void Attack() override;
-	void AttackEnd() override;
-
-	void Spawn() override;
-
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-
-	void Die();
-
-	UFUNCTION(BlueprintCallable)
-	void DeathEnd();
-
-	void Revive();
-
-	UFUNCTION(BlueprintCallable)
-	void RevivalEnd();
-
-	void Escape(); // press E key, spawn player at the other location
-
-	void ShowControlGuide();
-
-	void StartDialogue();
-
-
-
-
-	UFUNCTION(BlueprintCallable)
-	void RecoverWithLogo();
-
-	void UsePotion();
-
-	void SkipCombat();
-	void SetLevel5();
-
-
-	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
-	FDele_Dynamic PlaneUp;
-
-	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
-	FDele_Dynamic Ending;
-
-	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
-	FDele_Dynamic SkipFirstDungeon;
-
-	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
-	FDele_Dynamic SkipSecondDungeon;
-
-	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
-	FDele_Dynamic SkipFinalDungeon;
 };

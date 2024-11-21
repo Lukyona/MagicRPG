@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Main.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -107,12 +106,6 @@ AMain::AMain()
 	MovementStatus = EMovementStatus::EMS_Normal;
 
 	bESCDown = false;
-
-}
-
-bool AMain::IsInAir()
-{
-	return MainAnimInstance->bIsInAir;
 }
 
 // Called when the game starts or when spawned
@@ -200,7 +193,7 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAction("Targeting", IE_Pressed, this, &AMain::Targeting);
 
-	PlayerInputComponent->BindAction("SkipCombat", IE_Pressed, this, &AMain::SkipCombat);
+	PlayerInputComponent->BindAction("SkipCombat", IE_Pressed, GameManager, &UGameManager::SkipCombat);
 
 	PlayerInputComponent->BindAction("ESC", IE_Pressed, this, &AMain::ESCDown);
 	PlayerInputComponent->BindAction("ESC", IE_Released, this, &AMain::ESCUp);
@@ -229,6 +222,11 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("LookUp", this, &AMain::LookUpAtRate);
 
 	PlayerInputComponent->BindAxis("CameraZoom", this, &AMain::CameraZoom);
+}
+
+bool AMain::IsInAir()
+{
+	return MainAnimInstance->bIsInAir;
 }
 
 // 매 프레임마다 키가 눌렸는지 안 눌렸는지 확인될 것
@@ -289,6 +287,17 @@ void AMain::Run(float Value)
 	}
 }
 
+void AMain::Jump()
+{
+	// 죽거나 대화 중일 때는 점프 불가, 수동으로 움직임 막았을 때도 불가
+	if (MovementStatus != EMovementStatus::EMS_Dead
+		&& !DialogueManager->IsDialogueUIVisible()
+		&& bCanMove)
+	{
+		Super::Jump();
+	}
+}
+
 void AMain::TurnAtRate(float Rate)
 {
 	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
@@ -345,28 +354,24 @@ void AMain::LMBDown() //Left Mouse Button Down
 	}
 
 
+	if (!MainAnimInstance || !NormalMontage) return;
 	if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return; // 중복 재생 방지
 
 	// 아이템 상호작용 몽타주 관련
+	// 오버랩된 아이템 존재, 장착한 무기가 없을 때
+	if (ActiveOverlappingItem && !EquippedWeapon)
 	{
-		// 오버랩된 아이템 존재, 장착한 무기가 없을 때
-		if (ActiveOverlappingItem && !EquippedWeapon)
-		{
-			if (MainAnimInstance && NormalMontage)
-			{
-				PlayMontageWithItem(); // 아이템 관련 몽타주 재생
-				MainAnimInstance->Montage_JumpToSection(FName("PickWand"), NormalMontage);
-			}
-		}
+		PlayMontageWithItem(); // 아이템 관련 몽타주 재생
+		MainAnimInstance->Montage_JumpToSection(FName("PickWand"), NormalMontage);
+	}
 
+	if (DialogueManager->GetDialogueNum() == 9)
+	{
 		// pick up the yellow stone
-		if (ActiveOverlappingItem && DialogueManager->GetDialogueNum() == 9)
+		if (ActiveOverlappingItem)
 		{
-			if (MainAnimInstance && NormalMontage)
-			{
-				PlayMontageWithItem();
-				MainAnimInstance->Montage_JumpToSection(FName("PickItem"), NormalMontage);
-			}
+			PlayMontageWithItem();
+			MainAnimInstance->Montage_JumpToSection(FName("PickItem"), NormalMontage);
 		}
 
 		if (CurrentOverlappedActor && ItemInHand)
@@ -374,27 +379,21 @@ void AMain::LMBDown() //Left Mouse Button Down
 			if (CurrentOverlappedActor->GetName().Contains("MovingStone")  // 오버랩된 액터가 움직이는 돌이고
 				&& ItemInHand->GetName().Contains("Yellow")) // 손에 있는 아이템이 yellow stone일 때
 			{
-				if (DialogueManager->GetDialogueNum() == 9)
-				{
-					if (MainAnimInstance && NormalMontage)
-					{
-						PlayMontageWithItem();
-						MainAnimInstance->Montage_JumpToSection(FName("PutStone"), NormalMontage); // put yellow stone
-					}
-				}
+				PlayMontageWithItem();
+				MainAnimInstance->Montage_JumpToSection(FName("PutStone"), NormalMontage); // put yellow stone
 			}
 		}
+	}
 
-		// 마지막 과제 아이템
-		if (CurrentOverlappedActor && CurrentOverlappedActor->GetName().Contains("DivinumPraesidium"))
+	// 마지막 과제 아이템
+	if (CurrentOverlappedActor && CurrentOverlappedActor->GetName().Contains("DivinumPraesidium"))
+	{
+		if (DialogueManager->GetDialogueNum() == 21)
 		{
-			if (DialogueManager->GetDialogueNum() == 21 && MainAnimInstance && NormalMontage)
-			{
-				if (DialogueManager->GetDialogueUI()->GetSelectedReply() != 1 || DialogueManager->IsDialogueUIVisible()) return;
+			if (DialogueManager->GetDialogueUI()->GetSelectedReply() != 1 || DialogueManager->IsDialogueUIVisible()) return;
 
-				PlayMontageWithItem();
-				MainAnimInstance->Montage_JumpToSection(FName("PickStone"), NormalMontage); // 돌 챙기기
-			}
+			PlayMontageWithItem();
+			MainAnimInstance->Montage_JumpToSection(FName("PickStone"), NormalMontage); // 돌 챙기기
 		}
 	}
 }
@@ -402,6 +401,32 @@ void AMain::LMBDown() //Left Mouse Button Down
 void AMain::LMBUp()
 {
 	bLMBDown = false;
+}
+
+void AMain::PlayMontageWithItem()
+{
+	bCanMove = false; // 이동 조작 불가
+
+	if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return; // 중복 재생 방지
+
+	FRotator LookAtYaw;
+
+	if (DialogueManager->GetDialogueNum() == 9 && ItemInHand)
+	{
+		if (ItemInHand->GetName().Contains("Yellow") && CurrentOverlappedActor != nullptr)
+			LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
+	}
+	else if (DialogueManager->GetDialogueNum() == 21 && CurrentOverlappedActor->GetName().Contains("Divinum"))
+	{
+		LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
+	}
+	else if(ActiveOverlappingItem)
+		LookAtYaw = GetLookAtRotationYaw(ActiveOverlappingItem->GetActorLocation());
+
+	SetActorRotation(LookAtYaw); // 아이템 방향으로 회전
+
+	// 몽타주 재생
+	MainAnimInstance->Montage_Play(NormalMontage);
 }
 
 void AMain::Attack()
@@ -595,6 +620,8 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 			GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);	
 	}
 
+	SetStat(EPlayerStat::HP, currentHP);
+
 	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) // 보스 스테이지
 	{
 		MagicAttack = Cast<AMagicSkill>(DamageCauser);
@@ -616,7 +643,6 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 			}
 		}
 	}
-	SetStat(EPlayerStat::HP, currentHP);
 	return DamageAmount;
 }
 
@@ -648,17 +674,6 @@ void AMain::DeathEnd()
 	GetWorldTimerManager().SetTimer(DeathTimer, this, &AMain::Revive, DeathDelay);
 }
 
-void AMain::Jump()
-{
-	// 죽거나 대화 중일 때는 점프 불가, 수동으로 움직임 막았을 때도 불가
-	if (MovementStatus != EMovementStatus::EMS_Dead
-		&& !DialogueManager->IsDialogueUIVisible()
-		&& bCanMove)
-	{
-		Super::Jump();
-	}
-}
-
 void AMain::Revive() // if player is dead, spawn player at the initial location
 {
 	if(DialogueManager->GetDialogueNum() <= 4) // first dungeon
@@ -667,7 +682,6 @@ void AMain::Revive() // if player is dead, spawn player at the initial location
         this->SetActorLocation(FVector(3910.f, -3920.f,-2115.f));
 	else											// boss level
 		this->SetActorLocation(FVector(8.f, 1978.f, 184.f));
-
 
 	if (MainAnimInstance && CombatMontage)
 	{
@@ -717,7 +731,7 @@ void AMain::ItemSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AAc
     if (OtherActor == CurrentOverlappedActor)
     {
         CurrentOverlappedActor = nullptr;
-    }
+	}
 }
 
 void AMain::InitializeStats()
@@ -906,32 +920,6 @@ const TMap<FString, TSubclassOf<class AItem>>* AMain::GetItemMap()
 	return nullptr;
 }
 
-void AMain::PlayMontageWithItem()
-{
-	if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return; // 중복 재생 방지
-
-	bCanMove = false; // 이동 조작 불가
-
-	FRotator LookAtYaw;
-
-	if (DialogueManager->GetDialogueNum() == 9 && ItemInHand)
-	{
-		if(ItemInHand->GetName().Contains("Yellow") || CurrentOverlappedActor != nullptr)
-			LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
-	}
-	else if (DialogueManager->GetDialogueNum() == 21 && CurrentOverlappedActor->GetName().Contains("Divinum"))
-	{
-		LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
-	}
-	else
-		LookAtYaw = GetLookAtRotationYaw(ActiveOverlappingItem->GetActorLocation());
-
-	SetActorRotation(LookAtYaw); // 아이템 방향으로 회전
-
-	// 몽타주 재생
-	MainAnimInstance->Montage_Play(NormalMontage);
-}
-
 void AMain::StartMisson()
 {
 	if (DialogueManager->GetDialogueNum() == 3 && UIManager->IsSystemMessageVisible())
@@ -983,31 +971,6 @@ void AMain::Escape() // 긴급 탈출, 순간 이동
 			SetActorLocation(FVector(2726.f, -3353.f, -500.f));
 		}
 	}
-}
-
-
-
-void AMain::SkipCombat() // 전투 스킵, 몬스터 제거
-{
-	if (DialogueManager->IsDialogueUIVisible() || !GameManager->IsSkippable() || GameManager->IsSkipping()
-		|| MovementStatus == EMovementStatus::EMS_Dead) return;
-
-	if (DialogueManager->GetDialogueNum() < 4) // first dungeon
-	{
-		if (DialogueManager->GetDialogueNum() <= 2) return;
-		SkipFirstDungeon.Broadcast();
-	}
-	else if (DialogueManager->GetDialogueNum() < 15)
-	{
-		if (DialogueManager->GetDialogueNum() <= 10) return;
-		SkipSecondDungeon.Broadcast();
-	}
-	else if (DialogueManager->GetDialogueNum() < 19)
-	{
-		if (DialogueManager->GetDialogueNum() <= 17) return;
-		SkipFinalDungeon.Broadcast();
-	}
-	else return;
 }
 
 void AMain::RecoverWithLogo() // get school icon in second stage

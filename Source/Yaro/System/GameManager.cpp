@@ -20,62 +20,62 @@ void UGameManager::Init()
 
 	// 비동기 작업으로 메인 스레드에서 초기화 진행
 	AsyncTask(ENamedThreads::GameThread, [WeakGameManager]()
+	{
+		if (WeakGameManager.IsValid())
 		{
-			if (WeakGameManager.IsValid())
+			UGameManager* GameManager = WeakGameManager.Get();
+
+			// DialogueManager 생성 및 유효성 체크
+			if (GameManager)
 			{
-				UGameManager* GameManager = WeakGameManager.Get();
-
-				// DialogueManager 생성 및 유효성 체크
-				if (GameManager)
+				GameManager->DialogueManager = NewObject<UDialogueManager>(GameManager, UDialogueManager::StaticClass());
+				if (GameManager->DialogueManager && IsValid(GameManager->DialogueManager))
 				{
-					GameManager->DialogueManager = NewObject<UDialogueManager>(GameManager, UDialogueManager::StaticClass());
-					if (GameManager->DialogueManager && IsValid(GameManager->DialogueManager))
-					{
-						GameManager->DialogueManager->AddToRoot();
-						GameManager->DialogueManager->SetGameManager(GameManager);
-					}
-					else
-					{
-						UE_LOG(LogTemp, Error, TEXT("Failed to create DialogueManager or DialogueManager is invalid."));
-					}
+					GameManager->DialogueManager->AddToRoot();
+					GameManager->DialogueManager->SetGameManager(GameManager);
 				}
-
-				// UIManager 생성 및 유효성 체크
-				if (GameManager)
+				else
 				{
-					GameManager->UIManager = NewObject<UUIManager>(GameManager, UUIManager::StaticClass());
-					if (GameManager->UIManager && IsValid(GameManager->UIManager))
-					{
-						GameManager->UIManager->AddToRoot();
-						GameManager->UIManager->SetGameManager(GameManager);
-					}
-					else
-					{
-						UE_LOG(LogTemp, Error, TEXT("Failed to create UIManager or UIManager is invalid."));
-					}
-				}
-
-				// NPCManager 생성 및 유효성 체크
-				if (GameManager)
-				{
-					GameManager->NPCManager = NewObject<UNPCManager>(GameManager, UNPCManager::StaticClass());
-					if (GameManager->NPCManager && IsValid(GameManager->NPCManager))
-					{
-						GameManager->NPCManager->AddToRoot();
-						GameManager->NPCManager->SetGameManager(GameManager);
-						GameManager->NPCManager->Init();
-					}
-					else
-					{
-						UE_LOG(LogTemp, Error, TEXT("Failed to create NPCManager or NPCManager is invalid."));
-					}
+					UE_LOG(LogTemp, Error, TEXT("Failed to create DialogueManager or DialogueManager is invalid."));
 				}
 			}
-			else
+
+			// UIManager 생성 및 유효성 체크
+			if (GameManager)
 			{
-				UE_LOG(LogTemp, Error, TEXT("GameManager is not valid in AsyncTask."));
+				GameManager->UIManager = NewObject<UUIManager>(GameManager, UUIManager::StaticClass());
+				if (GameManager->UIManager && IsValid(GameManager->UIManager))
+				{
+					GameManager->UIManager->AddToRoot();
+					GameManager->UIManager->SetGameManager(GameManager);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Error, TEXT("Failed to create UIManager or UIManager is invalid."));
+				}
 			}
-		});
+
+			// NPCManager 생성 및 유효성 체크
+			if (GameManager)
+			{
+				GameManager->NPCManager = NewObject<UNPCManager>(GameManager, UNPCManager::StaticClass());
+				if (GameManager->NPCManager && IsValid(GameManager->NPCManager))
+				{
+					GameManager->NPCManager->AddToRoot();
+					GameManager->NPCManager->SetGameManager(GameManager);
+					GameManager->NPCManager->Init();
+				}
+				else
+				{
+					UE_LOG(LogTemp, Error, TEXT("Failed to create NPCManager or NPCManager is invalid."));
+				}
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("GameManager is not valid in AsyncTask."));
+		}
+	});
 }
 
 void UGameManager::Shutdown()
@@ -123,7 +123,11 @@ void UGameManager::SaveGame()
 		return;
 	}
 
-	if (SaveTimer.IsValid()) SaveTimer.Invalidate();
+	if (SaveTimer.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(SaveTimer);
+		SaveTimer.Invalidate();
+	}
 
 	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
 
@@ -146,7 +150,7 @@ void UGameManager::SaveGame()
 	SaveGameInstance->CharacterStats.Location = Player->GetActorLocation();
 	SaveGameInstance->CharacterStats.Rotation = Player->GetActorRotation();
 
-	if (DialogueManager->GetDialogueNum() < 23)
+	if (DialogueManager->GetDialogueNum() < 23 && DialogueManager->GetDialogueNum() != 19)
 	{
 		SaveGameInstance->NpcInfo.MomoLocation = NPCManager->GetNPC("Momo")->GetActorLocation();
 		SaveGameInstance->NpcInfo.LukoLocation = NPCManager->GetNPC("Luko")->GetActorLocation();
@@ -246,4 +250,27 @@ void UGameManager::UpdateDeadEnemy(EEnemyType EnemyType)
 	{
 		DeadEnemies.Add(EnemyType, 1);
 	}
+}
+
+void UGameManager::SkipCombat() // 전투 스킵, 몬스터 제거
+{
+	if (DialogueManager->IsDialogueUIVisible() || !IsSkippable() || IsSkipping()
+		|| Player->IsDead()) return;
+
+	if (DialogueManager->GetDialogueNum() < 4) // first dungeon
+	{
+		if (DialogueManager->GetDialogueNum() <= 2) return;
+		SkipFirstDungeon.Broadcast();
+	}
+	else if (DialogueManager->GetDialogueNum() < 15)
+	{
+		if (DialogueManager->GetDialogueNum() <= 10) return;
+		SkipSecondDungeon.Broadcast();
+	}
+	else if (DialogueManager->GetDialogueNum() < 19)
+	{
+		if (DialogueManager->GetDialogueNum() <= 17) return;
+		SkipFinalDungeon.Broadcast();
+	}
+	else return;
 }

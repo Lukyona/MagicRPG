@@ -10,6 +10,9 @@
 /**
  * 
  */
+ // 블루프린트에서 쓰려면 다이나믹 멀티캐스트여야함
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_Dynamic);
+
 UCLASS()
 class YARO_API UGameManager : public UGameInstance
 {
@@ -85,6 +88,23 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetIsSkippable(bool bSkippable) { bIsSkippable = bSkippable; }
 
+	void SkipCombat();
+
+
 	void SetIsSaveAllowed(bool Value) { bIsSaveAllowed = Value; }
 
+	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
+		FDele_Dynamic PlaneUp;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
+		FDele_Dynamic Ending;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
+		FDele_Dynamic SkipFirstDungeon;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
+		FDele_Dynamic SkipSecondDungeon;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable) // 레벨 블루프린트에서 바인딩함
+		FDele_Dynamic SkipFinalDungeon;
 };
