@@ -34,7 +34,6 @@ AMagicSkill::AMagicSkill()
     MovementComponent->ProjectileGravityScale = 0.03f;
 
     PrimaryActorTick.bCanEverTick = true;
-
 }
 
 // Called when the game starts or when spawned
@@ -69,8 +68,6 @@ void AMagicSkill::BeginPlay()
             SetLocation();
         }
     }), 0.05f, false);
-
-
 }
 
 void AMagicSkill::Tick(float DeltaTime)
@@ -82,13 +79,11 @@ void AMagicSkill::Tick(float DeltaTime)
         if (CurrentDistance < TotalDistance)
         {
             FVector Location = GetActorLocation();
-
             Location += Direction * MovementComponent->InitialSpeed * DeltaTime;
 
             SetActorLocation(Location);
 
             CurrentDistance = (Location - StartLocation).Size();
-
         }
     }
 }
@@ -117,24 +112,21 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
     {
         if (this->GetName().Contains("Healing"))
         {
-            //AMain* Main = Cast<AMain>(OtherActor);
             if (!Main) SetMain();
 
             if (Main == OtherActor)
             {
                 Main->AddHP(150.f);
-                if (Main->GetStat(EPlayerStat::HP) >= Main->GetStat(EPlayerStat::MaxHP))
-                    Main->SetStat(EPlayerStat::HP, Main->GetStat(EPlayerStat::MaxHP));
             }
             return;
         }
-
-        if (this->index < 10)
+        
+        if (Caster == ECasterType::Player || Caster == ECasterType::NPC)
         {
             AEnemy* Enemy = Cast<AEnemy>(OtherActor);
             if (Enemy)
             {
-                if (index == 0)
+                if (Caster == ECasterType::Player)
                 {
                     if (!Main) SetMain();
                     if (Main->GetCombatTarget() == nullptr)
@@ -163,7 +155,7 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
             }
         }
        
-        if (index >= 10) // enemy's magic skill
+        if (Caster == ECasterType::Enemy || Caster == ECasterType::Boss)
         {
             if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
 

@@ -199,8 +199,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetStat(EPlayerStat StatName, float Value);
 
-	void AddHP(float Value) { SetStat(EPlayerStat::HP, PlayerStats[EPlayerStat::HP] + Value);}
-	void AddMP(float Value) { SetStat(EPlayerStat::MP, PlayerStats[EPlayerStat::MP] + Value); }
+	void AddHP(float Value);
 	void AddSP(float Value) { SetStat(EPlayerStat::SP, PlayerStats[EPlayerStat::SP] + Value); }
 
 	void RecoveryHP();

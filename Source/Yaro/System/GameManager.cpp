@@ -84,7 +84,6 @@ void UGameManager::Shutdown()
 	if(IsValid(DialogueManager)) DialogueManager->RemoveFromRoot();
 	if (IsValid(UIManager)) UIManager->RemoveFromRoot();
 	if(IsValid(NPCManager)) NPCManager->RemoveFromRoot();
-
 }
 
 void UGameManager::StartGameInstance()
@@ -133,14 +132,10 @@ void UGameManager::SaveGame()
 
 	SaveGameInstance->PlayerGender = Player->GetStat(EPlayerStat::Gender);
 	SaveGameInstance->CharacterStats.HP = Player->GetStat(EPlayerStat::HP);
-	SaveGameInstance->CharacterStats.MaxHP = Player->GetStat(EPlayerStat::MaxHP);
 	SaveGameInstance->CharacterStats.MP = Player->GetStat(EPlayerStat::MP);
-	SaveGameInstance->CharacterStats.MaxMP = Player->GetStat(EPlayerStat::MaxMP);
 	SaveGameInstance->CharacterStats.SP = Player->GetStat(EPlayerStat::SP);
-	SaveGameInstance->CharacterStats.MaxSP = Player->GetStat(EPlayerStat::MaxSP);
 	SaveGameInstance->CharacterStats.Level = Player->GetStat(EPlayerStat::Level);
 	SaveGameInstance->CharacterStats.Exp = Player->GetStat(EPlayerStat::Exp);
-	SaveGameInstance->CharacterStats.MaxExp = Player->GetStat(EPlayerStat::MaxExp);
 	SaveGameInstance->CharacterStats.PotionNum = Player->GetStat(EPlayerStat::PotionNum);
 
 	SaveGameInstance->WorldName = FName(*GetWorld()->GetName());
@@ -186,14 +181,10 @@ void UGameManager::LoadGame()
 	Player->SetFallCount(LoadGameInstance->CharacterStats.FallCount);
 
 	Player->SetStat(EPlayerStat::HP, LoadGameInstance->CharacterStats.HP);
-	Player->SetStat(EPlayerStat::MaxHP, LoadGameInstance->CharacterStats.MaxHP);
 	Player->SetStat(EPlayerStat::MP, LoadGameInstance->CharacterStats.MP);
-	Player->SetStat(EPlayerStat::MaxMP, LoadGameInstance->CharacterStats.MaxMP);
 	Player->SetStat(EPlayerStat::SP, LoadGameInstance->CharacterStats.SP);
-	Player->SetStat(EPlayerStat::MaxSP, LoadGameInstance->CharacterStats.MaxSP);
 	Player->SetStat(EPlayerStat::Level, LoadGameInstance->CharacterStats.Level);
 	Player->SetStat(EPlayerStat::Exp, LoadGameInstance->CharacterStats.Exp);
-	Player->SetStat(EPlayerStat::MaxExp, LoadGameInstance->CharacterStats.MaxExp);
 	Player->SetStat(EPlayerStat::PotionNum, LoadGameInstance->CharacterStats.PotionNum);
 
 	DeadEnemies = LoadGameInstance->DeadEnemyList;

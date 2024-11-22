@@ -551,9 +551,8 @@ void AYaroCharacter::Spawn()
 				MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);
 
 				if (MagicAttack.IsValid() && CombatTarget)
-				{ // 타겟 적과 캐스터 정보 전달
-					MagicAttack->Target = CombatTarget;
-					MagicAttack->Caster = this;
+				{
+					MagicAttack->SetTarget(CombatTarget);
 				}
 			}
 		}), 0.6f, false); // 0.6초 뒤 실행, 반복X
@@ -617,11 +616,9 @@ float AYaroCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& 
 	
 	MagicAttack = Cast<AMagicSkill>(DamageCauser);
 	if (MagicAttack == nullptr) return DamageAmount;
-
-	int TargetIndex = MagicAttack->index;
 	
 	// 인식 범위에 아무도 없는 상태에서 보스 몬스터의 공격을 받음
-	if (TargetIndex == 11 && AgroTargets.Num() == 0) 
+	if (MagicAttack->GetCaster() == ECasterType::Boss && AgroTargets.Num() == 0)
 	{
 		AEnemy* BossEnemy = Cast<AEnemy>(UGameplayStatics::GetActorOfClass(GetWorld(), Boss));
 		ClearPlayerFollowTimer();

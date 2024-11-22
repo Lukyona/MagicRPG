@@ -563,7 +563,7 @@ void AMain::Spawn()
 
 				// 적에게로 이동하는 공격은 공격이 어디로 날라갈지를 정해줘야함.
 				if ((GetSkillNum() == 1 || GetSkillNum() == 3) && MagicAttack.IsValid() && CombatTarget)
-					MagicAttack->Target = CombatTarget;
+					MagicAttack->SetTarget(CombatTarget);
 			}
 		}), 0.6f, false); // 0.6초 뒤 실행, 반복X
 
@@ -605,10 +605,8 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 	{
 		MagicAttack = Cast<AMagicSkill>(DamageCauser);
 		if (MagicAttack == nullptr) return DamageAmount;
-
-		int TargetIndex = MagicAttack->index;
-
-		if (TargetIndex == 11) // 보스 몬스터에게 공격 당함
+		
+		if (MagicAttack->GetCaster() == ECasterType::Boss) // 보스 몬스터에게 공격 당함
 		{
 			for (auto NPC : NPCManager->GetNPCMap())
 			{
@@ -716,6 +714,24 @@ float AMain::GetStat(EPlayerStat StatName) const
 void AMain::SetStat(EPlayerStat StatName, float Value)
 {
 	PlayerStats[StatName] = Value;
+
+	if (StatName == EPlayerStat::Level)
+	{
+		FLevelStats* NewStats = LevelData.Find(Value);
+		if (NewStats)
+		{
+			SetStat(EPlayerStat::MaxHP, NewStats->MaxHP);
+			SetStat(EPlayerStat::MaxMP, NewStats->MaxMP);
+			SetStat(EPlayerStat::MaxSP, NewStats->MaxSP);
+			SetStat(EPlayerStat::MaxExp, NewStats->MaxExp);
+		}
+	}
+}
+
+void AMain::AddHP(float Value)
+{
+	float HP = PlayerStats[EPlayerStat::HP] + Value;
+	SetStat(EPlayerStat::HP, FMath::Clamp(HP, 0.0f, PlayerStats[EPlayerStat::MaxHP]));
 }
 
 void AMain::RecoveryHP()
@@ -779,13 +795,6 @@ void AMain::LevelUp()
 	float CurrentExp = PlayerStats[EPlayerStat::Exp];
 	float MaxExp = PlayerStats[EPlayerStat::MaxExp];
 
-	float CurrentHP = PlayerStats[EPlayerStat::HP];
-	float MaxHP = PlayerStats[EPlayerStat::MaxHP];
-	float CurrentMP = PlayerStats[EPlayerStat::MP];
-	float MaxMP = PlayerStats[EPlayerStat::MaxMP];
-	float CurrentSP = PlayerStats[EPlayerStat::SP];
-	float MaxSP = PlayerStats[EPlayerStat::MaxSP];
-
 	CurrentLevel += 1; // 레벨 업
 	if (LevelUpSound)
 		UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
@@ -796,16 +805,7 @@ void AMain::LevelUp()
 
 	if (CurrentLevel == 5) CurrentExp = MaxExp;
 
-	FLevelStats* NewStats = LevelData.Find(CurrentLevel);
-	if (NewStats)
-	{
-		MaxHP = NewStats->MaxHP;
-		MaxMP = NewStats->MaxMP;
-		MaxSP = NewStats->MaxSP;
-		MaxExp = NewStats->MaxExp;
-	}
-
-	// 레벨에 따른 상태 능력치 최대치 초기화
+	// 시스템 메세지 표시
 	switch ((int)CurrentLevel)
 	{
 		case 2:
@@ -821,19 +821,16 @@ void AMain::LevelUp()
 			UIManager->SetSystemMessage(10);
 			break;
 	}
-	
-	 CurrentHP = MaxHP;
-	 CurrentMP = MaxMP;
-	 CurrentSP = MaxSP;
 
-	SetStat(EPlayerStat::HP, CurrentHP);
-	SetStat(EPlayerStat::MaxHP, MaxHP);
-	SetStat(EPlayerStat::MP, CurrentMP);
-	SetStat(EPlayerStat::MaxMP, MaxMP);
-	SetStat(EPlayerStat::SP, CurrentSP);
-	SetStat(EPlayerStat::MaxSP, MaxSP);
 	SetStat(EPlayerStat::Level, CurrentLevel);
-	SetStat(EPlayerStat::MaxExp, MaxExp);
+
+	FLevelStats* NewStats = LevelData.Find(CurrentLevel);
+	if (NewStats)
+	{
+		SetStat(EPlayerStat::HP, NewStats->MaxHP);
+		SetStat(EPlayerStat::MP, NewStats->MaxMP);
+		SetStat(EPlayerStat::SP, NewStats->MaxSP);
+	}
 
 	FTimerHandle Timer;
 	GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
@@ -849,18 +846,7 @@ void AMain::SetLevel5() // level cheat, 즉시 최대 레벨 도달
 	if (LevelUpSound != nullptr)
 		UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
 
-	FLevelStats* NewStats = LevelData.Find(5);
-	if (NewStats)
-	{
-		SetStat(EPlayerStat::MaxHP, NewStats->MaxHP);
-		SetStat(EPlayerStat::MaxMP, NewStats->MaxMP);
-		SetStat(EPlayerStat::MaxSP, NewStats->MaxSP);
-		SetStat(EPlayerStat::HP, NewStats->MaxHP);
-		SetStat(EPlayerStat::MP, NewStats->MaxMP);
-		SetStat(EPlayerStat::SP, NewStats->MaxSP);
-		SetStat(EPlayerStat::Level, 5);
-		SetStat(EPlayerStat::Exp, PlayerStats[EPlayerStat::MaxExp]);
-	}
+	SetStat(EPlayerStat::Level, 5);
 
 	if (!UIManager->IsSystemMessageVisible())
 	{

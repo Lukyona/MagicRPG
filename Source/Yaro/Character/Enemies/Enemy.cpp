@@ -517,11 +517,9 @@ void AEnemy::AttackEnd()
 float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
 	MagicAttack = Cast<AMagicSkill>(DamageCauser);
-
-	int index = MagicAttack->index;
-	if(index == 0) 
+	if(MagicAttack != nullptr && MagicAttack->GetCaster() == ECasterType::Player)
 		bAttackFromPlayer = true;
-
+		
 	if (Health - DamageAmount <= 0.f) // Decrease Health
 	{
 		Health = 0.f;
@@ -661,16 +659,16 @@ void AEnemy::HitEnd()
 		//UE_LOG(LogTemp, Log, TEXT("move to target again %s"), *this->GetName());
 	}
 
-
-	int index = MagicAttack->index;
-	if (!CombatTarget && AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
-
+	
+	//int index = MagicAttack->index;
+	//if (!CombatTarget && AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
+	
 
 	/* When enemy doesn't have combat target, player attacks enemy
 	or when enemy's combat target is not player and player attacks enemy.
 	At this time, enemy must sets player as a combat target.
 	*/
-	if (index == 0)
+	/*if (index == 0)
 	{
 		bAttackFromPlayer = true;
 		if ((CombatTarget == nullptr || CombatTarget != Main))
@@ -685,7 +683,7 @@ void AEnemy::HitEnd()
 			if (Main->GetMovementStatus() != EMovementStatus::EMS_Dead) MoveToTarget(Main);
 		}
 	}
-
+	
 	// When enemy doesn't have any combat target and enemy doesn't follow player,  Ai(npc) attacks enemy
 	if (!CombatTarget && AgroTarget != Main && index != 0)
 	{
@@ -700,7 +698,7 @@ void AEnemy::HitEnd()
 			MoveToTarget(npc);
 		}
 	}
-
+	*/
 	if (CombatTarget)
 	{
 		AttackEnd();
