@@ -30,6 +30,30 @@ enum class EPlayerStat :uint8
 	PotionNum,
 };
 
+USTRUCT()
+struct FLevelStats
+{
+	GENERATED_BODY()
+
+	float MaxExp;
+
+	float MaxHP;
+
+	float MaxMP;
+
+	float MaxSP;
+
+	FLevelStats()
+		: MaxExp(0.f), MaxHP(0.f), MaxMP(0.f), MaxSP(0.f)
+	{
+	}
+
+	FLevelStats(float InMaxExp, float InMaxHP, float InMaxMP, float InMaxSP)
+		: MaxExp(InMaxExp), MaxHP(InMaxHP), MaxMP(InMaxMP), MaxSP(InMaxSP)
+	{
+	}
+};
+
 UCLASS()
 class YARO_API AMain : public AStudent
 {
@@ -49,7 +73,7 @@ protected:
 	class UNPCManager* NPCManager;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
-	EMovementStatus MovementStatus;
+	EMovementStatus MovementStatus = EMovementStatus::EMS_Normal;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Controller")
 	class AMainPlayerController* MainPlayerController;
@@ -99,36 +123,35 @@ protected:
 
 	// 스탯 자동 회복
 	FTimerHandle HPTimer;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player Stats")
-	float HPDelay;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	float HPDelay = 3.f;
 
 	FTimerHandle MPTimer;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player Stats")
-	float MPDelay;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	float MPDelay = 2.f;
 
 	FTimerHandle SPTimer;
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Player Stats")
-	float SPDelay;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats")
+	float SPDelay = 0.5f;
 
 	bool recoverySP = false;
 
+	TMap<int32, FLevelStats> LevelData;
 
 	//About Combat System
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<AEnemy*> Targets; // 범위에 들어온 타겟팅 가능 몹 배열
 
-	int targetIndex;
+	int targetIndex = 0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	bool bHasCombatTarget;
+	bool bHasCombatTarget = false;
 
 	bool bAutoTargeting = false;
 
 
-	FTimerHandle DeathTimer;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	float DeathDelay;
+	float DeathDelay = 3.f;
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Items)
@@ -150,13 +173,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	class USoundBase* LevelUpSound;
 
-	bool bLMBDown;
-	bool bESCDown;
-
-
 public:
 	// Sets default values for this character's properties
 	AMain();
+
+	void InitializeCamera();
+	void InitializeStats();
+	USphereComponent* CreateSphereComponent(FName Name, float Radius, FVector RelativeLocation);
+
+	void InitializeManagers();
+	void BindComponentEvents();
+
+	void InitializeLevelData();
 
 	AMainPlayerController* GetMainPlayerController() { return MainPlayerController; }
 
@@ -165,8 +193,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetCanMove(bool value) { bCanMove = value; }
-
-	void InitializeStats();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	float GetStat(EPlayerStat StatName) const;
@@ -182,6 +208,8 @@ public:
 	void RecoverySP();
 
 	void GainExp(float Value);
+	void LevelUp();
+
 
 	const TMap<FString, TSubclassOf<class AItem>>* AMain::GetItemMap();
 	
@@ -212,11 +240,11 @@ public:
 
 	TArray<AEnemy*> GetTargets() { return Targets; }
 
-	void StartMisson();
 
 	void SetAutoTargeting(bool value) { bAutoTargeting = value; }
 
 	void Targeting();
+	void UnsetCombatTarget();
 
 	void Attack() override;
 	void AttackEnd() override;
@@ -234,14 +262,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void RevivalEnd();
-
-	void Escape(); // press E key, spawn player at the other location
-
-	void ShowControlGuide();
-
-	void StartDialogue();
-
-
 
 
 	UFUNCTION(BlueprintCallable)
@@ -262,6 +282,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void Jump() override;
+
+	void Move(float Value, EAxis::Type Axis);
 
 	// Called for forwards/backwards input
 	void MoveForward(float Value);
@@ -286,11 +308,7 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 	void LMBDown();
-	void LMBUp();
 
-	void ESCDown();
-	void ESCUp();
-	
     UFUNCTION()
     virtual void ItemSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
     UFUNCTION()

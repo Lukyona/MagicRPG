@@ -6,6 +6,7 @@
 #include "Engine/world.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Yaro/Weapon.h"
@@ -26,18 +27,41 @@
 #include "Yaro/System/NPCManager.h"
 #include "Yaro/System/UIManager.h"
 
+const float MinStaminaToRun = 30.f;
+const float MinManaToCast = 15.f;
+const float HP_RECOVERY_AMOUNT = 5.f;
+const float MP_RECOVERY_AMOUNT = 5.f;
+const float SP_RECOVERY_AMOUNT = 1.f;
 // Sets default values
 AMain::AMain()
-{//고침 CreateAbstractDefaultSubobject
+{
+	InitializeCamera();
+	InitializeStats();
+
+	// Configure character movement
+	WalkSpeed = 350.f;
+	RunSpeed = 600.f;
+	GetCharacterMovement()->JumpZVelocity = 400.f;
+	GetCharacterMovement()->SetWalkableFloorAngle(50.f);
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+
+	CombatSphere = CreateSphereComponent(TEXT("CombatSphere"), 600.f, FVector(100.f, 0.f, 0.f));
+	ItemSphere = CreateSphereComponent(TEXT("ItemSphere"), 80.f, FVector::ZeroVector);
+
+	InitializeLevelData();
+}
+
+void AMain::InitializeCamera()
+{
 	//Create CameraBoom (pulls towards the player if there's a collision), 콜리전이 있으면 카메라를 플레이어쪽으로 당김 
 	CameraBoom = CreateAbstractDefaultSubobject<USpringArmComponent>(TEXT("Camera"));
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->TargetArmLength = 500.f; //Camera follows at this distance
 	CameraBoom->bUsePawnControlRotation = true; // Rotate arm based on controller
-	
+
 	// but npc, enemy들도 여기에 콜리전으로 해당되어 게임 플레이가 불편하므로 콜리전 테스트 끔
 	//CameraBoom->bDoCollisionTest = false;
-	
+
 	CameraBoom->SetWorldRotation(FRotator(-30.0f, 0.f, 0.0f));
 	CameraBoom->SocketOffset.Z = 70.f;
 
@@ -57,32 +81,10 @@ AMain::AMain()
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
+}
 
-
-	// Configure character movement
-	WalkSpeed = 350.f;
-	RunSpeed = 600.f;
-	GetCharacterMovement()->JumpZVelocity = 400.f;
-	GetCharacterMovement()->SetWalkableFloorAngle(50.f);
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-
-	// 공격 범위 설정
-	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
-	CombatSphere->SetupAttachment(GetRootComponent());
-	CombatSphere->InitSphereRadius(600.f);
-	CombatSphere->SetRelativeLocation(FVector(100.f, 0.f, 0.f));
-	CombatSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-
-	bHasCombatTarget = false;
-	targetIndex = 0;
-
-	// 아이템 상호작용 범위 설정
-	ItemSphere = CreateDefaultSubobject<USphereComponent>(TEXT("ItemSphere"));
-	ItemSphere->SetupAttachment(GetRootComponent());
-	ItemSphere->InitSphereRadius(80.f);
-	ItemSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-
-
+void AMain::InitializeStats()
+{
 	//상태 정보 초기화
 	PlayerStats.Add(EPlayerStat::Gender, 0.f);
 	PlayerStats.Add(EPlayerStat::MaxHP, 300.f);
@@ -95,17 +97,25 @@ AMain::AMain()
 	PlayerStats.Add(EPlayerStat::Exp, 0.f);
 	PlayerStats.Add(EPlayerStat::MaxExp, 60.f);
 	PlayerStats.Add(EPlayerStat::PotionNum, 0.f);
+}
 
+USphereComponent* AMain::CreateSphereComponent(FName Name, float Radius, FVector RelativeLocation)
+{
+	USphereComponent* Sphere = CreateDefaultSubobject<USphereComponent>(Name);
+	Sphere->SetupAttachment(GetRootComponent());
+	Sphere->InitSphereRadius(Radius);
+	Sphere->SetRelativeLocation(RelativeLocation);
+	Sphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	return Sphere;
+}
 
-	HPDelay = 3.f;
-	MPDelay = 2.f;
-	SPDelay = 0.5f;
-
-	DeathDelay = 3.f;
-
-	MovementStatus = EMovementStatus::EMS_Normal;
-
-	bESCDown = false;
+void AMain::InitializeLevelData()
+{
+	LevelData.Add(1, FLevelStats(60.f, 300.f, 150.f, 300.f));
+	LevelData.Add(2, FLevelStats(150.f, 350.f, 175.f, 325.f));
+	LevelData.Add(3, FLevelStats(250.f, 450.f, 200.f, 350.f));
+	LevelData.Add(4, FLevelStats(360.f, 600.f, 230.f, 375.f));
+	LevelData.Add(5, FLevelStats(0.f, 700.f, 280.f, 400.f)); // 마지막 레벨은 경험치가 필요 없으니 MaxExp는 0
 }
 
 // Called when the game starts or when spawned
@@ -115,6 +125,18 @@ void AMain::BeginPlay()
 
 	Super::BeginPlay();
 
+	InitializeManagers();
+	BindComponentEvents();
+
+	if (this->GetName().Contains("Boy")) SetStat(EPlayerStat::Gender, 1);
+	if (this->GetName().Contains("Girl")) SetStat(EPlayerStat::Gender, 2);
+
+	// 아이템 정보 관련
+	Storage = GetWorld()->SpawnActor<AItemStorage>(ObjectStorage);
+}
+
+void AMain::InitializeManagers()
+{
 	GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
 	if (GameManager)
 	{
@@ -122,19 +144,14 @@ void AMain::BeginPlay()
 		NPCManager = GameManager->GetNPCManager();
 		UIManager = GameManager->GetUIManager();
 	}
+}
 
+void AMain::BindComponentEvents()
+{
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapBegin);
 	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::CombatSphereOnOverlapEnd);
-
 	ItemSphere->OnComponentBeginOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapBegin);
 	ItemSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapEnd);
-
-	// 현재 캐릭터 성별 정보 저장
-	if (this->GetName().Contains("Boy")) SetStat(EPlayerStat::Gender, 1);
-	if (this->GetName().Contains("Girl")) SetStat(EPlayerStat::Gender, 2);
-
-	// 아이템 정보 관련
-	Storage = GetWorld()->SpawnActor<AItemStorage>(ObjectStorage);
 }
 
 // Called every frame
@@ -156,22 +173,10 @@ void AMain::Tick(float DeltaTime)
 
         if (CombatTarget->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead) // 현재 전투 타겟이 죽었다면
         {
-			for (int i = 0; i < Targets.Num(); i++)
-			{
-				if (CombatTarget == Targets[i]) //already exist
-				{
-					Targets.Remove(CombatTarget); //타겟팅 가능 몹 배열에서 제거
-				}
-			}
-			// 전투 타겟 해제
-            CombatTarget = nullptr;
-            bHasCombatTarget = false;
+			if(Targets.Contains(CombatTarget)) 
+				Targets.Remove(CombatTarget); //타겟팅 가능 몹 배열에서 제거
 
-            if (UIManager->IsTargetArrowVisible()) 
-            {// 화살표 및 몬스터 체력바 제거
-				UIManager->RemoveTargetArrow();
-				UIManager->RemoveEnemyHPBar();
-            }
+			UnsetCombatTarget();
         }
 	}
 }
@@ -187,7 +192,6 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAction("LMB", IE_Pressed, this, &AMain::LMBDown); // 왼쪽 마우스 버튼 다운
-	PlayerInputComponent->BindAction("LMB", IE_Released, this, &AMain::LMBUp);
 
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AMain::Attack);
 
@@ -195,21 +199,19 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAction("SkipCombat", IE_Pressed, GameManager, &UGameManager::SkipCombat);
 
-	PlayerInputComponent->BindAction("ESC", IE_Pressed, this, &AMain::ESCDown);
-	PlayerInputComponent->BindAction("ESC", IE_Released, this, &AMain::ESCUp);
+	PlayerInputComponent->BindAction("ToggleMenu", IE_Pressed, UIManager, &UUIManager::ToggleMenu);
 
-	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AMain::StartDialogue);
+	PlayerInputComponent->BindAction("TriggerNextDialogue", IE_Pressed, DialogueManager, &UDialogueManager::TriggerNextDialogue);
 
-    PlayerInputComponent->BindAction("ShowControlGuide", IE_Pressed, this, &AMain::ShowControlGuide);
+    PlayerInputComponent->BindAction("DisplayControlGuide", IE_Pressed, UIManager, &UUIManager::DisplayControlGuide);
 
-	PlayerInputComponent->BindAction("Escape", IE_Pressed, this, &AMain::Escape);
+	PlayerInputComponent->BindAction("Escape", IE_Pressed, GameManager, &UGameManager::EscapeToSafeLocation);
 
 	PlayerInputComponent->BindAction("LevelCheat", IE_Pressed, this, &AMain::SetLevel5);
 
 	PlayerInputComponent->BindAction("UsePotion", IE_Pressed, this, &AMain::UsePotion);
 
-	PlayerInputComponent->BindAction("Start", IE_Pressed, this, &AMain::StartMisson);
-
+	PlayerInputComponent->BindAction("StartFirstDungeon", IE_Pressed, GameManager, &UGameManager::StartFirstDungeon);
 
 
 	// Axis는 매 프레임마다 호출
@@ -229,9 +231,7 @@ bool AMain::IsInAir()
 	return MainAnimInstance->bIsInAir;
 }
 
-// 매 프레임마다 키가 눌렸는지 안 눌렸는지 확인될 것
-// 키가 안 눌렸으면 Value는 0
-void AMain::MoveForward(float Value)
+void AMain::Move(float Value, EAxis::Type Axis)
 {
 	if ((Controller != nullptr) && (Value != 0.0f) && bCanMove)
 	{
@@ -239,7 +239,7 @@ void AMain::MoveForward(float Value)
 		const FRotator Rotation = Controller->GetControlRotation(); // 회전자 반환 함수
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
 
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(Axis);
 		AddMovementInput(Direction, Value);
 
 		if (bRunning && PlayerStats[EPlayerStat::SP] > 0.f) // 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
@@ -247,31 +247,27 @@ void AMain::MoveForward(float Value)
 	}
 }
 
+// 매 프레임마다 키가 눌렸는지 안 눌렸는지 확인될 것
+// 키가 안 눌렸으면 Value는 0
+void AMain::MoveForward(float Value)
+{
+	Move(Value, EAxis::X);
+}
+
 void AMain::MoveRight(float Value)
 {
-	if ((Controller != nullptr) && (Value != 0.0f) && bCanMove)
-	{
-		// find out which way is forward
-		const FRotator Rotation = Controller->GetControlRotation(); // 회전자 반환 함수
-		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
-
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		AddMovementInput(Direction, Value);
-
-		if (bRunning && PlayerStats[EPlayerStat::SP] > 0.f)// 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
-			AddSP(-1);
-	}
+	Move(Value, EAxis::Y);
 }
 
 void AMain::Run(float Value)
 {
-	float currentSP = PlayerStats[EPlayerStat::SP];
-	if (!Value || currentSP <= 0.f) // 쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
+	float CurrentSP = PlayerStats[EPlayerStat::SP];
+	if (!Value || CurrentSP <= 0.f) // 쉬프트키 안 눌려 있거나 스태미나가 0 이하일 때
 	{
 		bRunning = false;
 		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed; //속도 하향
 
-		if (currentSP < PlayerStats[EPlayerStat::MaxSP] && !recoverySP) // 스태미나 Full 상태가 아니면
+		if (CurrentSP < PlayerStats[EPlayerStat::MaxSP] && !recoverySP) // 스태미나 Full 상태가 아니면
 		{ // 스태미나 자동 회복
 			if (!GetWorldTimerManager().IsTimerActive(SPTimer))
 			{
@@ -280,7 +276,7 @@ void AMain::Run(float Value)
 			}
 		}
 	}
-	else if(!bRunning && currentSP >= 30.f) // 쉬프트키가 눌려있고 스태미나 5 이상에 달리는 상태가 아니면
+	else if(!bRunning && CurrentSP >= MinStaminaToRun)
 	{
 		bRunning = true;
 		GetCharacterMovement()->MaxWalkSpeed = RunSpeed; // 속도 상향		
@@ -330,23 +326,14 @@ void AMain::CameraZoom(const float Value)
 
 void AMain::LMBDown() //Left Mouse Button Down
 {
-	bLMBDown = true;
 	// Targeting Off
 	if (CombatTarget)
 	{
-		if (UIManager->IsTargetArrowVisible())
-		{ // 화살표 및 체력바 제거
-			UIManager->RemoveTargetArrow();
-			UIManager->RemoveEnemyHPBar();
-		}
-		// 전투 타겟 해제
-		CombatTarget = nullptr;
-		bHasCombatTarget = false;
+		UnsetCombatTarget();
 	}
 
 	// 다음 대사 출력 관련
-	if (DialogueManager->IsDialogueUIVisible()
-		&& DialogueManager->GetDialogueUI()->GetCurrentState() != 3
+	if (DialogueManager->IsDialogueUIVisible() && DialogueManager->GetDialogueUI()->GetCurrentState() != 3
 		&& !UIManager->IsMenuVisible())
 	{
 		if (DialogueManager->GetDialogueUI()->IsInputDisabled()) return;
@@ -358,8 +345,7 @@ void AMain::LMBDown() //Left Mouse Button Down
 	if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return; // 중복 재생 방지
 
 	// 아이템 상호작용 몽타주 관련
-	// 오버랩된 아이템 존재, 장착한 무기가 없을 때
-	if (ActiveOverlappingItem && !EquippedWeapon)
+	if (ActiveOverlappingItem && !EquippedWeapon) // 오버랩된 아이템 존재, 장착한 무기가 없을 때
 	{
 		PlayMontageWithItem(); // 아이템 관련 몽타주 재생
 		MainAnimInstance->Montage_JumpToSection(FName("PickWand"), NormalMontage);
@@ -398,11 +384,6 @@ void AMain::LMBDown() //Left Mouse Button Down
 	}
 }
 
-void AMain::LMBUp()
-{
-	bLMBDown = false;
-}
-
 void AMain::PlayMontageWithItem()
 {
 	bCanMove = false; // 이동 조작 불가
@@ -432,7 +413,7 @@ void AMain::PlayMontageWithItem()
 void AMain::Attack()
 {
 	// 특정 상황엔 공격 불가
-	if (DialogueManager->GetDialogueNum() < 3 || DialogueManager->GetDialogueNum() > 20 ) return;
+	if (DialogueManager->GetDialogueNum() < 3 || DialogueManager->GetDialogueNum() > 20) return;
 
 	if (EquippedWeapon && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead 
 		&& !DialogueManager->IsDialogueUIVisible())
@@ -471,11 +452,9 @@ void AMain::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent,
 		if (Enemy)
 		{
 			bOverlappingCombatSphere = true;
-			for (int i = 0; i < Targets.Num(); i++)
-			{
-				if (Enemy == Targets[i]) //already exist
-					return;
-			}
+
+			if(Targets.Contains(Enemy)) return;
+
 			Targets.Add(Enemy); // 타겟팅 가능 몹 배열에 추가
 		}
 	}
@@ -488,13 +467,7 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 		if (Enemy)
 		{
-			for (int i = 0; i < Targets.Num(); i++)
-			{
-				if (Enemy == Targets[i]) // already exist
-				{
-					Targets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
-				}
-			}
+			if (Targets.Contains(Enemy)) Targets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
 
 			if (Targets.Num() == 0) // 타겟팅 가능 몬스터가 없으면
 			{
@@ -503,11 +476,7 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 
 			if (CombatTarget == Enemy) // 현재 (타겟팅된)전투 타겟과 (전투 범위를 나간 몬스터가)동일하다면
 			{
-				// 화살표 및 체력바 제거 & 전투 타겟 해제
-				UIManager->RemoveTargetArrow();
-				UIManager->RemoveEnemyHPBar();
-				CombatTarget = nullptr;
-				bHasCombatTarget = false;
+				UnsetCombatTarget();
 			}
 		}
 	}
@@ -517,11 +486,8 @@ void AMain::Targeting() //Targeting using Tap key
 {
 	if (bOverlappingCombatSphere) //There is a enemy in combatsphere
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Targeting"));
-		if (targetIndex >= Targets.Num()) //타겟인덱스가 총 타겟 가능 몹 수 이상이면 다시 0으로 초기화
-		{
-			targetIndex = 0;
-		}
+		 //타겟인덱스가 총 타겟 가능 몹 수 이상이면 다시 0으로 초기화
+		targetIndex = targetIndex % Targets.Num();
 
 		//There is already exist targeted enemy, then targetArrow remove
 		if (UIManager->IsTargetArrowVisible())
@@ -548,14 +514,27 @@ void AMain::Targeting() //Targeting using Tap key
 	}
 }
 
+void AMain::UnsetCombatTarget()
+{
+	// 전투 타겟 해제
+	CombatTarget = nullptr;
+	bHasCombatTarget = false;
+
+	if (UIManager->IsTargetArrowVisible())
+	{// 화살표 및 몬스터 체력바 제거
+		UIManager->RemoveTargetArrow();
+		UIManager->RemoveEnemyHPBar();
+	}
+}
+
 void AMain::Spawn() 
 {
-	float currentMP = PlayerStats[EPlayerStat::MP];
-	if (ToSpawn && currentMP >= 15) // 마법 사용에 필요한 최소 MP가 15
+	float CurrentMP = PlayerStats[EPlayerStat::MP];
+	if (ToSpawn && CurrentMP >= MinManaToCast) // 마법 사용에 필요한 최소 MP가 15
 	{
 		//If player have not enough MP, then player can't use magic
 		float MPCost = 10.f + GetSkillNum() * 5;
-        if (currentMP < MPCost) return;
+        if (CurrentMP < MPCost) return;
 
 		FTimerHandle WaitHandle;
 		GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
@@ -588,8 +567,8 @@ void AMain::Spawn()
 			}
 		}), 0.6f, false); // 0.6초 뒤 실행, 반복X
 
-		currentMP -= MPCost;
-		SetStat(EPlayerStat::MP, currentMP);
+		CurrentMP -= MPCost;
+		SetStat(EPlayerStat::MP, CurrentMP);
 
 		if(!GetWorldTimerManager().IsTimerActive(MPTimer))
 			GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
@@ -598,10 +577,10 @@ void AMain::Spawn()
 
 float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	float currentHP = PlayerStats[EPlayerStat::HP];
-	if (currentHP - DamageAmount <= 0.f)
+	float CurrentHP = PlayerStats[EPlayerStat::HP];
+	if (CurrentHP - DamageAmount <= 0.f)
 	{
-		currentHP = 0.f;
+		CurrentHP = 0.f;
 		Die();
 		if (DamageCauser) // 확인 필요
 		{
@@ -614,13 +593,13 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 	}
 	else
 	{
-		currentHP -= DamageAmount;
+		CurrentHP -= DamageAmount;
 		// HP 자동 회복
 		if(!GetWorldTimerManager().IsTimerActive(HPTimer))
 			GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);	
 	}
 
-	SetStat(EPlayerStat::HP, currentHP);
+	SetStat(EPlayerStat::HP, CurrentHP);
 
 	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) // 보스 스테이지
 	{
@@ -650,14 +629,14 @@ void AMain::Die()
 {
 	if (MovementStatus == EMovementStatus::EMS_Dead) return;
 
+	SetMovementStatus(EMovementStatus::EMS_Dead);
+
 	// 자동 회복 종료
 	GetWorldTimerManager().ClearTimer(HPTimer);
 	GetWorldTimerManager().ClearTimer(MPTimer);
 	GetWorldTimerManager().ClearTimer(SPTimer);
 
 	if (bAttacking) AttackEnd();
-
-	SetMovementStatus(EMovementStatus::EMS_Dead);
 
 	if (MainAnimInstance && CombatMontage)
 	{
@@ -671,17 +650,24 @@ void AMain::DeathEnd()
 {
 	GetMesh()->bPauseAnims = true;
 	GetMesh()->bNoSkeletonUpdate = true;
+
+	FTimerHandle DeathTimer;
 	GetWorldTimerManager().SetTimer(DeathTimer, this, &AMain::Revive, DeathDelay);
 }
 
 void AMain::Revive() // if player is dead, spawn player at the initial location
 {
-	if(DialogueManager->GetDialogueNum() <= 4) // first dungeon
-		this->SetActorLocation(FVector(-192.f, 5257.f, 3350.f));
-	else if(DialogueManager->GetDialogueNum() <= 15) // second dungeon
-        this->SetActorLocation(FVector(3910.f, -3920.f,-2115.f));
-	else											// boss level
+	if (GetWorld()->GetName().Contains("Boss"))
+	{
 		this->SetActorLocation(FVector(8.f, 1978.f, 184.f));
+	}
+	else
+	{
+		APlayerStart* PlayerStart = Cast<APlayerStart>(UGameplayStatics::GetActorOfClass(GetWorld(), APlayerStart::StaticClass()));
+		if (!PlayerStart) return;
+
+		this->SetActorLocation(PlayerStart->GetActorLocation());
+	}
 
 	if (MainAnimInstance && CombatMontage)
 	{
@@ -703,18 +689,6 @@ void AMain::RevivalEnd()
 	GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
 }
 
-void AMain::StartDialogue()
-{
-	if (!MainPlayerController)
-		MainPlayerController = Cast<AMainPlayerController>(GetController());
-
-	if (DialogueManager->GetDialogueUI()->GetCurrentState() != 3 && !UIManager->IsMenuVisible())
-	{   
-	    if (DialogueManager->GetDialogueUI()->IsInputDisabled()) return;
-	    else DialogueManager->GetDialogueUI()->Interact();
-	}
-}
-
 void AMain::ItemSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor)
@@ -734,262 +708,138 @@ void AMain::ItemSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AAc
 	}
 }
 
-void AMain::InitializeStats()
-{
-	if (PlayerStats[EPlayerStat::SP] < PlayerStats[EPlayerStat::MaxSP] && !recoverySP)
-	{
-		recoverySP = true;
-		GetWorldTimerManager().SetTimer(SPTimer, this, &AMain::RecoverySP, SPDelay, true);
-	}
-
-	if (PlayerStats[EPlayerStat::HP] < PlayerStats[EPlayerStat::MaxHP])
-		GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);
-
-	if (PlayerStats[EPlayerStat::MP] < PlayerStats[EPlayerStat::MaxMP])
-		GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
-}
-
 float AMain::GetStat(EPlayerStat StatName) const
 {
-	if (PlayerStats.Contains(StatName))
-	{
-		return PlayerStats[StatName];
-	}
-	return 0.f;
+	return PlayerStats[StatName];
 }
 
 void AMain::SetStat(EPlayerStat StatName, float Value)
 {
-	if (PlayerStats.Contains(StatName))
-	{
-		PlayerStats[StatName] = Value;
-	}
+	PlayerStats[StatName] = Value;
 }
 
 void AMain::RecoveryHP()
 {
-	float currentHP = PlayerStats[EPlayerStat::HP] + 5.f;
+	float CurrentHP = PlayerStats[EPlayerStat::HP] + HP_RECOVERY_AMOUNT;
 
-	if (currentHP >= PlayerStats[EPlayerStat::MaxHP])
+	if (CurrentHP >= PlayerStats[EPlayerStat::MaxHP])
 	{
-		currentHP = PlayerStats[EPlayerStat::MaxHP];
+		CurrentHP = PlayerStats[EPlayerStat::MaxHP];
 		GetWorldTimerManager().ClearTimer(HPTimer);
 	}
-	SetStat(EPlayerStat::HP, currentHP);
+	SetStat(EPlayerStat::HP, CurrentHP);
 }
 
 void AMain::RecoveryMP()
 {
-	float currentMP = PlayerStats[EPlayerStat::MP] + 5.f;
+	float CurrentMP = PlayerStats[EPlayerStat::MP] + MP_RECOVERY_AMOUNT;
 
-	if (currentMP >= PlayerStats[EPlayerStat::MaxMP])
+	if (CurrentMP >= PlayerStats[EPlayerStat::MaxMP])
 	{
-		currentMP = PlayerStats[EPlayerStat::MaxMP];
+		CurrentMP = PlayerStats[EPlayerStat::MaxMP];
 		GetWorldTimerManager().ClearTimer(MPTimer);
 	}
-	SetStat(EPlayerStat::MP, currentMP);
+	SetStat(EPlayerStat::MP, CurrentMP);
 }
 
 void AMain::RecoverySP()
 {
-	float currentSP = PlayerStats[EPlayerStat::SP] +1.f;
+	float CurrentSP = PlayerStats[EPlayerStat::SP] + SP_RECOVERY_AMOUNT;
 
-	if (currentSP >= PlayerStats[EPlayerStat::MaxSP])
+	if (CurrentSP >= PlayerStats[EPlayerStat::MaxSP])
 	{
-		currentSP = PlayerStats[EPlayerStat::MaxSP];
+		CurrentSP = PlayerStats[EPlayerStat::MaxSP];
 		GetWorldTimerManager().ClearTimer(SPTimer);
 		recoverySP = false;
 	}
-	SetStat(EPlayerStat::SP, currentSP);
-}
-
-void AMain::ESCDown()
-{
-	bESCDown = true;
-
-	if (MainPlayerController)
-	{
-		UIManager->ToggleMenu();
-	}
-}
-
-void AMain::ESCUp()
-{
-	bESCDown = false;
+	SetStat(EPlayerStat::SP, CurrentSP);
 }
 
 void AMain::GainExp(float Value)
 {
-	float currentLevel = PlayerStats[EPlayerStat::Level];
-	if (currentLevel == 5) return; // 최고 레벨일 때는 리턴
+	if (PlayerStats[EPlayerStat::Level] == 5) return; // 최고 레벨일 때는 리턴
 
-	float currentExp = PlayerStats[EPlayerStat::Exp];
+	float CurrentExp = PlayerStats[EPlayerStat::Exp];
 	float MaxExp = PlayerStats[EPlayerStat::MaxExp];
 
-	currentExp += Value;
+	CurrentExp += Value;
 
-	float currentHP = PlayerStats[EPlayerStat::HP];
+	if (CurrentExp >= MaxExp) // 다음 레벨로의 경험치를 모두 채웠다면
+	{
+		LevelUp();
+	}
+
+	SetStat(EPlayerStat::Exp, CurrentExp);
+}
+
+void AMain::LevelUp()
+{
+	float CurrentLevel = PlayerStats[EPlayerStat::Level];
+
+	float CurrentExp = PlayerStats[EPlayerStat::Exp];
+	float MaxExp = PlayerStats[EPlayerStat::MaxExp];
+
+	float CurrentHP = PlayerStats[EPlayerStat::HP];
 	float MaxHP = PlayerStats[EPlayerStat::MaxHP];
-	float currentMP = PlayerStats[EPlayerStat::MP];
+	float CurrentMP = PlayerStats[EPlayerStat::MP];
 	float MaxMP = PlayerStats[EPlayerStat::MaxMP];
-	float currentSP = PlayerStats[EPlayerStat::SP];
+	float CurrentSP = PlayerStats[EPlayerStat::SP];
 	float MaxSP = PlayerStats[EPlayerStat::MaxSP];
 
-	if (currentExp >= MaxExp) // 다음 레벨로의 경험치를 모두 채웠다면
+	CurrentLevel += 1; // 레벨 업
+	if (LevelUpSound)
+		UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
+
+	// 경험치 수치 update
+	if (CurrentExp == MaxExp) CurrentExp = 0.f;
+	else CurrentExp -= MaxExp;
+
+	if (CurrentLevel == 5) CurrentExp = MaxExp;
+
+	FLevelStats* NewStats = LevelData.Find(CurrentLevel);
+	if (NewStats)
 	{
-		currentLevel += 1; // 레벨 업
-        if (LevelUpSound)
-            UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
-
-		// 경험치 수치 update
-		if (currentExp == MaxExp)
-		{
-			currentExp = 0.f;
-		}
-		else
-		{
-			currentExp -= MaxExp;
-		}
-
-		if (currentLevel == 5) currentExp = MaxExp;
-
-		// 레벨에 따른 상태 능력치 최대치 초기화
-		switch ((int)currentLevel)
-		{
-			case 2:
-				MaxExp = 150.f;
-				UIManager->SetSystemMessage(7);
-				MaxHP = 350.f;
-				MaxMP = 175.f;
-				MaxSP = 325.f;
-				break;
-			case 3:
-				MaxExp = 250.f;
-				UIManager->SetSystemMessage(8);
-                MaxHP = 450.f;
-                MaxMP = 200.f;
-                MaxSP = 350.f;
-				break;
-			case 4:
-				MaxExp = 360.f;
-				UIManager->SetSystemMessage(9);
-                MaxHP = 600.f;
-                MaxMP = 230.f;
-                MaxSP = 375.f;
-				break;
-            case 5:
-				UIManager->SetSystemMessage(10);
-                MaxHP = 700.f;
-                MaxMP = 280.f;
-                MaxSP = 400.f;
-                break;
-		}
-
-		currentHP += 100.f;
-		currentMP += 50.f;
-		currentSP += 100.f;
-
-		if (currentHP > MaxHP) currentHP = MaxHP;
-		if (currentMP > MaxMP) currentMP = MaxMP;
-		if (currentSP > MaxSP) currentSP = MaxSP;
-
-
-		SetStat(EPlayerStat::HP, currentHP);
-		SetStat(EPlayerStat::MaxHP, MaxHP);
-		SetStat(EPlayerStat::MP, currentMP);
-		SetStat(EPlayerStat::MaxMP, MaxMP);
-		SetStat(EPlayerStat::SP, currentSP);
-		SetStat(EPlayerStat::MaxSP, MaxSP);
-		SetStat(EPlayerStat::Level, currentLevel);
-		SetStat(EPlayerStat::MaxExp, MaxExp);
-
-        FTimerHandle Timer;
-        GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
-        {
-				UIManager->RemoveSystemMessage();
-        }), 3.f, false);
+		MaxHP = NewStats->MaxHP;
+		MaxMP = NewStats->MaxMP;
+		MaxSP = NewStats->MaxSP;
+		MaxExp = NewStats->MaxExp;
 	}
 
-	SetStat(EPlayerStat::Exp, currentExp);
-
-}
-
-const TMap<FString, TSubclassOf<class AItem>>* AMain::GetItemMap()
-{
-	if (Storage != nullptr) return &(Storage->ItemMap);
-	return nullptr;
-}
-
-void AMain::StartMisson()
-{
-	if (DialogueManager->GetDialogueNum() == 3 && UIManager->IsSystemMessageVisible())
+	// 레벨에 따른 상태 능력치 최대치 초기화
+	switch ((int)CurrentLevel)
 	{
-		UIManager->RemoveSystemMessage();
-
-		MainPlayerController->SetCinematicMode(false, true, true);
-
-		NPCManager->GetNPC("Vovo")->MoveToLocation();
-		NPCManager->GetNPC("Vivi")->MoveToLocation();
-		NPCManager->GetNPC("Zizi")->MoveToLocation();
-
-		NPCManager->GetNPC("Momo")->MoveToPlayer();
-		NPCManager->GetNPC("Luko")->MoveToPlayer();
-
-		FString SoundPath = TEXT("/Game/SoundEffectsAndBgm/the-buccaneers-haul.the-buccaneers-haul");
-		USoundBase* LoadedSound = LoadObject<USoundBase>(nullptr, *SoundPath);
-		if (LoadedSound)
-		{
-			UGameplayStatics::PlaySound2D(this, LoadedSound);
-		}
+		case 2:
+			UIManager->SetSystemMessage(7);
+			break;
+		case 3:
+			UIManager->SetSystemMessage(8);
+			break;
+		case 4:
+			UIManager->SetSystemMessage(9);
+			break;
+		case 5:
+			UIManager->SetSystemMessage(10);
+			break;
 	}
-}
+	
+	 CurrentHP = MaxHP;
+	 CurrentMP = MaxMP;
+	 CurrentSP = MaxSP;
 
-void AMain::ShowControlGuide()
-{
-	if (DialogueManager->GetDialogueNum() < 2 || UIManager->GetSystemMessageNum() < 3) return;
+	SetStat(EPlayerStat::HP, CurrentHP);
+	SetStat(EPlayerStat::MaxHP, MaxHP);
+	SetStat(EPlayerStat::MP, CurrentMP);
+	SetStat(EPlayerStat::MaxMP, MaxMP);
+	SetStat(EPlayerStat::SP, CurrentSP);
+	SetStat(EPlayerStat::MaxSP, MaxSP);
+	SetStat(EPlayerStat::Level, CurrentLevel);
+	SetStat(EPlayerStat::MaxExp, MaxExp);
 
-	if (UIManager->IsControlGuideVisible()) UIManager->RemoveControlGuide();
-	else UIManager->DisplayControlGuide();
-}
-
-void AMain::Escape() // 긴급 탈출, 순간 이동
-{
-	if (DialogueManager->GetDialogueNum() >= 6
-		&& !DialogueManager->IsDialogueUIVisible()
-		&& MovementStatus != EMovementStatus::EMS_Dead)
-	{
-		if (DialogueManager->GetDialogueNum() <= 8)
+	FTimerHandle Timer;
+	GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
 		{
-            SetActorLocation(FVector(4620.f, -3975.f, -2117.f));
-		}
-		else if (DialogueManager->GetDialogueNum() <= 11)
-		{
-            SetActorLocation(FVector(5165.f, -2307.f, -2117.f));
-		}
-		else if(DialogueManager->GetDialogueNum() <= 15)
-		{
-			SetActorLocation(FVector(2726.f, -3353.f, -500.f));
-		}
-	}
-}
-
-void AMain::RecoverWithLogo() // get school icon in second stage
-{
-	float currentHP = PlayerStats[EPlayerStat::HP] + 150.f;
-	float currentMP = PlayerStats[EPlayerStat::MP] + 50.f;
-	float currentSP = PlayerStats[EPlayerStat::SP] + 50.f;
-
-	float MaxHP = PlayerStats[EPlayerStat::MaxHP];
-	float MaxMP = PlayerStats[EPlayerStat::MaxMP];
-	float MaxSP = PlayerStats[EPlayerStat::MaxSP];
-
-	if (currentHP >= MaxHP) currentHP = MaxHP;
-	if (currentMP >= MaxMP) currentMP = MaxMP;
-	if (currentSP >= MaxSP) currentSP = MaxSP;
-
-	SetStat(EPlayerStat::HP, currentHP);
-	SetStat(EPlayerStat::MP, currentMP);
-	SetStat(EPlayerStat::SP, currentSP);
+			UIManager->RemoveSystemMessage();
+		}), 3.f, false);
 }
 
 void AMain::SetLevel5() // level cheat, 즉시 최대 레벨 도달
@@ -999,24 +849,53 @@ void AMain::SetLevel5() // level cheat, 즉시 최대 레벨 도달
 	if (LevelUpSound != nullptr)
 		UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
 
-	SetStat(EPlayerStat::MaxHP, 700.f);
-	SetStat(EPlayerStat::MaxMP, 280.f);
-	SetStat(EPlayerStat::MaxSP, 400.f);
-	SetStat(EPlayerStat::HP, 700.f);
-	SetStat(EPlayerStat::MP, 480.f);
-	SetStat(EPlayerStat::SP, 400.f);
-	SetStat(EPlayerStat::Level, 5);
-	SetStat(EPlayerStat::Exp, PlayerStats[EPlayerStat::MaxExp]);
+	FLevelStats* NewStats = LevelData.Find(5);
+	if (NewStats)
+	{
+		SetStat(EPlayerStat::MaxHP, NewStats->MaxHP);
+		SetStat(EPlayerStat::MaxMP, NewStats->MaxMP);
+		SetStat(EPlayerStat::MaxSP, NewStats->MaxSP);
+		SetStat(EPlayerStat::HP, NewStats->MaxHP);
+		SetStat(EPlayerStat::MP, NewStats->MaxMP);
+		SetStat(EPlayerStat::SP, NewStats->MaxSP);
+		SetStat(EPlayerStat::Level, 5);
+		SetStat(EPlayerStat::Exp, PlayerStats[EPlayerStat::MaxExp]);
+	}
 
 	if (!UIManager->IsSystemMessageVisible())
 	{
 		UIManager->SetSystemMessage(16);
 		FTimerHandle Timer;
 		GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
-		{
+			{
 				UIManager->RemoveSystemMessage();
-		}), 3.f, false);
+			}), 3.f, false);
 	}
+}
+
+const TMap<FString, TSubclassOf<class AItem>>* AMain::GetItemMap()
+{
+	if (Storage != nullptr) return &(Storage->ItemMap);
+	return nullptr;
+}
+
+void AMain::RecoverWithLogo() // get school icon in second stage
+{
+	float CurrentHP = PlayerStats[EPlayerStat::HP] + 150.f;
+	float CurrentMP = PlayerStats[EPlayerStat::MP] + 50.f;
+	float CurrentSP = PlayerStats[EPlayerStat::SP] + 50.f;
+
+	float MaxHP = PlayerStats[EPlayerStat::MaxHP];
+	float MaxMP = PlayerStats[EPlayerStat::MaxMP];
+	float MaxSP = PlayerStats[EPlayerStat::MaxSP];
+
+	if (CurrentHP >= MaxHP) CurrentHP = MaxHP;
+	if (CurrentMP >= MaxMP) CurrentMP = MaxMP;
+	if (CurrentSP >= MaxSP) CurrentSP = MaxSP;
+
+	SetStat(EPlayerStat::HP, CurrentHP);
+	SetStat(EPlayerStat::MP, CurrentMP);
+	SetStat(EPlayerStat::SP, CurrentSP);
 }
 
 void AMain::UsePotion()

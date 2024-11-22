@@ -90,6 +90,9 @@ public:
 
 	void SkipCombat();
 
+	void StartFirstDungeon();
+
+	void EscapeToSafeLocation(); // press E key, spawn player at the other location
 
 	void SetIsSaveAllowed(bool Value) { bIsSaveAllowed = Value; }
 

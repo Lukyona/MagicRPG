@@ -274,3 +274,46 @@ void UGameManager::SkipCombat() // 전투 스킵, 몬스터 제거
 	}
 	else return;
 }
+
+void UGameManager::StartFirstDungeon()
+{
+	if (DialogueManager->GetDialogueNum() == 3 && UIManager->IsSystemMessageVisible())
+	{
+		UIManager->RemoveSystemMessage();
+
+		MainPlayerController->SetCinematicMode(false, true, true);
+
+		NPCManager->GetNPC("Vovo")->MoveToLocation();
+		NPCManager->GetNPC("Vivi")->MoveToLocation();
+		NPCManager->GetNPC("Zizi")->MoveToLocation();
+
+		NPCManager->GetNPC("Momo")->MoveToPlayer();
+		NPCManager->GetNPC("Luko")->MoveToPlayer();
+
+		FString SoundPath = TEXT("/Game/SoundEffectsAndBgm/the-buccaneers-haul.the-buccaneers-haul");
+		USoundBase* LoadedSound = LoadObject<USoundBase>(nullptr, *SoundPath);
+		if (LoadedSound)
+		{
+			UGameplayStatics::PlaySound2D(this, LoadedSound);
+		}
+	}
+}
+
+void UGameManager::EscapeToSafeLocation() // 두 번째 던전에서의 긴급 탈출
+{
+	if (DialogueManager->GetDialogueNum() >= 6 && !DialogueManager->IsDialogueUIVisible() && !Player->IsDead())
+	{
+		if (DialogueManager->GetDialogueNum() <= 8)
+		{
+			Player->SetActorLocation(FVector(4620.f, -3975.f, -2117.f));
+		}
+		else if (DialogueManager->GetDialogueNum() <= 11)
+		{
+			Player->SetActorLocation(FVector(5165.f, -2307.f, -2117.f));
+		}
+		else if (DialogueManager->GetDialogueNum() <= 15)
+		{
+			Player->SetActorLocation(FVector(2726.f, -3353.f, -500.f));
+		}
+	}
+}

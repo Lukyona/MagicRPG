@@ -61,10 +61,13 @@ public:
 	void BeginPlay();
 	void Tick();
 
-	void SetGameManager(UGameManager* Manager);
 
 	UFUNCTION(BlueprintCallable)
 		void CheckDialogueStartCondition();
+
+	void TriggerNextDialogue();
+
+	void SetGameManager(UGameManager* Manager);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 		UDialogueUI* GetDialogueUI() { return DialogueUI; }

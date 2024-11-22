@@ -172,6 +172,13 @@ void UUIManager::RemoveHUD()
 
 void UUIManager::DisplayControlGuide()
 {
+    if (DialogueManager->GetDialogueNum() < 2 || GetSystemMessageNum() < 3) return;
+    if (IsControlGuideVisible())
+    {
+        RemoveControlGuide();
+        return;
+    }
+   
     if (ControlGuide)
     {
         if (bMenuVisible || DialogueManager->IsDialogueUIVisible())

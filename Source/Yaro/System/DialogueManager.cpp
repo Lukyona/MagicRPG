@@ -81,6 +81,17 @@ void UDialogueManager::CheckDialogueStartCondition()
     NPCManager->UpdateNPCPositions(DialogueNum);
 }
 
+void UDialogueManager::TriggerNextDialogue()
+{
+    if (!DialogueUI) return;
+
+    if (DialogueUI->GetCurrentState() != 3 && !UIManager->IsMenuVisible())
+    {
+        if (DialogueUI->IsInputDisabled()) return;
+        else DialogueUI->Interact();
+    }
+}
+
 void UDialogueManager::DisplayDialogueUI()
 {
     if (DialogueUI)
@@ -189,6 +200,8 @@ void UDialogueManager::RemoveDialogueUI()
         {
             DialogueNum++;
             DialogueEndEvents();
+            if (DialogueNum > 2)
+                GameManager->SaveGame();
         }
         else
         {
@@ -206,7 +219,6 @@ void UDialogueManager::RemoveDialogueUI()
         MainPlayerController->SetMouseCursorVisibility(false);
         
         UIManager->DisplayHUD();
-        GameManager->SaveGame();
 
         if (GameManager->IsSkipping()) GameManager->SetIsSkipping(false);
     }
