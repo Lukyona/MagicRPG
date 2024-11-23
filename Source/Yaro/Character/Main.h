@@ -74,7 +74,7 @@ public: // Constructor and overrides
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-		class AMainPlayerController* MainPlayerController;
+	class AMainPlayerController* MainPlayerController;
 
 	UPROPERTY()
 	class UMainAnimInstance* MainAnimInstance;
@@ -136,7 +136,7 @@ protected:
 	TArray<AEnemy*> Targets; // 범위에 들어온 타겟팅 가능 몹 배열
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bHasCombatTarget = false;
-	int TargetIndex = 0;
+	int32 TargetIndex = 0;
 	bool bAutoTargeting = false;
 	float DeathDelay = 3.f;
 

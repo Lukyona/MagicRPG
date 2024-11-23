@@ -155,7 +155,7 @@ void UGameManager::SaveGame()
 	}
 
 	if (DialogueManager->GetDialogueNum() < 4)
-		SaveGameInstance->NpcInfo.TeamMoveIndex = NPCManager->GetNPC("Vivi")->GetIndex();
+		SaveGameInstance->NpcInfo.TeamMoveIndex = NPCManager->GetNPC("Vivi")->GetTeamMoveIndex();
 
 	SaveGameInstance->DeadEnemyList = DeadEnemies;
 
@@ -191,9 +191,9 @@ void UGameManager::LoadGame()
 
 	if (DialogueManager->GetDialogueNum() < 4)
 	{
-		NPCManager->GetNPC("Vovo")->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
-		NPCManager->GetNPC("Vivi")->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
-		NPCManager->GetNPC("Zizi")->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
+		NPCManager->GetNPC("Vovo")->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
+		NPCManager->GetNPC("Vivi")->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
+		NPCManager->GetNPC("Zizi")->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
 	}
 
 	FString ItemName = LoadGameInstance->CharacterStats.ItemName;
@@ -272,9 +272,9 @@ void UGameManager::StartFirstDungeon()
 
 		MainPlayerController->SetCinematicMode(false, true, true);
 
-		NPCManager->GetNPC("Vovo")->MoveToLocation();
-		NPCManager->GetNPC("Vivi")->MoveToLocation();
-		NPCManager->GetNPC("Zizi")->MoveToLocation();
+		NPCManager->GetNPC("Vovo")->MoveToTeamPos();
+		NPCManager->GetNPC("Vivi")->MoveToTeamPos();
+		NPCManager->GetNPC("Zizi")->MoveToTeamPos();
 
 		NPCManager->GetNPC("Momo")->MoveToPlayer();
 		NPCManager->GetNPC("Luko")->MoveToPlayer();

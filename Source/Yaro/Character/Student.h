@@ -12,35 +12,30 @@ class YARO_API AStudent : public ACharacter
 {
 	GENERATED_BODY()
 
-private:
-	// 회전 속도
-	float InterpSpeed;
-
-	int SkillNum;
-
-	class ACharacter* TargetCharacter; // Who the character looks at
+public:
+	AStudent();
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	//Movements
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
+	float WalkSpeed;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
+	float RunSpeed;
+
+	float InterpSpeed;
 
 	UPROPERTY(EditAnywhere)
 	bool bInterpToCharacter = false;
-
 	UPROPERTY(EditAnywhere)
 	bool bInterpToEnemy;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
-	class UAnimMontage* NormalMontage;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
-	class UAnimMontage* CombatMontage;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
-		float WalkSpeed;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
-		float RunSpeed;
+	//Combat
+	int SkillNum;
+	class ACharacter* TargetCharacter; // Who the character looks at
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	class USphereComponent* CombatSphere;
@@ -55,52 +50,49 @@ protected:
 	FVector CombatTargetLocation;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	bool bAttacking;
+	class UArrowComponent* AttackArrow;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	class UArrowComponent* AttackArrow;
+	bool bAttacking;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
 	UDataTable* AttackSkillData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
-		TWeakObjectPtr<class AMagicSkill> MagicAttack;
+	TWeakObjectPtr<class AMagicSkill> MagicAttack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
 	TSubclassOf<class AMagicSkill> ToSpawn;
 
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
+		class UAnimMontage* NormalMontage;
 
-public:	
-	// Sets default values for this character's properties
-	AStudent();
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
+		class UAnimMontage* CombatMontage;
 
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	void SetInterpSpeed(float value) { InterpSpeed = value; }
+public: //Getters and Setters
 	float GetInterpSpeed() { return InterpSpeed; }
+	void SetInterpSpeed(float value) { InterpSpeed = value; }
 
 	FRotator GetLookAtRotationYaw(FVector Target);
 
-	void SetSkillNum(int num) { SkillNum = num; }
-	int GetSkillNum() { return SkillNum; }
-	
 	void SetInterpToEnemy(bool Interp) { bInterpToEnemy = Interp; };
-
 	void SetInterpToCharacter(bool value) { bInterpToCharacter = value;};
+
 
 	UAnimMontage* GetCombatMontage() { return CombatMontage; }
 	UAnimMontage* GetNormalMontage() { return NormalMontage; }
 
-	void SetTargetCharacter(class ACharacter* ch) { TargetCharacter = ch; }
-	class ACharacter* GetTargetCharacter() { return TargetCharacter; }
 
-	void SetCombatTarget(AEnemy* target) { CombatTarget = target; }
+	int GetSkillNum() { return SkillNum; }
+	void SetSkillNum(int num) { SkillNum = num; }
+
+	class ACharacter* GetTargetCharacter() { return TargetCharacter; }
+	void SetTargetCharacter(class ACharacter* ch) { TargetCharacter = ch; }
+
 	AEnemy* GetCombatTarget() { return CombatTarget; }
+	void SetCombatTarget(AEnemy* target) { CombatTarget = target; }
 
 	void SetAttackArrow();
 
@@ -109,12 +101,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual	void AttackEnd() {};
 
-	UFUNCTION()
-	virtual void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {};
-	UFUNCTION()
-	virtual void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) {};
-
 	// 마법 스폰
 	virtual void Spawn() {};
+
+	UFUNCTION()
+		virtual void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {};
+	UFUNCTION()
+		virtual void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) {};
 
 };

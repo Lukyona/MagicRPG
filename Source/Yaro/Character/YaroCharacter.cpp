@@ -1,35 +1,42 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "YaroCharacter.h"
-#include "HeadMountedDisplayFunctionLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/GameplayStatics.h" //GetPlayerCharacter
-#include "AIController.h"
-#include "Yaro/Character/Main.h"
 #include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
-#include "Yaro/Character/Enemies/Enemy.h"
 #include "Components/ArrowComponent.h"
-#include "Yaro/MagicSkill.h"
-#include "Yaro/Structs/AttackSkillData.h"
-#include "Kismet/KismetMathLibrary.h"
-#include "Engine/BlueprintGeneratedClass.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h" 
+#include "Engine/BlueprintGeneratedClass.h"
+#include "HeadMountedDisplayFunctionLibrary.h"
+#include "AIController.h"
+
 #include "Yaro/System/MainPlayerController.h"
 #include "Yaro/System/GameManager.h"
 #include "Yaro/System/DialogueManager.h"
 #include "Yaro/System/NPCManager.h"
+#include "Yaro/Structs/AttackSkillData.h"
+#include "Yaro/Character/Main.h"
+#include "Yaro/Character/Enemies/Enemy.h"
+#include "Yaro/Character/Enemies/Boss.h"
+#include "Yaro/MagicSkill.h"
 
+const float FAR_DISTANCE_FROM_PLAYER = 500.f;
+const float CLOSE_DISTANCE_FROM_PLAYER = 500.f;
+const float MOVEMENT_THRESHOLD = 50.f; // 이전 위치와 비교했을 때, 캐릭터가 이동했다고 간주하는 최소 거리 차이
+const int32 MAX_MOVE_FAIL_COUNT = 3;
+const FVector TELEPORT_OFFSET = FVector(30.f, 30.f, 0.f);
 //////////////////////////////////////////////////////////////////////////
 // AYaroCharacter
 AYaroCharacter::AYaroCharacter()
 {
-	SetAgroSphere();
-	SetCombatSphere();
-	SetNotAllowSphere();
+	AgroSphere = CreateSphereComponent("AgroSphere", 600.f, FVector::ZeroVector);
+	CombatSphere = CreateSphereComponent("CombatSphere", 480.f, FVector(250.f, 0.f, 0.f));
+	NotAllowSphere = CreateSphereComponent("NotAllowSphere", 100.f, FVector(50.f, 0.f, 0.f));
 	
 	// positions in first dungeon. only vovo, vivi, zizi
-	SetPosList();
+	SetTeamMovePosList();
 }
 
 void AYaroCharacter::BeginPlay()
@@ -44,14 +51,7 @@ void AYaroCharacter::BeginPlay()
 
 	AIController = Cast<AAIController>(GetController());
 
-	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AYaroCharacter::AgroSphereOnOverlapBegin);
-	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AYaroCharacter::AgroSphereOnOverlapEnd);
-
-    CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AYaroCharacter::CombatSphereOnOverlapBegin);
-    CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AYaroCharacter::CombatSphereOnOverlapEnd);
-
-	NotAllowSphere->OnComponentBeginOverlap.AddDynamic(this, &AYaroCharacter::NotAllowSphereOnOverlapBegin);
-	NotAllowSphere->OnComponentEndOverlap.AddDynamic(this, &AYaroCharacter::NotAllowSphereOnOverlapEnd);
+	BindComponentEvents();
 
 	// 캐릭터 메시와 캡슐 콜리전을 카메라에 영향이 없도록 만듬
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
@@ -69,6 +69,48 @@ void AYaroCharacter::Tick(float DeltaTime)
 		ACharacter* p = UGameplayStatics::GetPlayerCharacter(this, 0);
 		Player = Cast<AMain>(p);
 	}
+}
+
+USphereComponent* AYaroCharacter::CreateSphereComponent(FName Name, float Radius, FVector RelativeLocation)
+{
+	USphereComponent* Sphere = CreateDefaultSubobject<USphereComponent>(Name);
+	Sphere->SetupAttachment(GetRootComponent());
+	Sphere->InitSphereRadius(Radius);
+	Sphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	Sphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
+	Sphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
+	Sphere->SetRelativeLocation(RelativeLocation);
+	return Sphere;
+}
+
+void AYaroCharacter::BindComponentEvents()
+{
+	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AYaroCharacter::AgroSphereOnOverlapBegin);
+	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AYaroCharacter::AgroSphereOnOverlapEnd);
+
+	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AYaroCharacter::CombatSphereOnOverlapBegin);
+	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AYaroCharacter::CombatSphereOnOverlapEnd);
+
+	NotAllowSphere->OnComponentBeginOverlap.AddDynamic(this, &AYaroCharacter::NotAllowSphereOnOverlapBegin);
+	NotAllowSphere->OnComponentEndOverlap.AddDynamic(this, &AYaroCharacter::NotAllowSphereOnOverlapEnd);
+}
+
+void AYaroCharacter::SetTeamMovePosList()
+{
+	TeamMovePosList.Add(FVector(2517.f, 5585.f, 3351.f));
+	TeamMovePosList.Add(FVector(2345.f, 4223.f, 2833.f));
+	TeamMovePosList.Add(FVector(2080.f, 283.f, 2838.f));
+	TeamMovePosList.Add(FVector(1550.f, -1761.f, 2843.f));
+	TeamMovePosList.Add(FVector(1026.f, -1791.f, 2576.f));
+}
+
+void AYaroCharacter::MoveTo(ACharacter* GoalActor, float AcceptanceRadius)
+{
+	FAIMoveRequest MoveRequest;
+	MoveRequest.SetGoalActor(GoalActor);
+	MoveRequest.SetAcceptanceRadius(AcceptanceRadius);
+	FNavPathSharedPtr NavPath;
+	AIController->MoveTo(MoveRequest, &NavPath);
 }
 
 void AYaroCharacter::MoveToPlayer()
@@ -99,86 +141,41 @@ void AYaroCharacter::MoveToPlayer()
 			}
 		}
 
-		// 플레이어와의 거리
-        float distance = GetDistanceTo(Player);
-
-        if (distance >= 500.f) //일정 거리 이상 떨어져있다면 속도 높여 달리기
-        {
+		FVector CurrentPosition = GetActorLocation();
+        float Distance = GetDistanceTo(Player);
+        if (Distance >= FAR_DISTANCE_FROM_PLAYER) //일정 거리 이상 떨어져있다면 속도 높여 달리기
 			GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
-
-			// 첫번째 던전에서는 npc들이 지형에 끼거나 멈춰서 진행에 방해되지 않도록 텔레포트 기능 실행
-			if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")
-				&& !GetWorldTimerManager().IsTimerActive(TeleportTimer))
-				Teleport();
-        }
         else //가깝다면 속도 낮춰 걷기
-        {
 			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-			TeleportCount = 0;
-        }
 
-        FAIMoveRequest MoveRequest;
-        MoveRequest.SetGoalActor(Player);
-        MoveRequest.SetAcceptanceRadius(80.f);
-		UE_LOG(LogTemp, Warning, TEXT("MONetwre %f"), distance);
-        FNavPathSharedPtr NavPath;
-        AIController->MoveTo(MoveRequest, &NavPath);
-	}
-	else // 전투 중
-	{
-		if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first"))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("comvattttt"));
+		MoveTo(Player, CLOSE_DISTANCE_FROM_PLAYER);
 
-			TeleportTimer.Invalidate();
-			GetWorldTimerManager().ClearTimer(TeleportTimer);
-		}
+		if (FVector::Dist(LastPosition, CurrentPosition) < MOVEMENT_THRESHOLD)
+			MoveFailCounter++;
+		else
+			MoveFailCounter = 0;
+
+		LastPosition = CurrentPosition;
+
+		if (MoveFailCounter >= MAX_MOVE_FAIL_COUNT) TeleportToPlayer();
+
 	}
 
 	GetWorldTimerManager().SetTimer(PlayerFollowTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
 }
 
-void AYaroCharacter::Teleport()
+void AYaroCharacter::TeleportToPlayer()
 {
-	if (Player->GetMovementStatus() == EMovementStatus::EMS_Dead)
-	{
-		TeleportCount = 0;
-		return;
-	}
+	if (Player->GetMovementStatus() == EMovementStatus::EMS_Dead) return;
 
-	TeleportCount += 1;
-
-	// 시간이 오래 경과하면 플레이어 근처로 순간이동
-	if (TeleportCount >= 25) SetActorLocation(Player->GetActorLocation() + FVector(15.f, 25.f, 0.f));
-
-
-	float distance = (GetActorLocation() - Player->GetActorLocation()).Size();
-
-	if (distance <= 400.f) // 플레이어와 거리 가까움
-	{
-		if (AIController)
-		{
-			TeleportCount = 0;
-			TeleportTimer.Invalidate();
-		}
-	}
-	else // 플레이어와 거리가 멀면 계속 텔레포트 카운트 증감
-	{
-		GetWorldTimerManager().SetTimer(TeleportTimer, this, &AYaroCharacter::Teleport, 0.5f);
-	}
+	SetActorLocation(Player->GetActorLocation() + TELEPORT_OFFSET);
 }
 
 void AYaroCharacter::MoveToTarget(AEnemy* Target) // 적 추적
 {
 	if (AIController)
 	{
-		FAIMoveRequest MoveRequest;
-		MoveRequest.SetGoalActor(Target);
-		MoveRequest.SetAcceptanceRadius(300.0f);
-
-		FNavPathSharedPtr NavPath;
-
-		AIController->MoveTo(MoveRequest, &NavPath);
+		MoveTo(Target, 300.f);
 	}
 }
 
@@ -302,15 +299,6 @@ void AYaroCharacter::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCom
     }
 }
 
-void AYaroCharacter::SetPosList()
-{
-	Pos.Add(FVector(2517.f, 5585.f, 3351.f));
-	Pos.Add(FVector(2345.f, 4223.f, 2833.f));
-	Pos.Add(FVector(2080.f, 283.f, 2838.f));
-	Pos.Add(FVector(1550.f, -1761.f, 2843.f));
-	Pos.Add(FVector(1026.f, -1791.f, 2576.f));
-}
-
 void AYaroCharacter::Attack()
 {
 	if ((!bAttacking) && (CombatTarget) && (CombatTarget->GetEnemyMovementStatus() != EEnemyMovementStatus::EMS_Dead))
@@ -321,30 +309,27 @@ void AYaroCharacter::Attack()
 			return;
 		}
 
-		if (bCanCastStrom) // npc can cast strom magic
-		{
-			if (DialogueManager->GetDialogueNum() <= 5)
-				SetSkillNum(FMath::RandRange(1, 3));
-			else if (DialogueManager->GetDialogueNum() <= 14)
-				SetSkillNum(FMath::RandRange(1, 4));
-			else
-				SetSkillNum(FMath::RandRange(1, 5));
-		}
-		else // npc can't cast strom magic
-		{
-			if (DialogueManager->GetDialogueNum() <= 5)
-				SetSkillNum(FMath::RandRange(2, 3));
-			else if (DialogueManager->GetDialogueNum() <= 14)
-				SetSkillNum(FMath::RandRange(2, 4));
-			else
-				SetSkillNum(FMath::RandRange(2, 5));
-		}
+		int32 MinSkillNum = 0;
+		int32 MaxSkillNum = 0;
+		if (bCanCastStorm) // npc can cast storm magic
+			MinSkillNum = 1;
+		else // npc can't cast storm magic
+			MinSkillNum = 2;
+
+		if (DialogueManager->GetDialogueNum() <= 5)
+			MaxSkillNum = 3;
+		else if (DialogueManager->GetDialogueNum() <= 14)
+			MaxSkillNum = 4;
+		else
+			MaxSkillNum = 5;
+
+		SetSkillNum(FMath::RandRange(MinSkillNum, MaxSkillNum));
 		
         if (GetSkillNum() == 1) // 현재 공격이 스톰
         {
-            bCanCastStrom = false;
+            bCanCastStorm = false;
             FTimerHandle StormTimer;
-            GetWorldTimerManager().SetTimer(StormTimer, this, &AYaroCharacter::CanCastStormMagic, 8.f, false);  // 8초 뒤 다시 스톰 사용 가능
+            GetWorldTimerManager().SetTimer(StormTimer, this, &AYaroCharacter::EnableStormCasting, 8.f, false);  // 8초 뒤 다시 스톰 사용 가능
         }
 
 		ToSpawn = AttackSkillData->FindRow<FAttackSkillData>("Attack", "")->Skills[GetSkillNum() - 1];
@@ -440,39 +425,6 @@ void AYaroCharacter::AttackEnd()
 	}
 }
 
-void AYaroCharacter::SetAgroSphere()
-{
-	AgroSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AgroSphere"));
-	AgroSphere->SetupAttachment(GetRootComponent());
-	AgroSphere->InitSphereRadius(600.f);
-	AgroSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
-	AgroSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	AgroSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-}
-
-void AYaroCharacter::SetCombatSphere()
-{
-	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
-	CombatSphere->SetupAttachment(GetRootComponent());
-	CombatSphere->InitSphereRadius(480.f);
-	CombatSphere->SetRelativeLocation(FVector(250.f, 0.f, 0.f));
-	CombatSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
-	CombatSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	CombatSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-}
-
-void AYaroCharacter::SetNotAllowSphere()
-{
-	NotAllowSphere = CreateDefaultSubobject<USphereComponent>(TEXT("NotAllowSphere"));
-	NotAllowSphere->SetupAttachment(GetRootComponent());
-	NotAllowSphere->InitSphereRadius(100.f);
-	NotAllowSphere->SetRelativeLocation(FVector(50.f, 0.f, 0.f));
-	NotAllowSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
-	NotAllowSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	NotAllowSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-}
-
-
 void AYaroCharacter::Spawn()
 {
 	if (ToSpawn)
@@ -519,38 +471,29 @@ void AYaroCharacter::Spawn()
 	}
 }
 
-void AYaroCharacter::CanCastStormMagic()
-{
-	bCanCastStrom = true;
-}
-
-void AYaroCharacter::MoveToLocation() // Vivi, Vovo, Zizi만 실행
+void AYaroCharacter::MoveToTeamPos() // Vivi, Vovo, Zizi만 실행
 {	
 	if (AIController)
 	{
-		AIController->MoveToLocation(Pos[index]);
+		AIController->MoveToLocation(TeamMovePosList[TeamMoveIndex]);
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(TeamMoveTimer, FTimerDelegate::CreateLambda([&]() {
 
 		if (!CombatTarget && !bOverlappingCombatSphere) // 전투 중이 아닐 때
 		{
-            float distance = (GetActorLocation() - Pos[index]).Size();
+            float distance = (GetActorLocation() - TeamMovePosList[TeamMoveIndex]).Size();
 
-			if (index <= 3)
+			if (TeamMoveIndex <= 3)
 			{
 				if (AIController && distance <= 70.f) // 목표 지점과 가까울 때
 				{
-					index++;
-					AIController->MoveToLocation(Pos[index]); // 다음 목표 지점으로 이동
+					TeamMoveIndex++;
 				}
-				else // 목표 지점과 멀 때
-				{
-					AIController->MoveToLocation(Pos[index]); // 목표 지점으로 계속해서 이동
-				}
+				AIController->MoveToLocation(TeamMovePosList[TeamMoveIndex]); // 목표 지점으로 계속해서 이동
 			}
 
-			if (index == 4 && distance <= 70.f) // 골렘쪽으로 이동 중
+			if (TeamMoveIndex == 4 && distance <= 70.f) // 골렘쪽으로 이동 중
 			{
 				// 목표 지점 이동을 모두 끝내고, 모모 혹은 플레이어가 골렘과 전투 중이면 골렘 쪽으로 이동
 				if (NPCManager->GetNPC("Momo")->CombatTarget && NPCManager->GetNPC("Momo")->CombatTarget->GetName().Contains("Golem"))
@@ -577,13 +520,13 @@ float AYaroCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& 
 	MagicAttack = Cast<AMagicSkill>(DamageCauser);
 	if (MagicAttack == nullptr) return DamageAmount;
 	
-	// 인식 범위에 아무도 없는 상태에서 보스 몬스터의 공격을 받음
-	if (MagicAttack->GetCaster() == ECasterType::Boss && AgroTargets.Num() == 0)
+	// 인식 범위에 아무도 없는 상태에서 공격을 받음
+	if ((MagicAttack->GetCaster() == ECasterType::Boss || MagicAttack->GetCaster() == ECasterType::Enemy) && AgroTargets.Num() == 0)
 	{
-		AEnemy* BossEnemy = Cast<AEnemy>(UGameplayStatics::GetActorOfClass(GetWorld(), Boss));
+		AEnemy* Enemy = Cast<AEnemy>(MagicAttack->GetInstigator()->GetPawn());
 		ClearPlayerFollowTimer();
 		AIController->StopMovement();
-		MoveToTarget(BossEnemy); // 보스에게 이동
+		MoveToTarget(Enemy); // 보스에게 이동
 	}
 	
 	return DamageAmount;
@@ -596,11 +539,8 @@ void AYaroCharacter::NotAllowSphereOnOverlapBegin(UPrimitiveComponent* Overlappe
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 		if (Enemy)
 		{
-			for (int i = 0; i < DangerousTargets.Num(); i++)
-			{
-				if (Enemy == DangerousTargets[i]) //already exist
-					return;
-			}
+			if (DangerousTargets.Contains(Enemy)) return;
+			
 			DangerousTargets.Add(Enemy);
 
 			// 이미 타이머 실행 중이면 리턴
@@ -619,13 +559,8 @@ void AYaroCharacter::NotAllowSphereOnOverlapEnd(UPrimitiveComponent* OverlappedC
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 		if (Enemy)
 		{
-			for (int i = 0; i < DangerousTargets.Num(); i++)
-			{
-				if (Enemy == DangerousTargets[i]) //already exist
-				{
-					DangerousTargets.Remove(Enemy);
-				}
-			}
+			if (DangerousTargets.Contains(Enemy))
+				DangerousTargets.Remove(Enemy);
 		}
 	}
 }
@@ -638,15 +573,15 @@ void AYaroCharacter::MoveToSafeLocation() // 안전한 위치로 이동, 몬스터와의 안전
 	}
 	else // 몬스터와의 안전 거리 확보됨
 	{
+		GetWorldTimerManager().ClearTimer(SafeDistanceTimer);
 		SafeDistanceTimer.Invalidate();
 		return;
 	}
 
-	float value = FMath::RandRange(-200.f, 200.f);
+	float Value = FMath::RandRange(-200.f, 200.f);
 	// 현재 위치에서 랜덤한 방향으로 조금 이동
-	FVector SafeLocation = GetActorLocation() + FVector(value, value, 0.f);
+	FVector SafeLocation = GetActorLocation() + FVector(Value, Value, 0.f);
 	AIController->MoveToLocation(SafeLocation);
-	//UE_LOG(LogTemp, Log, TEXT("movwsafeg %s"), *this->GetName());
 }
 
 void AYaroCharacter::ClearTeamMoveTimer()
@@ -659,13 +594,6 @@ void AYaroCharacter::ClearPlayerFollowTimer()
 {
 	GetWorldTimerManager().ClearTimer(PlayerFollowTimer);
 	PlayerFollowTimer.Invalidate();
-	UE_LOG(LogTemp, Warning, TEXT("ClearPlayerFollowTimer %s"), *GetName());
-
-	if (TeleportTimer.IsValid() || GetWorldTimerManager().IsTimerActive(TeleportTimer))
-	{
-		GetWorldTimerManager().ClearTimer(TeleportTimer);
-		TeleportTimer.Invalidate();
-	}
 }
 
 void AYaroCharacter::ClearAllTimer()
@@ -674,16 +602,4 @@ void AYaroCharacter::ClearAllTimer()
 	ClearPlayerFollowTimer();
 	GetWorldTimerManager().ClearTimer(MagicSpawnTimer);
 	MagicSpawnTimer.Invalidate();
-	GetWorldTimerManager().ClearTimer(TeleportTimer);
-	TeleportTimer.Invalidate();
-}
-
-void AYaroCharacter::Smile() // 웃는 표정
-{
-	this->bSmile = true;
-}
-
-void AYaroCharacter::UsualFace() // 평소 표정
-{
-	this->bSmile = false;
 }

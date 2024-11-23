@@ -22,51 +22,58 @@ class AYaroCharacter : public AStudent
 {
 	GENERATED_BODY()
 
+protected:
+	AYaroCharacter();
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+	void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
+	void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
+	void Attack() override;
+	void AttackEnd() override;
+	void Spawn() override;
 
+	USphereComponent* CreateSphereComponent(FName Name, float Radius, FVector RelativeLocation);
+	void BindComponentEvents();
 
+protected:
+	UPROPERTY()
+	class AAIController* AIController;
+	UPROPERTY()
+	UAnimInstance* AnimInstance;
+	UPROPERTY(EditDefaultsOnly)
+	ENPCType NPCType;
+
+	//Managers
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UGameManager* GameManager;
 	UPROPERTY()
 	class UDialogueManager* DialogueManager;
-
 	UPROPERTY()
 	class UNPCManager* NPCManager;
 
-protected:
-	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UGameManager* GameManager;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
-	class AAIController* AIController;
-
-	UAnimInstance* AnimInstance;
-
-	UPROPERTY(EditDefaultsOnly, Category = "AI")
-	ENPCType NPCType;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+	UPROPERTY()
 	class AMain* Player;
 
 	UPROPERTY(BlueprintReadOnly)
 	FTimerHandle PlayerFollowTimer;
 
 
+	//Combat
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	class USphereComponent* AgroSphere;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<AEnemy*> AgroTargets;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<AEnemy*> CombatTargets;
 
 	FTimerHandle AttackTimer;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	UPROPERTY(EditAnywhere, Category = "Combat")
 	float AttackDelay;
 
-	UPROPERTY(BlueprintReadWrite)
 	FTimerHandle MagicSpawnTimer;
-
-	bool bCanCastStrom = true;
+	bool bCanCastStorm = true;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	bool bIsHealTime;
@@ -77,98 +84,58 @@ protected:
 
 	FTimerHandle SafeDistanceTimer;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	UPROPERTY()
 	TArray<AEnemy*> DangerousTargets;
 
 
+	FVector LastPosition;
+	int32 MoveFailCounter = 0;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsSmiling;
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsSpeaking;
+
 
 	// 비비, 지지, 보보 팀 이동 위치
-	UPROPERTY(EditAnywhere)
-	TArray<FVector> Pos;
+	TArray<FVector> TeamMovePosList;
+	int32 TeamMoveIndex = 0;
+	FTimerHandle TeamMoveTimer;
 
-	UPROPERTY(VisibleAnywhere)
-	int index = 0;
-
-	UPROPERTY(BlueprintReadWrite)
-	FTimerHandle TeamMoveTimer; // vovo, vivi, zizi
-
-	FTimerHandle TeleportTimer;
-
-	int TeleportCount = 0;
-
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<class AActor> Boss;
-
-	UPROPERTY(BlueprintReadWrite)
-	bool bSmile;
-
-	UPROPERTY(BlueprintReadWrite)
-	bool bSpeaking;
-
-
-	virtual void BeginPlay() override;
-
-public:
-	virtual void Tick(float DeltaTime) override;
-
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-
-	AYaroCharacter();
-
+public: //Getters and Setters
 	AAIController* GetAIController() { return AIController; }
-
+	UAnimInstance* GetAnimInstance() { return AnimInstance; }
 	ENPCType GetType() { return NPCType; }
+
+	int32 GetTeamMoveIndex() { return TeamMoveIndex; }
+	void SetTeamMoveIndex(int32 value) { TeamMoveIndex = value; }
+
+	void SetSmileStatus(bool Value) { bIsSmiling = Value; }
+	void SetSpeakingStatus(bool Value) { bIsSpeaking = Value; }
+
+	TArray<AEnemy*> GetAgroTargets() { return AgroTargets; }
+
+	void SetTeamMovePosList();
+
+	void EnableStormCasting() { bCanCastStorm = true; }
+
+public: // Core Methods
+	//Movements
+	void MoveTo(ACharacter* GoalActor, float AcceptanceRadius);
 
 	UFUNCTION(BlueprintCallable)
 	void MoveToPlayer();
 
-	void SetSpeakingStatus(bool value) { bSpeaking = value; }
-
-	UAnimInstance* GetAnimInstance() { return AnimInstance; }
-
-	void SetPosList();
-
-	//About Combat System
-	void Attack() override;
-	void AttackEnd() override;
-
-
-	void SetAgroSphere();
-	void SetCombatSphere();
-	void SetNotAllowSphere();
-    
-    UFUNCTION()
-    virtual void AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-    UFUNCTION()
-    virtual void AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
-	void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
-
-	void Spawn() override;
-
-	void CanCastStormMagic();
-
 	void MoveToTarget(AEnemy* Target);
 
-
-	UFUNCTION(BlueprintCallable)
-	void MoveToLocation();
-  
-	void Teleport();
-
-	UFUNCTION()
-	virtual void NotAllowSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION()
-	virtual void NotAllowSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void MoveToTeamPos();
 
 	void MoveToSafeLocation();
 
-	
-	int GetTeleportCount() { return TeleportCount; }
+	void TeleportToPlayer();
 
-	TArray<AEnemy*> GetAgroTargets() { return AgroTargets; }
 
+	// Clear Timers
 	void ClearTeamMoveTimer();
 
 	UFUNCTION(BlueprintCallable)
@@ -176,13 +143,15 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ClearAllTimer();
+    
+    UFUNCTION()
+    virtual void AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    UFUNCTION()
+    virtual void AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	void SetIndex(int value) { index = value; }
-	int GetIndex() { return index; }
-
-	TSubclassOf<class AActor> GetBoss() { return Boss; }
-	
-	void Smile();
-	void UsualFace();
+	UFUNCTION()
+	virtual void NotAllowSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION()
+	virtual void NotAllowSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);	
 };
 

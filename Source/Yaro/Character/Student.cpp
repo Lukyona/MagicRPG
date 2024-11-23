@@ -31,7 +31,6 @@ AStudent::AStudent()
 void AStudent::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -68,7 +67,7 @@ FRotator AStudent::GetLookAtRotationYaw(FVector Target)
 }
 
 void AStudent::SetAttackArrow()
-{//°íÄ§ CreateAbstractDefaultSubobject
+{
 	AttackArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("AttackArrow"));
 	AttackArrow->SetupAttachment(GetRootComponent());
 	AttackArrow->SetRelativeLocation(FVector(160.f, 4.f, 26.f));

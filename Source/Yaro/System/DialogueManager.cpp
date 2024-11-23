@@ -279,7 +279,7 @@ void UDialogueManager::DialogueEndEvents()
         break;
     case 6: // enter the second dungeon
         MainPlayerController->SetCinematicMode(false, true, true);
-        NPCManager->GetNPC("Momo")->UsualFace();
+        NPCManager->GetNPC("Momo")->SetSmileStatus(false);
         for (auto NPC : NPCManager->GetNPCMap())
         {
             if (NPC.Key != "Momo") // momo's already follwing to player
@@ -326,7 +326,7 @@ void UDialogueManager::DialogueEndEvents()
         {
             for (auto NPC : NPCManager->GetNPCMap())
             {
-                NPC.Value->UsualFace();
+                NPC.Value->SetSmileStatus(false);
             }
         }
         break;
@@ -339,7 +339,7 @@ void UDialogueManager::DialogueEndEvents()
         break;
     case 13:
     case 14:
-        NPCManager->GetNPC("Momo")->UsualFace();
+        NPCManager->GetNPC("Momo")->SetSmileStatus(false);
         Player->SetCanMove(true);
 
         NPCManager->AllNpcMoveToPlayer();

@@ -278,9 +278,9 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		}
 		Luko->MoveToPlayer();
 		Momo->MoveToPlayer();
-		Vovo->MoveToLocation();
-		Vivi->MoveToLocation();
-		Zizi->MoveToLocation();
+		Vovo->MoveToTeamPos();
+		Vivi->MoveToTeamPos();
+		Zizi->MoveToTeamPos();
 		break;
 	case 4: // npc move to boat and wait player
 		Momo->SetActorRotation(FRotator(0.f, 85.f, 0.f));

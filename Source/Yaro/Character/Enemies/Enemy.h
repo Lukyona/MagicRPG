@@ -6,7 +6,6 @@
 #include "GameFramework/Character.h"
 #include "Enemy.generated.h"
 
-
 UENUM(BlueprintType)
 enum class EEnemyMovementStatus :uint8
 {
@@ -27,19 +26,28 @@ class YARO_API AEnemy : public ACharacter
 {
 	GENERATED_BODY()
 
+public:
+	AEnemy();
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+protected:
 	UPROPERTY()
-		class UGameManager* GameManager;
+	class AAIController* AIController;
+
+	UPROPERTY()
+	EEnemyType EnemyType;
+
+	//Managers
+	UPROPERTY()
+	class UGameManager* GameManager;
 
 	UPROPERTY()
 		class UNPCManager* NPCManager;
 
 	bool hasSecondCollision = false;
 
-protected:
-	UPROPERTY(VisibleAnywhere, Category = "AI")
-	class AAIController* AIController;
-
-	UPROPERTY(VisibleAnywhere, Category = "Info")
 	EEnemyMovementStatus EnemyMovementStatus;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Info")
@@ -54,8 +62,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Info")
 	float EnemyExp;
 
-	UPROPERTY()
-		EEnemyType EnemyType;
+
 
 	// Enemy's back to their initial location
 	FVector InitialLocation;
@@ -149,7 +156,7 @@ protected:
 	
 public: // Get, Set
 	// Sets default values for this character's properties
-	AEnemy();
+	
 
 	AAIController* GetAIController() { return AIController; }
 
@@ -158,7 +165,6 @@ public: // Get, Set
 	FORCEINLINE EEnemyMovementStatus GetEnemyMovementStatus() { return EnemyMovementStatus; }
 
 	void InitHealth(float value) { Health = value; MaxHealth = value;}
-	//float GetMaxHealth() { return MaxHealth; }
 
 	void SetMain();
 
@@ -174,16 +180,6 @@ public: // Get, Set
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Info")
 	TSubclassOf<UDamageType> DamageTypeClass;
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 
 	// Combat
@@ -243,8 +239,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void AttackEnd();
 
-	// 공격 받음
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	UFUNCTION(BlueprintCallable)
 	void Die();

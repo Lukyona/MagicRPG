@@ -474,17 +474,17 @@ void UDialogueUI::DialogueEvents()
                     Player->SetTargetCharacter(Momo);
                     break;
                 case 8:
-                    Momo->Smile();
+                    Momo->SetSmileStatus(true);
                     break;
                 case 9:
-                    Momo->UsualFace();
+                    Momo->SetSmileStatus(false);
                 case 10:
                     Zizi->SetTargetCharacter(Vivi);
                     break;
                 case 13:
                     if (MessageIndex == 0)
                     {
-                        Momo->Smile();
+                        Momo->SetSmileStatus(true);
                         Momo->MoveToPlayer();
                     }
                     else
@@ -592,26 +592,26 @@ void UDialogueUI::DialogueEvents()
             switch (RowIndex)
             {
                 case 0:
-                    Momo->Smile();
+                    Momo->SetSmileStatus(true);
                     RowIndex = 13;
                     Player->SetTargetCharacter(Momo);
                     Momo->SetTargetCharacter(Player);
                     Momo->SetInterpToCharacter(true);
                     break;
                 case 14:
-                    Vovo->Smile();
+                    Vovo->SetSmileStatus(true);
                     Vovo->SetTargetCharacter(Player);
                     Vovo->SetInterpToCharacter(true);
                     Player->SetTargetCharacter(Vovo);
                     break;
                 case 15:
-                    Vivi->Smile();
+                    Vivi->SetSmileStatus(true);
                     Vivi->SetTargetCharacter(Player);
                     Vivi->SetInterpToCharacter(true);
                     Player->SetTargetCharacter(Vivi);
                     break;
                 case 16:
-                    Zizi->Smile();
+                    Zizi->SetSmileStatus(true);
                     Zizi->SetTargetCharacter(Player);
                     Zizi->SetInterpToCharacter(true);
                     Player->SetTargetCharacter(Zizi);
@@ -683,7 +683,7 @@ void UDialogueUI::DialogueEvents()
         {
             if (RowIndex == 0)
             {
-                Momo->Smile();
+                Momo->SetSmileStatus(true);
                 Player->SetCanMove(false);
                 RowIndex = 10;
                 Momo->SetTargetCharacter(Player);
@@ -735,7 +735,7 @@ void UDialogueUI::DialogueEvents()
                         Momo->SetTargetCharacter(Player);
                     break;
                 case 16:
-                    Zizi->Smile();
+                    Zizi->SetSmileStatus(true);
                     Zizi->SetTargetCharacter(Player);
                     Player->SetTargetCharacter(Zizi);
                     break;
@@ -744,7 +744,7 @@ void UDialogueUI::DialogueEvents()
                     NPCManager->AllNpcDisableLookAt();
                     Player->SetInterpToCharacter(false);
                     AutoCloseDialogue();
-                    Zizi->UsualFace();
+                    Zizi->SetSmileStatus(false);
                     return;
                     break;
             }
@@ -861,14 +861,14 @@ void UDialogueUI::DialogueEvents()
                     bInputDisabled = false;
                     break;
                 case 15:
-                    Vovo->Smile();
+                    Vovo->SetSmileStatus(true);
                     break;
                 case 16:
                     bInputDisabled = true;
                     GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 1.4f, false);
                     break;
                 case 17:
-                    Vovo->UsualFace();
+                    Vovo->SetSmileStatus(false);
                     Player->SetInterpToCharacter(false);
                     NPCManager->AllNpcDisableLookAt();
                     Vivi->GetAIController()->MoveToLocation(FVector(100.f, 1997.f, 182.f));
@@ -1046,21 +1046,21 @@ void UDialogueUI::DialogueEvents()
                     RowIndex = 14;
                     break;
                 case 16:
-                    Zizi->Smile();
+                    Zizi->SetSmileStatus(true);
                     NPCManager->AllNpcLookAtPlayer();
                     break;
                 case 17:
-                    Momo->Smile();
+                    Momo->SetSmileStatus(true);
                     break;
                 case 18:
-                    Vovo->Smile();
+                    Vovo->SetSmileStatus(true);
                     break;
                 case 19:
-                    Vivi->Smile();
+                    Vivi->SetSmileStatus(true);
                     break;
                 case 20:
                     if (MessageIndex == 1)
-                        Luko->Smile();
+                        Luko->SetSmileStatus(true);
                     break;
                 case 22:
                     NPCManager->AllNpcDisableLookAt();

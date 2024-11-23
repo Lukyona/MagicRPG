@@ -2,38 +2,40 @@
 
 #include "Main.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Camera/CameraComponent.h"
-#include "Engine/world.h"
-#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerStart.h"
-#include "Kismet/GameplayStatics.h"
+#include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
-#include "Yaro/Weapon.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
-#include "Yaro/Character/Enemies/Enemy.h"
 #include "Components/ArrowComponent.h"
-#include "Yaro/MagicSkill.h"
-#include "Yaro/System/MainPlayerController.h"
-#include "Engine/BlueprintGeneratedClass.h"
-#include "Yaro/ItemStorage.h"
-#include "Yaro/DialogueUI.h"
-#include "Yaro/Character/YaroCharacter.h"
-#include "Yaro/Character/MainAnimInstance.h"
-#include "Yaro/Structs/AttackSkillData.h"
+#include "Kismet/GameplayStatics.h"
 #include "AIController.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/world.h"
+
+#include "Yaro/System/MainPlayerController.h"
 #include "Yaro/System/GameManager.h"
 #include "Yaro/System/DialogueManager.h"
 #include "Yaro/System/NPCManager.h"
 #include "Yaro/System/UIManager.h"
+#include "Yaro/Character/MainAnimInstance.h"
+#include "Yaro/Character/YaroCharacter.h"
+#include "Yaro/Character/Enemies/Enemy.h"
+#include "Yaro/Character/Enemies/Boss.h"
+#include "Yaro/Structs/AttackSkillData.h"
+#include "Yaro/MagicSkill.h"
+#include "Yaro/ItemStorage.h"
+#include "Yaro/DialogueUI.h"
+#include "Yaro/Weapon.h"
 
-const float MinStaminaToRun = 30.f;
-const float MinManaToCast = 15.f;
+const float MIN_STAMINA_TO_RUN = 30.f;
+const float MIN_MANA_TO_CAST = 15.f;
 const float HP_RECOVERY_AMOUNT = 5.f;
 const float MP_RECOVERY_AMOUNT = 5.f;
 const float SP_RECOVERY_AMOUNT = 1.f;
 const float REVIVE_HP_AMOUNT = 50.f;
-// Sets default values
+
 AMain::AMain()
 {
 	InitializeCamera();
@@ -155,7 +157,6 @@ void AMain::BindComponentEvents()
 	ItemSphere->OnComponentEndOverlap.AddDynamic(this, &AMain::ItemSphereOnOverlapEnd);
 }
 
-// Called every frame
 void AMain::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -275,7 +276,7 @@ void AMain::Run(float Value)
 			}
 		}
 	}
-	else if(!bRunning && CurrentSP >= MinStaminaToRun)
+	else if(!bRunning && CurrentSP >= MIN_STAMINA_TO_RUN)
 	{
 		bRunning = true;
 		GetCharacterMovement()->MaxWalkSpeed = RunSpeed; // 속도 상향		
@@ -529,7 +530,7 @@ void AMain::UnsetCombatTarget()
 void AMain::Spawn() 
 {
 	float CurrentMP = PlayerStats[EPlayerStat::MP];
-	if (ToSpawn && CurrentMP >= MinManaToCast) // 마법 사용에 필요한 최소 MP가 15
+	if (ToSpawn && CurrentMP >= MIN_MANA_TO_CAST) // 마법 사용에 필요한 최소 MP가 15
 	{
 		//If player have not enough MP, then player can't use magic
 		float MPCost = 10.f + GetSkillNum() * 5;
@@ -586,7 +587,7 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 	{
 		CurrentHP = 0.f;
 		Die();
-		if (DamageCauser) // 확인 필요
+		if (DamageCauser)
 		{
 			AEnemy* Enemy = Cast<AEnemy>(DamageCauser);
 			if (Enemy)
@@ -616,7 +617,7 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 			{
 				if (NPC.Value->GetAgroTargets().Num() == 0) // Npc의 인식 범위에 아무도 없을 때
 				{
-					AEnemy* BossEnemy = Cast<AEnemy>(UGameplayStatics::GetActorOfClass(GetWorld(), NPC.Value->GetBoss()));
+					AEnemy* BossEnemy = Cast<AEnemy>(UGameplayStatics::GetActorOfClass(GetWorld(), ABoss::StaticClass()));
 					NPC.Value->MoveToTarget(BossEnemy); // 보스 몬스터에게 이동
 					NPC.Value->ClearPlayerFollowTimer();
 					NPC.Value->GetAIController()->StopMovement();
