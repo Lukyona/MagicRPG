@@ -32,6 +32,7 @@ const float MinManaToCast = 15.f;
 const float HP_RECOVERY_AMOUNT = 5.f;
 const float MP_RECOVERY_AMOUNT = 5.f;
 const float SP_RECOVERY_AMOUNT = 1.f;
+const float REVIVE_HP_AMOUNT = 50.f;
 // Sets default values
 AMain::AMain()
 {
@@ -206,8 +207,6 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
     PlayerInputComponent->BindAction("DisplayControlGuide", IE_Pressed, UIManager, &UUIManager::DisplayControlGuide);
 
 	PlayerInputComponent->BindAction("Escape", IE_Pressed, GameManager, &UGameManager::EscapeToSafeLocation);
-
-	PlayerInputComponent->BindAction("LevelCheat", IE_Pressed, this, &AMain::SetLevel5);
 
 	PlayerInputComponent->BindAction("UsePotion", IE_Pressed, this, &AMain::UsePotion);
 
@@ -487,7 +486,7 @@ void AMain::Targeting() //Targeting using Tap key
 	if (bOverlappingCombatSphere) //There is a enemy in combatsphere
 	{
 		 //타겟인덱스가 총 타겟 가능 몹 수 이상이면 다시 0으로 초기화
-		targetIndex = targetIndex % Targets.Num();
+		if(Targets.Num() != 0) TargetIndex %= Targets.Num();
 
 		//There is already exist targeted enemy, then targetArrow remove
 		if (UIManager->IsTargetArrowVisible())
@@ -501,10 +500,10 @@ void AMain::Targeting() //Targeting using Tap key
 		if (!bAutoTargeting) // 수동 타겟팅
 		{
 			// 죽은 몬스터는 타겟팅 불가
-			if (Targets[targetIndex]->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead) return;
+			if (Targets[TargetIndex]->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead) return;
 
-            CombatTarget = Targets[targetIndex];
-            targetIndex++;
+            CombatTarget = Targets[TargetIndex];
+            TargetIndex++;
 		}
 		
 		bHasCombatTarget = true;
@@ -560,10 +559,15 @@ void AMain::Spawn()
 				}
 
 				MagicAttack = MakeWeakObjectPtr<AMagicSkill>(world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams));
+				if (MagicAttack.IsValid())
+				{
+					MagicAttack->SetInstigator(MainPlayerController);
 
-				// 적에게로 이동하는 공격은 공격이 어디로 날라갈지를 정해줘야함.
-				if ((GetSkillNum() == 1 || GetSkillNum() == 3) && MagicAttack.IsValid() && CombatTarget)
-					MagicAttack->SetTarget(CombatTarget);
+					// 적에게로 이동하는 공격은 공격이 어디로 날라갈지를 정해줘야함.
+					if ((GetSkillNum() == 1 || GetSkillNum() == 3) &&CombatTarget)
+						MagicAttack->SetTarget(CombatTarget);
+				}
+				
 			}
 		}), 0.6f, false); // 0.6초 뒤 실행, 반복X
 
@@ -673,7 +677,7 @@ void AMain::Revive() // if player is dead, spawn player at the initial location
 		MainAnimInstance->Montage_Play(CombatMontage);
 		MainAnimInstance->Montage_JumpToSection(FName("Revival"));
 		GetMesh()->bNoSkeletonUpdate = false;
-		SetStat(EPlayerStat::HP, PlayerStats[EPlayerStat::HP] + 50);
+		SetStat(EPlayerStat::HP, PlayerStats[EPlayerStat::HP] + REVIVE_HP_AMOUNT);
 	}
 }
 
@@ -779,13 +783,12 @@ void AMain::GainExp(float Value)
 	float MaxExp = PlayerStats[EPlayerStat::MaxExp];
 
 	CurrentExp += Value;
+	SetStat(EPlayerStat::Exp, CurrentExp);
 
 	if (CurrentExp >= MaxExp) // 다음 레벨로의 경험치를 모두 채웠다면
 	{
 		LevelUp();
 	}
-
-	SetStat(EPlayerStat::Exp, CurrentExp);
 }
 
 void AMain::LevelUp()
@@ -802,6 +805,8 @@ void AMain::LevelUp()
 	// 경험치 수치 update
 	if (CurrentExp == MaxExp) CurrentExp = 0.f;
 	else CurrentExp -= MaxExp;
+
+	SetStat(EPlayerStat::Exp, CurrentExp);
 
 	if (CurrentLevel == 5) CurrentExp = MaxExp;
 
@@ -837,26 +842,6 @@ void AMain::LevelUp()
 		{
 			UIManager->RemoveSystemMessage();
 		}), 3.f, false);
-}
-
-void AMain::SetLevel5() // level cheat, 즉시 최대 레벨 도달
-{
-	if (DialogueManager->GetDialogueNum() < 3 || PlayerStats[EPlayerStat::Level] == 5) return;
-
-	if (LevelUpSound != nullptr)
-		UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
-
-	SetStat(EPlayerStat::Level, 5);
-
-	if (!UIManager->IsSystemMessageVisible())
-	{
-		UIManager->SetSystemMessage(16);
-		FTimerHandle Timer;
-		GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
-			{
-				UIManager->RemoveSystemMessage();
-			}), 3.f, false);
-	}
 }
 
 const TMap<FString, TSubclassOf<class AItem>>* AMain::GetItemMap()

@@ -120,14 +120,19 @@ void AYaroCharacter::MoveToPlayer()
         FAIMoveRequest MoveRequest;
         MoveRequest.SetGoalActor(Player);
         MoveRequest.SetAcceptanceRadius(80.f);
-
+		UE_LOG(LogTemp, Warning, TEXT("MONetwre %f"), distance);
         FNavPathSharedPtr NavPath;
         AIController->MoveTo(MoveRequest, &NavPath);
 	}
 	else // 전투 중
 	{
-		if(UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first"))
+		if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first"))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("comvattttt"));
+
 			TeleportTimer.Invalidate();
+			GetWorldTimerManager().ClearTimer(TeleportTimer);
+		}
 	}
 
 	GetWorldTimerManager().SetTimer(PlayerFollowTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
@@ -184,13 +189,8 @@ void AYaroCharacter::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedCom
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 		if (Enemy)
 		{
-			//UE_LOG(LogTemp, Log, TEXT("Yaro AgroSphereOnOverlapBegin %s"), *this->GetName());
+			if (AgroTargets.Contains(Enemy)) return;
 
-			for (int i = 0; i < AgroTargets.Num(); i++)
-			{
-				if (Enemy == AgroTargets[i]) //already exist
-					return;
-			}
 			AgroTargets.Add(Enemy); // 인식된 타겟 배열에 추가
 
 			if (!CombatTarget) // 현재 전투 타겟이 없다면
@@ -210,14 +210,9 @@ void AYaroCharacter::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCompo
 		{
 			if (!UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") || (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss") && Enemy->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead))
 			{
-				for (int i = 0; i < AgroTargets.Num(); i++)
-				{
-					if (Enemy == AgroTargets[i]) //already exist
-						AgroTargets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
-				}
+				if (AgroTargets.Contains(Enemy))
+					AgroTargets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
 			}
-
-			//UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapEnd %s"), *this->GetName());
 
 			if (!CombatTarget || Enemy == CombatTarget)
 			{
@@ -235,7 +230,6 @@ void AYaroCharacter::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCompo
 						{
 							// 그 몬스터가 죽은 상태면 리턴
 							if (NPC.Value->AgroTargets[0]->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead) return;
-							//UE_LOG(LogTemp, Log, TEXT("AgroSphereOnOverlapEnd Go Help %s"), *this->GetName());
 
 							MoveToTarget(NPC.Value->AgroTargets[0]);
 						}
@@ -243,7 +237,6 @@ void AYaroCharacter::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCompo
 				}
 				else // 인식 범위에 다른 몬스터가 남아있음
 				{
-					//UE_LOG(LogTemp, Log, TEXT("I Have AgroTargets %s"), *this->GetName());
 					bOverlappingCombatSphere = true;
 					CombatTarget = AgroTargets[0]; // 타겟 설정 후 공격
 					Attack();
@@ -260,16 +253,11 @@ void AYaroCharacter::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedC
         AEnemy* Enemy = Cast<AEnemy>(OtherActor);
         if (Enemy)
         {
-			for (int i = 0; i < CombatTargets.Num(); i++)
-			{
-				if (Enemy == CombatTargets[i]) //already exist
-					return;
-			}
+			if (CombatTargets.Contains(Enemy)) return;
+
 			CombatTargets.Add(Enemy); // 전투 타겟 배열에 추가
 
 			if (CombatTarget) return; // 이미 전투 중인 타겟이 있다면 리턴
-
-            //UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapBegin %s"), *this->GetName());
 
 			bOverlappingCombatSphere = true;
 			CombatTarget = Enemy;
@@ -286,13 +274,8 @@ void AYaroCharacter::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCom
         AEnemy* Enemy = Cast<AEnemy>(OtherActor);
         if (Enemy)
         {
-            //UE_LOG(LogTemp, Log, TEXT("CombatSphereOnOverlapEnd %s"), *this->GetName());	
-
-			for (int i = 0; i < CombatTargets.Num(); i++)
-			{
-				if (Enemy == CombatTargets[i]) //already exist
-					CombatTargets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
-			}
+			if (CombatTargets.Contains(Enemy))
+				CombatTargets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
 
 			if (Enemy == CombatTarget) // 현재 전투 타겟이 전투 범위에서 나감
 			{
@@ -300,8 +283,6 @@ void AYaroCharacter::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCom
 
 				if (CombatTargets.Num() != 0) // 전투 범위에 다른 몬스터 있음
 				{
-					//UE_LOG(LogTemp, Log, TEXT("I Have CombatTargets %s"), *this->GetName());
-
 					CombatTarget = CombatTargets[0];
 					Attack();
 				}
@@ -334,7 +315,6 @@ void AYaroCharacter::Attack()
 {
 	if ((!bAttacking) && (CombatTarget) && (CombatTarget->GetEnemyMovementStatus() != EEnemyMovementStatus::EMS_Dead))
 	{
-        //UE_LOG(LogTemp, Log, TEXT("Attack,  %s"), *this->GetName());
 		if (NPCType == ENPCType::Vovo && bIsHealTime)
 		{
 			GetWorldTimerManager().SetTimer(AttackTimer, this, &AYaroCharacter::Attack, 2.f);
@@ -367,7 +347,6 @@ void AYaroCharacter::Attack()
             GetWorldTimerManager().SetTimer(StormTimer, this, &AYaroCharacter::CanCastStormMagic, 8.f, false);  // 8초 뒤 다시 스톰 사용 가능
         }
 
-
 		ToSpawn = AttackSkillData->FindRow<FAttackSkillData>("Attack", "")->Skills[GetSkillNum() - 1];
 
 		bAttacking = true;
@@ -375,17 +354,14 @@ void AYaroCharacter::Attack()
 
 		if (AnimInstance && CombatMontage)
 		{
-			// 공격 몽타주 재생
 			AnimInstance->Montage_Play(CombatMontage);
 			AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
-			// 마법 스폰
 			Spawn();
 		}
 	}
 	else
 	{
 		AttackEnd();
-        //UE_LOG(LogTemp, Log, TEXT("AttackEnd... %s"), * this->GetName());
 	}
 }
 
@@ -393,41 +369,27 @@ void AYaroCharacter::AttackEnd()
 {
 	bAttacking = false;
 	SetInterpToEnemy(false);
-    //UE_LOG(LogTemp, Log, TEXT("AttackEnd %s"), *this->GetName());
 
 	if (bOverlappingCombatSphere) 
 	{
 		// 현재 전투 타겟이 죽음
 		if (CombatTarget && CombatTarget->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead)
 		{
-			//UE_LOG(LogTemp, Log, TEXT("CombatTarget died %s"), *this->GetName());
-			for (int i = 0; i < CombatTargets.Num(); i++)
-			{
-				if (CombatTarget == CombatTargets[i]) //already exist
-				{
-					CombatTargets.Remove(CombatTarget); // 전투 가능 몹 배열에서 제거
-				}
-			}			
+			if(CombatTargets.Contains(CombatTarget))
+				CombatTargets.Remove(CombatTarget);
 
-			for (int i = 0; i < AgroTargets.Num(); i++)
-			{
-				if (CombatTarget == AgroTargets[i]) //already exist
-				{
-					AgroTargets.Remove(CombatTarget); //인식된 몹 배열에서 제거
-				}
-			}
+			if (AgroTargets.Contains(CombatTarget))
+				AgroTargets.Remove(CombatTarget);
 
 			CombatTarget = nullptr;
 
 			if (CombatTargets.Num() == 0) // 전투 범위에 몬스터가 없음
 			{
 				bOverlappingCombatSphere = false;
-                //UE_LOG(LogTemp, Log, TEXT("AttackEnd - No CombatTargets %s"), *this->GetName());
 				
 				if (AgroTargets.Num() != 0) // 인식 범위에 몬스터가 있음
 				{
 					MoveToTarget(AgroTargets[0]);
-					//UE_LOG(LogTemp, Log, TEXT("AttackEnd - but havve AgroTargets %s"), *this->GetName());
 				}
 				else // 인식 범위에 몬스터 없음
 				{
@@ -437,7 +399,6 @@ void AYaroCharacter::AttackEnd()
 						if (NPC.Value->AgroTargets.Num() != 0
 							&& !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) 
 						{
-							//UE_LOG(LogTemp, Log, TEXT("AttackEnd - Go Help %s"), *this->GetName());
 							MoveToTarget(NPC.Value->AgroTargets[0]);
 						}
 					}
@@ -447,7 +408,6 @@ void AYaroCharacter::AttackEnd()
 			{
 				// 전투 타겟 새로 설정
 				CombatTarget = CombatTargets[0];
-                //UE_LOG(LogTemp, Log, TEXT("AttackEnd - i have CombatTarget %s"), * this->GetName());
 			}
 		}
 
@@ -458,7 +418,6 @@ void AYaroCharacter::AttackEnd()
 	{
 		if (AgroTargets.Num() != 0) // 인식 범위에 몬스터 존재
 		{
-			//UE_LOG(LogTemp, Log, TEXT("AttackEnd2 - No Combat Yes Agro %s"), *this->GetName());
 			for (int i = 0; i < AgroTargets.Num(); i++)
 			{
 				// 인식 범위에 있는 몬스터가 살아있다면
@@ -467,12 +426,10 @@ void AYaroCharacter::AttackEnd()
 					if (GetDistanceTo(AgroTargets[i]) >= 450.f) // 거리가 멀면 추적
 					{
 						MoveToTarget(AgroTargets[i]);
-						//UE_LOG(LogTemp, Log, TEXT("AttackEnd2 - Far Move %s"), *this->GetName());
 						return;
 					}
 					else // 거리가 멀지 않으면 전투 타겟으로 바로 설정 후 공격
 					{
-						//UE_LOG(LogTemp, Log, TEXT("AttackEnd2 - Close %s"), *this->GetName());
 						CombatTarget = AgroTargets[i];
 						GetWorldTimerManager().SetTimer(AttackTimer, this, &AYaroCharacter::Attack, AttackDelay);
 						return;
@@ -550,9 +507,12 @@ void AYaroCharacter::Spawn()
 
 				MagicAttack = world->SpawnActor<AMagicSkill>(ToSpawn, spawnLocation, rotator, spawnParams);
 
-				if (MagicAttack.IsValid() && CombatTarget)
+				if (MagicAttack.IsValid())
 				{
-					MagicAttack->SetTarget(CombatTarget);
+					MagicAttack->SetInstigator(AIController);
+
+					if(CombatTarget)
+						MagicAttack->SetTarget(CombatTarget);
 				}
 			}
 		}), 0.6f, false); // 0.6초 뒤 실행, 반복X
@@ -699,6 +659,13 @@ void AYaroCharacter::ClearPlayerFollowTimer()
 {
 	GetWorldTimerManager().ClearTimer(PlayerFollowTimer);
 	PlayerFollowTimer.Invalidate();
+	UE_LOG(LogTemp, Warning, TEXT("ClearPlayerFollowTimer %s"), *GetName());
+
+	if (TeleportTimer.IsValid() || GetWorldTimerManager().IsTimerActive(TeleportTimer))
+	{
+		GetWorldTimerManager().ClearTimer(TeleportTimer);
+		TeleportTimer.Invalidate();
+	}
 }
 
 void AYaroCharacter::ClearAllTimer()
@@ -707,6 +674,8 @@ void AYaroCharacter::ClearAllTimer()
 	ClearPlayerFollowTimer();
 	GetWorldTimerManager().ClearTimer(MagicSpawnTimer);
 	MagicSpawnTimer.Invalidate();
+	GetWorldTimerManager().ClearTimer(TeleportTimer);
+	TeleportTimer.Invalidate();
 }
 
 void AYaroCharacter::Smile() // 웃는 표정

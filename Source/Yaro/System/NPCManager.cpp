@@ -114,17 +114,18 @@ bool UNPCManager::IsNPCInTalkRange()
 void UNPCManager::SetPositionsForDialogue()
 {
 	AllNpcStopFollowPlayer();
-	for (auto NPC : NPCMap)
-	{
-		if(NPC.Key != "Momo" && NPC.Key != "Luko")
-			NPC.Value->ClearTeamMoveTimer();
-	}
 
 	int dialogueNum = DialogueManager->GetDialogueNum();
 	AMain* Player = GameManager->GetPlayer();
 
 	if (dialogueNum == 3) // after golem battle
 	{
+		for (auto NPC : NPCMap)
+		{
+			if (NPC.Key != "Momo" && NPC.Key != "Luko")
+				NPC.Value->ClearTeamMoveTimer();
+		}
+
 		Player->SetActorLocation(FVector(646.f, -1747.f, 2578.f));
 		Player->SetActorRotation(FRotator(0.f, 57.f, 0.f)); // y(pitch), z(yaw), x(roll)
 

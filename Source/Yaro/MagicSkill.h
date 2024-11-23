@@ -48,8 +48,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 		AController* MagicInstigator;
 
-	FORCEINLINE void SetInstigator(AController* Inst) { MagicInstigator = Inst; }
-
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Combat")
 		class ACharacter* Target;
 
@@ -80,8 +78,10 @@ public:
 
 	void SetLocation(); //Move magic to the target
 	void SetTarget(ACharacter* TargetCharacter) { Target = TargetCharacter; }
+	void SetInstigator(AController* Inst) { MagicInstigator = Inst; }
 
 	void SetMain();
 
+	AController* GetInstigator() { return MagicInstigator; }
 	ECasterType GetCaster() { return Caster; }
 };

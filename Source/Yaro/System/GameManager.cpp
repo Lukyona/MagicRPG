@@ -196,8 +196,6 @@ void UGameManager::LoadGame()
 		NPCManager->GetNPC("Zizi")->SetIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
 	}
 
-	Player->InitializeStats();
-
 	FString ItemName = LoadGameInstance->CharacterStats.ItemName;
 	if (Player->GetItemMap() != nullptr)
 	{

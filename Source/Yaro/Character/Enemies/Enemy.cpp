@@ -577,9 +577,6 @@ void AEnemy::DeathEnd()
 				if ((*GoblinCount + *GruxCount) == 8)
 				{
 					GameManager->SaveGame();
-					if (NPCManager->GetNPC("Momo")->GetTeleportCount() == 0) NPCManager->GetNPC("Momo")->ClearPlayerFollowTimer();
-					if (NPCManager->GetNPC("Luko")->GetTeleportCount() == 0) NPCManager->GetNPC("Luko")->ClearPlayerFollowTimer();
-
 					GameManager->GetDialogueManager()->DisplayDialogueUI();
 				}
 			}
@@ -649,56 +646,56 @@ void AEnemy::Disappear()
 
 void AEnemy::HitEnd()
 {
-	//UE_LOG(LogTemp, Log, TEXT("hit end %s"), *this->GetName());
-
 	if (!Main) Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
 
 	if (AgroTarget) // 누군가를 쫓아가고 있었으면 다시 쫓아가기
 	{
 		MoveToTarget(AgroTarget);
-		//UE_LOG(LogTemp, Log, TEXT("move to target again %s"), *this->GetName());
 	}
 
+	if (!CombatTarget && AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
 	
-	//int index = MagicAttack->index;
-	//if (!CombatTarget && AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
-	
-
 	/* When enemy doesn't have combat target, player attacks enemy
 	or when enemy's combat target is not player and player attacks enemy.
 	At this time, enemy must sets player as a combat target.
 	*/
-	/*if (index == 0)
+	if (MagicAttack != nullptr)
 	{
-		bAttackFromPlayer = true;
-		if ((CombatTarget == nullptr || CombatTarget != Main))
+		if (MagicAttack->GetCaster() == ECasterType::Player)
 		{
-			if (CombatTarget)
+			bAttackFromPlayer = true;
+			if ((CombatTarget == nullptr || CombatTarget != Main))
 			{
-				if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)
+				if (CombatTarget)
 				{
-					AnimInstance->Montage_Stop(0.1f, CombatMontage);
+					if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)
+					{
+						AnimInstance->Montage_Stop(0.1f, CombatMontage);
+					}
+				}
+				if (Main->GetMovementStatus() != EMovementStatus::EMS_Dead) MoveToTarget(Main);
+			}
+		}
+
+		// When enemy doesn't have any combat target and enemy doesn't follow player,  Ai(npc) attacks enemy
+		if (!CombatTarget && AgroTarget != Main && MagicAttack->GetCaster() == ECasterType::NPC)
+		{
+			if(MagicAttack->GetInstigator() != nullptr)
+			{
+				AStudent* NPC = Cast<AStudent>(MagicAttack->GetInstigator()->GetPawn());
+				if (CombatTargets.Contains(NPC))
+				{
+					CombatTarget = NPC;
+					bOverlappingCombatSphere = true;
+				}
+				else
+				{
+					MoveToTarget(NPC);
 				}
 			}
-			if (Main->GetMovementStatus() != EMovementStatus::EMS_Dead) MoveToTarget(Main);
 		}
 	}
 	
-	// When enemy doesn't have any combat target and enemy doesn't follow player,  Ai(npc) attacks enemy
-	if (!CombatTarget && AgroTarget != Main && index != 0)
-	{
-		AStudent* npc = MagicAttack->Caster;
-		if (CombatTargets.Contains(npc)) 
-		{
-			CombatTarget = npc;
-			bOverlappingCombatSphere = true;
-		}
-		else
-		{
-			MoveToTarget(npc);
-		}
-	}
-	*/
 	if (CombatTarget)
 	{
 		AttackEnd();

@@ -27,7 +27,6 @@ class YARO_API AEnemy : public ACharacter
 {
 	GENERATED_BODY()
 
-private:
 	UPROPERTY()
 		class UGameManager* GameManager;
 
@@ -48,7 +47,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Info")
 	float MaxHealth;
-
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Info")
 	float Damage;
@@ -92,11 +90,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<AStudent*> CombatTargets;
 
-
 	// When enemy attck target, enemy look at target
 	float InterpSpeed;
 	bool bInterpToTarget;
-
 
 	// 공격 관련
 	FTimerHandle AttackTimer;
