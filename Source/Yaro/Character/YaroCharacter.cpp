@@ -23,9 +23,9 @@
 #include "Yaro/MagicSkill.h"
 
 const float FAR_DISTANCE_FROM_PLAYER = 500.f;
-const float CLOSE_DISTANCE_FROM_PLAYER = 500.f;
+const float CLOSE_DISTANCE_FROM_PLAYER = 80.f;
 const float MOVEMENT_THRESHOLD = 50.f; // 이전 위치와 비교했을 때, 캐릭터가 이동했다고 간주하는 최소 거리 차이
-const int32 MAX_MOVE_FAIL_COUNT = 3;
+const int32 MAX_MOVE_FAIL_COUNT = 20;
 const FVector TELEPORT_OFFSET = FVector(30.f, 30.f, 0.f);
 //////////////////////////////////////////////////////////////////////////
 // AYaroCharacter
@@ -145,8 +145,11 @@ void AYaroCharacter::MoveToPlayer()
         float Distance = GetDistanceTo(Player);
         if (Distance >= FAR_DISTANCE_FROM_PLAYER) //일정 거리 이상 떨어져있다면 속도 높여 달리기
 			GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
-        else //가깝다면 속도 낮춰 걷기
+		else //가깝다면 속도 낮춰 걷기
+		{
 			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+			MoveFailCounter = 0;
+		}
 
 		MoveTo(Player, CLOSE_DISTANCE_FROM_PLAYER);
 
