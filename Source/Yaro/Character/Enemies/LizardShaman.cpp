@@ -28,7 +28,7 @@ void ALizardShaman::BeginPlay()
 
 void ALizardShaman::Disappear()
 {
-	Super::SphereCollisionDisabled();
+	Super::DisableSphereCollisions();
 
 	Super::Destroy();
 }

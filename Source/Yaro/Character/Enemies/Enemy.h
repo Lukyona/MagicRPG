@@ -28,53 +28,45 @@ class YARO_API AEnemy : public ACharacter
 
 public:
 	AEnemy();
+protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
+	class USphereComponent* CreateSphereComponent(FName Name, float Radius);
+	void BindComponentEvents();
+
 protected:
 	UPROPERTY()
 	class AAIController* AIController;
-
 	UPROPERTY()
 	EEnemyType EnemyType;
 
 	//Managers
 	UPROPERTY()
 	class UGameManager* GameManager;
-
 	UPROPERTY()
-		class UNPCManager* NPCManager;
+	class UNPCManager* NPCManager;
 
 	bool hasSecondCollision = false;
 
 	EEnemyMovementStatus EnemyMovementStatus;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Info")
+	//Stats
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Info")
 	float Health;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Info")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Info")
 	float MaxHealth;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Info")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Info")
 	float Damage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Info")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Info")
 	float EnemyExp;
-
-
 
 	// Enemy's back to their initial location
 	FVector InitialLocation;
 	FRotator InitialRotation;
 	
 protected:
-	/*
-	Combat System
-	*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	class AMain* Main; // 플레이어
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	class USphereComponent* AgroSphere; // 인식 범위
 
@@ -82,7 +74,7 @@ protected:
 	USphereComponent* CombatSphere; // 공격 범위
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	bool bOverlappingCombatSphere;
+	bool bOverlappingCombatSphere = false;
 
 	// 인식 중인 타겟과 공격 타겟
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
@@ -98,16 +90,14 @@ protected:
 	TArray<AStudent*> CombatTargets;
 
 	// When enemy attck target, enemy look at target
-	float InterpSpeed;
-	bool bInterpToTarget;
+	float InterpSpeed = 10.f;
+	bool bInterpToTarget = false;
 
 	// 공격 관련
-	FTimerHandle AttackTimer;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	float AttackDelay; // 공격 텀
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bAttacking; // 공격 중 true
 
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
@@ -116,10 +106,7 @@ protected:
 	class AMagicSkill* MagicAttack;
 
 	// 죽음 관련
-	FTimerHandle DeathTimer;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-	float DeathDelay; // 객체 소멸 텀
+	float DeathDelay = 3.f; // 객체 소멸 텀
 
 
 	// 초기 위치 복귀 시 사용
@@ -153,33 +140,24 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	class UBoxComponent* CombatCollision2;
-	
-public: // Get, Set
-	// Sets default values for this character's properties
-	
 
-	AAIController* GetAIController() { return AIController; }
-
-	// Status
-	FORCEINLINE void SetEnemyMovementStatus(EEnemyMovementStatus Status) { EnemyMovementStatus = Status; }
-	FORCEINLINE EEnemyMovementStatus GetEnemyMovementStatus() { return EnemyMovementStatus; }
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+		class AMain* Main; // 플레이어
+	
+public: // Getters and Setters
+	EEnemyMovementStatus GetEnemyMovementStatus() { return EnemyMovementStatus; }
+	void SetEnemyMovementStatus(EEnemyMovementStatus Status) { EnemyMovementStatus = Status; }
 
 	void InitHealth(float value) { Health = value; MaxHealth = value;}
 
 	void SetMain();
 
-	void SetAgroSphere(float value);
-	void SetCombatSphere(float value);
+	void SetAgroSphere(float Radius);
+	void SetCombatSphere(float Radius);
 
-	// 타겟을 향해 회전
-	void SetInterpToTarget(bool Interp);
+	void SetInterpToTarget(bool Interp) { bInterpToTarget = Interp; }
 
 	FRotator GetLookAtRotationYaw(FVector Target);
-
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Info")
-	TSubclassOf<UDamageType> DamageTypeClass;
-
 
 
 	// Combat
@@ -249,11 +227,10 @@ public: // Get, Set
 	// 소멸
 	virtual void Disappear();
 
-	void CombatCollisionDisabled();
-	void SphereCollisionDisabled();
+	void DisableCombatCollisions();
+	void DisableSphereCollisions();
 
-    UFUNCTION(BlueprintCallable)
-	bool Alive();
+	bool IsDead() { return EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead;}
 
 	// 공격받은 뒤
 	UFUNCTION(BlueprintCallable)

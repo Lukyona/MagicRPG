@@ -26,6 +26,6 @@ void ABoss::BeginPlay()
 
 void ABoss::Disappear()
 {
-	Super::SphereCollisionDisabled();
+	Super::DisableSphereCollisions();
 	Super::Destroy();
 }

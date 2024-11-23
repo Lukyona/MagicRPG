@@ -12,10 +12,8 @@ AArcher::AArcher()
 
 	//This is the default value, each enemy has different health.
 	InitHealth(450.f);
-
 	Damage = 40.f;
 	EnemyExp = 40.f;
-
 	AttackDelay = 0.6f;
 }
 void AArcher::BeginPlay()
@@ -25,7 +23,7 @@ void AArcher::BeginPlay()
 
 void AArcher::Disappear()
 {
-	Super::SphereCollisionDisabled();
+	Super::DisableSphereCollisions();
 
 	Super::Destroy();
 }
