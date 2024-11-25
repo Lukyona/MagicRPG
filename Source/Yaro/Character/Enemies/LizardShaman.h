@@ -16,9 +16,6 @@ class YARO_API ALizardShaman : public AEnemy
 	
 public:
 	ALizardShaman();
-
-	virtual void BeginPlay() override;
-
-
+	
 	void Disappear();
 };

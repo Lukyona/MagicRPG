@@ -16,7 +16,4 @@ class YARO_API ASpider : public AEnemy
 	
 public:
 	ASpider();
-
-	virtual void BeginPlay() override;
-
 };

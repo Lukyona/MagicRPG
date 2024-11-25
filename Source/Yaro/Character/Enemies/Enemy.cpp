@@ -43,7 +43,12 @@ void AEnemy::BeginPlay()
 	AIController = Cast<AAIController>(GetController());
 	AnimInstance = GetMesh()->GetAnimInstance();
 
-	BindComponentEvents();
+	SetAgroSphere(AgroSphereRadius);
+	SetCombatSphere(CombatSphereRadius);
+	BindSphereComponentEvents();
+
+	CreateWeaponCollisions();
+	BindWeaponCollisionEvents();
 
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
@@ -51,8 +56,9 @@ void AEnemy::BeginPlay()
 	InitialLocation = GetActorLocation(); 
 	InitialRotation = GetActorRotation();
 
-	SetMain();
+	Health = MaxHealth;
 
+	SetMain();
 }
 
 USphereComponent* AEnemy::CreateSphereComponent(FName Name, float Radius)
@@ -77,7 +83,7 @@ void AEnemy::SetCombatSphere(float Radius)
 	CombatSphere = CreateSphereComponent("CombatSphere", Radius);
 }
 
-void AEnemy::BindComponentEvents()
+void AEnemy::BindSphereComponentEvents()
 {
 	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapBegin);
 	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapEnd);
@@ -86,26 +92,34 @@ void AEnemy::BindComponentEvents()
 	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatSphereOnOverlapEnd);
 }
 
-void AEnemy::EnableFirstWeaponCollision()
+UBoxComponent* AEnemy::CreateCollision(FName Name, FName SocketName)
 {
-	CombatCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapBegin);
-	CombatCollision->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapEnd);
+	UBoxComponent* Collision = CreateDefaultSubobject<UBoxComponent>(Name);
+	Collision->SetupAttachment(GetMesh(), SocketName);
+	Collision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Collision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	Collision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	Collision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 
-	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CombatCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	CombatCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	return Collision;
 }
 
-void AEnemy::EnableSecondWeaponCollision()
+void AEnemy::CreateWeaponCollisions()
 {
-	CombatCollision2->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapBegin);
-	CombatCollision2->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapEnd);
+	CreateCollision("CombatCollision", "EnemySocket_1");
+	if (hasSecondCollision)
+		CreateCollision("CombatCollision2", "EnemySocket_2");
+}
 
-	CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CombatCollision2->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	CombatCollision2->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	CombatCollision2->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+void AEnemy::BindWeaponCollisionEvents()
+{
+	CombatCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::WeaponCollisionOnOverlapBegin);
+	CombatCollision->OnComponentEndOverlap.AddDynamic(this, &AEnemy::WeaponCollisionOnOverlapEnd);
+	if (hasSecondCollision && CombatCollision2)
+	{
+		CombatCollision2->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::WeaponCollisionOnOverlapBegin);
+		CombatCollision2->OnComponentEndOverlap.AddDynamic(this, &AEnemy::WeaponCollisionOnOverlapEnd);
+	}
 }
 
 void AEnemy::Tick(float DeltaTime)
@@ -291,6 +305,39 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 	}
 }
 
+void AEnemy::WeaponCollisionOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
+
+	if (OtherActor)
+	{
+		AStudent* Target = Cast<AStudent>(OtherActor);
+
+		if (Target)
+		{
+			UGameplayStatics::ApplyDamage(Target, Damage, AIController, this, UDamageType::StaticClass());
+		}
+	}
+}
+
+void AEnemy::WeaponCollisionOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+}
+
+void AEnemy::ActivateCollision()
+{
+	CombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	if(hasSecondCollision)
+		CombatCollision2->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+}
+
+void AEnemy::DeactivateCollision()
+{
+	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (hasSecondCollision)
+		CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
 void AEnemy::MoveToTarget(AStudent* Target)
 {
 	if (AIController && !IsDead())
@@ -323,47 +370,6 @@ void AEnemy::MoveToTarget(AStudent* Target)
 		}
 		*/
 	}
-}
-
-void AEnemy::CombatOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
-
-	if (OtherActor)
-	{
-		AStudent* Target = Cast<AStudent>(OtherActor);
-
-		if (Target)
-		{
-			UGameplayStatics::ApplyDamage(Target, Damage, AIController, this, UDamageType::StaticClass());
-		}
-	}
-}
-
-void AEnemy::CombatOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-}
-
-void AEnemy::ActivateCollision()
-{
-	CombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-}
-
-void AEnemy::DeactivateCollision()
-{
-	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-}
-
-void AEnemy::ActivateCollisions()
-{
-	ActivateCollision();
-	CombatCollision2->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-}
-
-void AEnemy::DeactivateCollisions()
-{
-	DeactivateCollision();
-	CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AEnemy::Attack()
@@ -565,7 +571,15 @@ void AEnemy::DeathEnd()
 	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::Disappear, DeathDelay);
 }
 
-void AEnemy::DisableCombatCollisions()
+void AEnemy::Disappear()
+{
+	DisableWeaponCollisions();
+	DisableSphereCollisions();
+
+	Destroy();
+}
+
+void AEnemy::DisableWeaponCollisions()
 {
 	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	if (hasSecondCollision)
@@ -578,14 +592,6 @@ void AEnemy::DisableSphereCollisions()
 	CombatSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-}
-
-void AEnemy::Disappear()
-{
-	DisableCombatCollisions();
-	DisableSphereCollisions();
-
-	Destroy();
 }
 
 void AEnemy::HitEnd()
@@ -690,21 +696,6 @@ void AEnemy::CheckLocation()
 	{
 		GetWorldTimerManager().ClearTimer(CheckHandle);
 	}
-}
-
-void AEnemy::CreateFirstWeaponCollision()
-{
-	CombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision"));
-	CombatCollision->SetupAttachment(GetMesh(), FName("EnemySocket_1"));
-}
-
-void AEnemy::CreateSecondWeaponCollision()
-{
-	//무기 콜리전 2개인 적만 적용
-	CombatCollision2 = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision2"));
-	CombatCollision2->SetupAttachment(GetMesh(), FName("EnemySocket_2"));
-
-	hasSecondCollision = true;
 }
 
 void AEnemy::MovingNow()

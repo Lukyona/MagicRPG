@@ -17,7 +17,5 @@ class YARO_API AArcher : public AEnemy
 public:
 	AArcher();
 
-	virtual void BeginPlay() override;
-
 	void Disappear();
 };

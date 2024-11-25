@@ -11,28 +11,15 @@ AGolem::AGolem()
 {
 	EnemyType = EEnemyType::Golem;
 
-	SetAgroSphere(700.f);
-	SetCombatSphere(200.f);
-
-	CreateFirstWeaponCollision();
-	CreateSecondWeaponCollision();
-
-	//This is the default value, each enemy has different health.
-	InitHealth(800.f);
-
+	hasSecondCollision = true;
+	
+	MaxHealth = 800.f;
 	Damage = 60.f;
 	EnemyExp = 80.f;
-
 	AttackDelay = 0.7f;
 
-}
-
-void AGolem::BeginPlay()
-{
-	Super::BeginPlay();
-
-	EnableFirstWeaponCollision();
-	EnableSecondWeaponCollision();
+	AgroSphereRadius = 700.f;
+	CombatSphereRadius = 200.f;
 }
 
 void AGolem::HitGround() //Golem's third skill
@@ -48,6 +35,5 @@ void AGolem::HitGround() //Golem's third skill
 			nullptr,
 			false,
 			ECollisionChannel::ECC_Visibility);
-			//Damage(CombatTarget, Damage, AIController, this, DamageTypeClass);
 	}
 }

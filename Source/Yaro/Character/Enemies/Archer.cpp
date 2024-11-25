@@ -7,18 +7,14 @@ AArcher::AArcher()
 {
 	EnemyType = EEnemyType::Archer;
 
-	SetAgroSphere(430.f);
-	SetCombatSphere(400.f);
-
-	//This is the default value, each enemy has different health.
-	InitHealth(450.f);
+	//This is the default value, each enemy has different values.
+	MaxHealth = 450.f;
 	Damage = 40.f;
 	EnemyExp = 40.f;
 	AttackDelay = 0.6f;
-}
-void AArcher::BeginPlay()
-{
-	Super::BeginPlay();
+
+	AgroSphereRadius = 430.f;
+	CombatSphereRadius = 400.f;
 }
 
 void AArcher::Disappear()

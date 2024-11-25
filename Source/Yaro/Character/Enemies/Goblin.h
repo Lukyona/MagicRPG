@@ -18,7 +18,4 @@ class YARO_API AGoblin : public AEnemy
 public:
 	AGoblin();
 
-	virtual void BeginPlay() override;
-
-
 };

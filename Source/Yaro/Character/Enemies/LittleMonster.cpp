@@ -6,27 +6,14 @@
 ALittleMonster::ALittleMonster()
 {
 	EnemyType = EEnemyType::LittleMonster;
+	
+	hasSecondCollision = true;
 
-	SetAgroSphere(200.f);
-	SetCombatSphere(75.f);
-
-	CreateFirstWeaponCollision();
-	CreateSecondWeaponCollision();
-
-	//This is the default value, each enemy has different health.
-	InitHealth(700.f);
-
+	MaxHealth = 700.f;
 	Damage = 45.f;
 	EnemyExp = 60.f;
-
 	AttackDelay = 0.5f;
 
-}
-
-void ALittleMonster::BeginPlay()
-{
-	Super::BeginPlay();
-
-	EnableFirstWeaponCollision();
-	EnableSecondWeaponCollision();
+	AgroSphereRadius = 200.f;
+	CombatSphereRadius = 75.f;
 }

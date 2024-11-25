@@ -17,6 +17,4 @@ class YARO_API ALizard : public AEnemy
 public:
 	ALizard();
 
-	virtual void BeginPlay() override;
-
 };

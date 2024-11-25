@@ -17,6 +17,4 @@ class YARO_API ALittleMonster : public AEnemy
 public:
 	ALittleMonster();
 
-	virtual void BeginPlay() override;
-
 };

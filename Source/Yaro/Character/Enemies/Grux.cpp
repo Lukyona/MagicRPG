@@ -7,28 +7,14 @@ AGrux::AGrux()
 {
 	EnemyType = EEnemyType::Grux;
 
-	SetAgroSphere(600.f);
-	SetCombatSphere(200.f);
-
-	CreateFirstWeaponCollision();
-	CreateSecondWeaponCollision();
-
-	//This is the default value, each enemy has different health.
-	InitHealth(300.f);
-
+	hasSecondCollision = true;
+	
+	MaxHealth = 300.f;
 	Damage = 40.f;
 	EnemyExp = 70.f;
-
 	AttackDelay = 0.2f;
 
-
-}
-
-void AGrux::BeginPlay()
-{
-	Super::BeginPlay();
-
-	EnableFirstWeaponCollision();
-	EnableSecondWeaponCollision();
+	AgroSphereRadius = 600.f;
+	CombatSphereRadius = 200.f;
 }
 

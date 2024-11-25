@@ -6,29 +6,18 @@
 ALizardShaman::ALizardShaman()
 {
 	EnemyType = EEnemyType::LizardShaman;
-
-	SetAgroSphere(600.f);
-	SetCombatSphere(400.f);
-
-
-	//This is the default value, each enemy has different health.
-	InitHealth(500.f);
-
+	
+	MaxHealth = 500.f;
 	Damage = 0.f;
 	EnemyExp = 50.f;
-
 	AttackDelay = 0.5f;
 
-}
-
-void ALizardShaman::BeginPlay()
-{
-	Super::BeginPlay();
+	AgroSphereRadius = 600.f;
+	CombatSphereRadius = 400.f;
 }
 
 void ALizardShaman::Disappear()
 {
 	Super::DisableSphereCollisions();
-
 	Super::Destroy();
 }

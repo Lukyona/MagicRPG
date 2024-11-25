@@ -16,9 +16,4 @@ class YARO_API ALittleDino : public AEnemy
 
 public:
 	ALittleDino();
-
-	virtual void BeginPlay() override;
-
-
-	
 };

@@ -17,9 +17,6 @@ class YARO_API AGolem : public AEnemy
 public:
 	AGolem();
 
-	virtual void BeginPlay() override;
-
-
 	UFUNCTION(BlueprintCallable)
 	void HitGround(); 
 	

@@ -17,7 +17,5 @@ class YARO_API ABoss : public AEnemy
 public:
 	ABoss();
 
-	virtual void BeginPlay() override;
-
 	void Disappear();
 };

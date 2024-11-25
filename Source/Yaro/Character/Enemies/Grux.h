@@ -16,7 +16,4 @@ class YARO_API AGrux : public AEnemy
 	
 public:
 	AGrux();
-
-	virtual void BeginPlay() override;
-
 };

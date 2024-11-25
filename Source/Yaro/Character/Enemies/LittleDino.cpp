@@ -7,26 +7,13 @@ ALittleDino::ALittleDino()
 {
 	EnemyType = EEnemyType::LittleDino;
 
-	SetAgroSphere(200.f);
-	SetCombatSphere(30.f);
+	hasSecondCollision = true;
 
-	CreateFirstWeaponCollision();
-	CreateSecondWeaponCollision();
-
-	//This is the default value, each enemy has different health.
-	InitHealth(200.f);
-
+	MaxHealth = 200.f;
 	Damage = 30.f;
 	EnemyExp = 30.f;
-
 	AttackDelay = 0.2f;
 
-}
-
-void ALittleDino::BeginPlay()
-{
-	Super::BeginPlay();
-
-	EnableFirstWeaponCollision();
-	EnableSecondWeaponCollision();
+	AgroSphereRadius = 200.f;
+	CombatSphereRadius = 30.f;
 }
