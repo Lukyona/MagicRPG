@@ -7,7 +7,7 @@ ALizard::ALizard()
 {
 	EnemyType = EEnemyType::Lizard;
 
-	hasSecondCollision = true;
+	bHasSecondCollision = true;
 	
 	MaxHealth = 400.f;
 	Damage = 45.f;
@@ -16,6 +16,9 @@ ALizard::ALizard()
 
 	AgroSphereRadius = 450.f;
 	CombatSphereRadius = 110.f;
+
+	CreateSpheresAndCollisions();
+
 }
 
 

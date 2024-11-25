@@ -7,6 +7,8 @@ ABoss::ABoss()
 {
 	EnemyType = EEnemyType::Boss;
 
+	bIsRangedAttacker = true;
+
 	MaxHealth = 1000.f;
 	Damage = 60.f;
 	EnemyExp = 100.f;
@@ -14,6 +16,9 @@ ABoss::ABoss()
 
 	AgroSphereRadius = 750.f;
 	CombatSphereRadius = 600.f;
+
+	CreateSpheresAndCollisions();
+
 }
 
 void ABoss::Disappear()

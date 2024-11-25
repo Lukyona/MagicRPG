@@ -7,7 +7,7 @@ AGrux::AGrux()
 {
 	EnemyType = EEnemyType::Grux;
 
-	hasSecondCollision = true;
+	bHasSecondCollision = true;
 	
 	MaxHealth = 300.f;
 	Damage = 40.f;
@@ -16,5 +16,8 @@ AGrux::AGrux()
 
 	AgroSphereRadius = 600.f;
 	CombatSphereRadius = 200.f;
+
+	CreateSpheresAndCollisions();
+
 }
 

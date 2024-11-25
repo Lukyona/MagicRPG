@@ -7,7 +7,7 @@ ALittleDino::ALittleDino()
 {
 	EnemyType = EEnemyType::LittleDino;
 
-	hasSecondCollision = true;
+	bHasSecondCollision = true;
 
 	MaxHealth = 200.f;
 	Damage = 30.f;
@@ -16,4 +16,7 @@ ALittleDino::ALittleDino()
 
 	AgroSphereRadius = 200.f;
 	CombatSphereRadius = 30.f;
+
+	CreateSpheresAndCollisions();
+
 }

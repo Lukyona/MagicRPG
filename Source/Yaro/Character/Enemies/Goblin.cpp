@@ -12,4 +12,7 @@ AGoblin::AGoblin()
 
 	AgroSphereRadius = 500.f;
 	CombatSphereRadius = 110.f;
+
+	CreateSpheresAndCollisions();
+
 }

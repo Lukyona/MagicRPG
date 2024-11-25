@@ -43,13 +43,6 @@ void AEnemy::BeginPlay()
 	AIController = Cast<AAIController>(GetController());
 	AnimInstance = GetMesh()->GetAnimInstance();
 
-	SetAgroSphere(AgroSphereRadius);
-	SetCombatSphere(CombatSphereRadius);
-	BindSphereComponentEvents();
-
-	CreateWeaponCollisions();
-	BindWeaponCollisionEvents();
-
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 
@@ -57,6 +50,10 @@ void AEnemy::BeginPlay()
 	InitialRotation = GetActorRotation();
 
 	Health = MaxHealth;
+
+	BindSphereComponentEvents();
+	if(!bIsRangedAttacker)
+		BindWeaponCollisionEvents();
 
 	SetMain();
 }
@@ -107,7 +104,7 @@ UBoxComponent* AEnemy::CreateCollision(FName Name, FName SocketName)
 void AEnemy::CreateWeaponCollisions()
 {
 	CreateCollision("CombatCollision", "EnemySocket_1");
-	if (hasSecondCollision)
+	if (bHasSecondCollision)
 		CreateCollision("CombatCollision2", "EnemySocket_2");
 }
 
@@ -115,11 +112,19 @@ void AEnemy::BindWeaponCollisionEvents()
 {
 	CombatCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::WeaponCollisionOnOverlapBegin);
 	CombatCollision->OnComponentEndOverlap.AddDynamic(this, &AEnemy::WeaponCollisionOnOverlapEnd);
-	if (hasSecondCollision && CombatCollision2)
+	if (bHasSecondCollision && CombatCollision2)
 	{
 		CombatCollision2->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::WeaponCollisionOnOverlapBegin);
 		CombatCollision2->OnComponentEndOverlap.AddDynamic(this, &AEnemy::WeaponCollisionOnOverlapEnd);
 	}
+}
+
+void AEnemy::CreateSpheresAndCollisions()
+{
+	SetAgroSphere(AgroSphereRadius);
+	SetCombatSphere(CombatSphereRadius);
+	if(!bIsRangedAttacker)
+		CreateWeaponCollisions();
 }
 
 void AEnemy::Tick(float DeltaTime)
@@ -324,17 +329,17 @@ void AEnemy::WeaponCollisionOnOverlapEnd(UPrimitiveComponent* OverlappedComponen
 {
 }
 
-void AEnemy::ActivateCollision()
+void AEnemy::ActivateWeaponCollisions()
 {
 	CombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	if(hasSecondCollision)
+	if(bHasSecondCollision)
 		CombatCollision2->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 }
 
-void AEnemy::DeactivateCollision()
+void AEnemy::DeactivateWeaponCollisions()
 {
 	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	if (hasSecondCollision)
+	if (bHasSecondCollision)
 		CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
@@ -582,7 +587,7 @@ void AEnemy::Disappear()
 void AEnemy::DisableWeaponCollisions()
 {
 	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	if (hasSecondCollision)
+	if (bHasSecondCollision)
 		CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 

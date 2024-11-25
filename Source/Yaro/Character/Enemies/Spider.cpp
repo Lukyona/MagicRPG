@@ -14,4 +14,7 @@ ASpider::ASpider()
 
 	AgroSphereRadius = 450.f;
 	CombatSphereRadius = 70.f;
+
+	CreateSpheresAndCollisions();
+
 }

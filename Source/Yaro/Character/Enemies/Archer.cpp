@@ -7,6 +7,8 @@ AArcher::AArcher()
 {
 	EnemyType = EEnemyType::Archer;
 
+	bIsRangedAttacker = true;
+
 	//This is the default value, each enemy has different values.
 	MaxHealth = 450.f;
 	Damage = 40.f;
@@ -15,6 +17,8 @@ AArcher::AArcher()
 
 	AgroSphereRadius = 430.f;
 	CombatSphereRadius = 400.f;
+
+	CreateSpheresAndCollisions();
 }
 
 void AArcher::Disappear()

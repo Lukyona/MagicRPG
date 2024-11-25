@@ -65,6 +65,9 @@ private:
 	FRotator GetLookAtRotationYaw(FVector Target);
 
 protected:
+	void CreateSpheresAndCollisions();
+
+protected:
 	UPROPERTY()
 	class AAIController* AIController;
 	UPROPERTY()
@@ -88,7 +91,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Info")
 	float EnemyExp;
 
-	bool hasSecondCollision = false;
+	bool bHasSecondCollision = false; // 근거리 무기 콜리전이 2개인 적
+	bool bIsRangedAttacker = false; // 원거리 공격만을 사용하는 적
 
 	float AgroSphereRadius = 0.f;
 	float CombatSphereRadius = 0.f;
@@ -199,9 +203,9 @@ public: // Getters and Setters
 
 	
 	UFUNCTION(BlueprintCallable)
-	void ActivateCollision(); 
+	void ActivateWeaponCollisions(); 
 	UFUNCTION(BlueprintCallable)
-	void DeactivateCollision();
+	void DeactivateWeaponCollisions();
 
 
 	// 공격
@@ -222,7 +226,7 @@ public: // Getters and Setters
 	void DisableWeaponCollisions();
 	void DisableSphereCollisions();
 
-	bool IsDead() { return EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead;}
+	bool IsDead() { return EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead;}
 
 	// 공격받은 뒤
 	UFUNCTION(BlueprintCallable)

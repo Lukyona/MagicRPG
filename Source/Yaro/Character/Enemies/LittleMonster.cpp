@@ -7,7 +7,7 @@ ALittleMonster::ALittleMonster()
 {
 	EnemyType = EEnemyType::LittleMonster;
 	
-	hasSecondCollision = true;
+	bHasSecondCollision = true;
 
 	MaxHealth = 700.f;
 	Damage = 45.f;
@@ -16,4 +16,7 @@ ALittleMonster::ALittleMonster()
 
 	AgroSphereRadius = 200.f;
 	CombatSphereRadius = 75.f;
+
+	CreateSpheresAndCollisions();
+
 }

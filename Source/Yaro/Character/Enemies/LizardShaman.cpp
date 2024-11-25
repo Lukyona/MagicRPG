@@ -7,6 +7,8 @@ ALizardShaman::ALizardShaman()
 {
 	EnemyType = EEnemyType::LizardShaman;
 	
+	bIsRangedAttacker = true;
+
 	MaxHealth = 500.f;
 	Damage = 0.f;
 	EnemyExp = 50.f;
@@ -14,6 +16,9 @@ ALizardShaman::ALizardShaman()
 
 	AgroSphereRadius = 600.f;
 	CombatSphereRadius = 400.f;
+
+	CreateSpheresAndCollisions();
+
 }
 
 void ALizardShaman::Disappear()

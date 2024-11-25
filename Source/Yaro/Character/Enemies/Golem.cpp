@@ -11,7 +11,7 @@ AGolem::AGolem()
 {
 	EnemyType = EEnemyType::Golem;
 
-	hasSecondCollision = true;
+	bHasSecondCollision = true;
 	
 	MaxHealth = 800.f;
 	Damage = 60.f;
@@ -20,6 +20,9 @@ AGolem::AGolem()
 
 	AgroSphereRadius = 700.f;
 	CombatSphereRadius = 200.f;
+
+	CreateSpheresAndCollisions();
+
 }
 
 void AGolem::HitGround() //Golem's third skill
