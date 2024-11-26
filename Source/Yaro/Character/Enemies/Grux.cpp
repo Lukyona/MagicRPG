@@ -20,4 +20,3 @@ AGrux::AGrux()
 	CreateSpheresAndCollisions();
 
 }
-

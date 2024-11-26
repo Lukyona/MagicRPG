@@ -9,6 +9,16 @@
 /**
  * 
  */
+class UGameManager;
+class UNPCManager;
+class UUIManager;
+class AMain;
+class AMainPlayerController;
+class UDialogueUI;
+class AActor;
+class UDataTable;
+class AYaroCharacter;
+
 UCLASS(BlueprintType)
 class YARO_API UDialogueManager : public UObject
 {
@@ -17,22 +27,22 @@ class YARO_API UDialogueManager : public UObject
 	static UDialogueManager* Instance;
 
 	UPROPERTY()
-	class UGameManager* GameManager;
+	UGameManager* GameManager;
 
 	UPROPERTY()
-	class UNPCManager* NPCManager;
+	UNPCManager* NPCManager;
 
 	UPROPERTY()
-	class UUIManager* UIManager;
+	UUIManager* UIManager;
 
 	UPROPERTY()
-	class AMain* Player;
+	AMain* Player;
 
 	UPROPERTY()
-		class AMainPlayerController* MainPlayerController;
+		AMainPlayerController* MainPlayerController;
 
 	UPROPERTY()
-		class UDialogueUI* DialogueUI;
+		UDialogueUI* DialogueUI;
 
 	int DialogueNum = 0; // 0 - intro
 
@@ -43,10 +53,10 @@ class YARO_API UDialogueManager : public UObject
 	ACharacter* SpeakingTarget;
 
 	UPROPERTY()
-	class AActor* SpeechBubble;
+	AActor* SpeechBubble;
 
 	UPROPERTY()
-	TArray <class UDataTable*> DialogueDatas;
+	TArray <UDataTable*> DialogueDatas;
 
 public:
 	static UDialogueManager* CreateInstance(UGameInstance* Outer)
@@ -54,6 +64,7 @@ public:
 		if (Instance == nullptr)
 		{
 			Instance = NewObject<UDialogueManager>(Outer, UDialogueManager::StaticClass());
+			Instance->AddToRoot();
 		}
 		return Instance;
 	}
@@ -92,7 +103,7 @@ public:
 		void DialogueEndEvents();
 
 	UFUNCTION(BlueprintCallable)
-		void DisplaySpeechBuubble(class AYaroCharacter* npc);
+		void DisplaySpeechBuubble(AYaroCharacter* NPC);
 
 	void RemoveSpeechBuubble();
 

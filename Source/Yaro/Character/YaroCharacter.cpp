@@ -19,7 +19,7 @@
 #include "Yaro/Structs/AttackSkillData.h"
 #include "Yaro/Character/Main.h"
 #include "Yaro/Character/Enemies/Enemy.h"
-#include "Yaro/Character/Enemies/Boss.h"
+#include "Yaro/Character/Enemies/Golem.h"
 #include "Yaro/MagicSkill.h"
 
 const float FAR_DISTANCE_FROM_PLAYER = 500.f;
@@ -33,7 +33,7 @@ AYaroCharacter::AYaroCharacter()
 {
 	AgroSphere = CreateSphereComponent("AgroSphere", 600.f, FVector::ZeroVector);
 	CombatSphere = CreateSphereComponent("CombatSphere", 480.f, FVector(250.f, 0.f, 0.f));
-	NotAllowSphere = CreateSphereComponent("NotAllowSphere", 100.f, FVector(50.f, 0.f, 0.f));
+	NotAllowSphere = CreateSphereComponent("NotAllowSphere", 150.f, FVector(50.f, 0.f, 0.f));
 	
 	// positions in first dungeon. only vovo, vivi, zizi
 	SetTeamMovePosList();
@@ -102,6 +102,12 @@ void AYaroCharacter::SetTeamMovePosList()
 	TeamMovePosList.Add(FVector(2080.f, 283.f, 2838.f));
 	TeamMovePosList.Add(FVector(1550.f, -1761.f, 2843.f));
 	TeamMovePosList.Add(FVector(1026.f, -1791.f, 2576.f));
+}
+
+void AYaroCharacter::SetMovementSpeed(bool bEnableRunning)
+{
+	if (bEnableRunning) GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+	else GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 }
 
 void AYaroCharacter::MoveTo(ACharacter* GoalActor, float AcceptanceRadius)
@@ -178,7 +184,7 @@ void AYaroCharacter::MoveToTarget(AEnemy* Target) // 적 추적
 {
 	if (AIController)
 	{
-		MoveTo(Target, 300.f);
+		MoveTo(Target, 200.f);
 	}
 }
 
@@ -478,12 +484,20 @@ void AYaroCharacter::MoveToTeamPos() // Vivi, Vovo, Zizi만 실행
 {	
 	if (AIController)
 	{
-		AIController->MoveToLocation(TeamMovePosList[TeamMoveIndex]);
+		if (TeamMoveIndex == 5)
+		{
+			CheckGolem();
+			return;
+		}
+		else
+		{
+			AIController->MoveToLocation(TeamMovePosList[TeamMoveIndex]);
+		}
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(TeamMoveTimer, FTimerDelegate::CreateLambda([&]() {
 
-		if (!CombatTarget && !bOverlappingCombatSphere) // 전투 중이 아닐 때
+		if (!CombatTarget && !bOverlappingCombatSphere && TeamMoveIndex <= 4) // 전투 중이 아닐 때
 		{
             float distance = (GetActorLocation() - TeamMovePosList[TeamMoveIndex]).Size();
 
@@ -498,17 +512,10 @@ void AYaroCharacter::MoveToTeamPos() // Vivi, Vovo, Zizi만 실행
 
 			if (TeamMoveIndex == 4 && distance <= 70.f) // 골렘쪽으로 이동 중
 			{
-				// 목표 지점 이동을 모두 끝내고, 모모 혹은 플레이어가 골렘과 전투 중이면 골렘 쪽으로 이동
-				if (NPCManager->GetNPC("Momo")->CombatTarget && NPCManager->GetNPC("Momo")->CombatTarget->GetName().Contains("Golem"))
-				{
-					GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
-					AIController->MoveToActor(NPCManager->GetNPC("Momo")->CombatTarget);
-				}
-                if (Player->GetCombatTarget() && Player->GetCombatTarget()->GetName().Contains("Golem"))
-                {
-					GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
-                    AIController->MoveToActor(Player->GetCombatTarget());
-                }
+				TeamMoveIndex++;
+				// 목표 지점 이동을 모두 끝내면 골렘에게로 이동
+				CheckGolem();
+				GetWorldTimerManager().ClearTimer(TeamMoveTimer);
 			}
 		}
 	}), 0.5f, true);
@@ -585,6 +592,30 @@ void AYaroCharacter::MoveToSafeLocation() // 안전한 위치로 이동, 몬스터와의 안전
 	// 현재 위치에서 랜덤한 방향으로 조금 이동
 	FVector SafeLocation = GetActorLocation() + FVector(Value, Value, 0.f);
 	AIController->MoveToLocation(SafeLocation);
+}
+
+void AYaroCharacter::CheckGolem()
+{
+	AEnemy* Golem = Cast<AEnemy>(UGameplayStatics::GetActorOfClass(GetWorld(), AGolem::StaticClass()));
+	if (!Golem) return;
+
+	TArray<AActor*> OverlappingActors;
+	CombatSphere->GetOverlappingActors(OverlappingActors, AGolem::StaticClass());
+	if (OverlappingActors.Contains(Golem))
+	{
+		CombatTargets.Add(Golem); // 전투 타겟 배열에 추가
+		AgroTargets.Add(Golem); // 전투 타겟 배열에 추가
+
+		if (CombatTarget) return; // 이미 전투 중인 타겟이 있다면 리턴
+		
+		bOverlappingCombatSphere = true;
+		CombatTarget = Golem;
+		AIController->StopMovement(); // 이동을 멈추고 공격
+		Attack();
+		return;
+	}
+
+	MoveToTarget(Golem);
 }
 
 void AYaroCharacter::ClearTeamMoveTimer()

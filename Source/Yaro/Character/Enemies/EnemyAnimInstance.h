@@ -9,6 +9,9 @@
 /**
  * 
  */
+class APawn;
+class AEnemy;
+
 UCLASS()
 class YARO_API UEnemyAnimInstance : public UAnimInstance
 {
@@ -25,8 +28,8 @@ public:
 	float MovementSpeed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
-	class APawn* Pawn;
+	APawn* Pawn;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
-	class AEnemy* Enemy;
+	AEnemy* Enemy;
 };

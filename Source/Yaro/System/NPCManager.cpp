@@ -76,6 +76,14 @@ AYaroCharacter* UNPCManager::GetNPC(FString NPCName) const
 	return NPCMap.Contains(NPCName) ? NPCMap[NPCName] : nullptr;
 }
 
+void UNPCManager::SetAllNpcMovementSpeed(bool bEnableRunning)
+{
+	for (auto NPC : NPCMap)
+	{
+		NPC.Value->SetMovementSpeed(bEnableRunning);
+	}
+}
+
 void UNPCManager::MoveNPCToLocation(FString NPCName, FVector Location)
 {
 	GetNPC(NPCName)->GetAIController()->MoveToLocation(Location);
@@ -359,6 +367,7 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		}
 		break;
 	case 20: // 돌 쪽으로 이동
+		SetAllNpcMovementSpeed(false);
 		MoveNPCToLocation(Momo, FVector(-4660.f, 118.f, 393.f));
 		MoveNPCToLocation(Luko, FVector(-4545.f, -241.f, 401.f));
 		MoveNPCToLocation(Vovo, FVector(-4429.f, 103.f, 396.f));
@@ -371,11 +380,7 @@ void UNPCManager::UpdateNPCPositions(int DialogueNum) // 저장된 진행도에 따른 np
 		Zizi->SetActorRotation(FRotator(0.f, 49.f, 0.f));
 		break;
 	case 22:
-		Momo->GetCharacterMovement()->MaxWalkSpeed = 600.f;
-		Vivi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
-		Zizi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
-		Vovo->GetCharacterMovement()->MaxWalkSpeed = 450.f;
-		Luko->GetCharacterMovement()->MaxWalkSpeed = 450.f;
+		SetAllNpcMovementSpeed(true);
 		MoveNPCToLocation(Momo, FVector(508.f, 120.f, 100.f));
 		MoveNPCToLocation(Luko, FVector(311.f, -78.f, 103.f));
 		MoveNPCToLocation(Vovo, FVector(469.f, -22.f, 103.f));

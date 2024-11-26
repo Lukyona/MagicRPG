@@ -9,6 +9,9 @@
 /**
  * 
  */
+class APawn;
+class AMain;
+
 UCLASS()
 class YARO_API UMainAnimInstance : public UAnimInstance
 {
@@ -27,8 +30,8 @@ public:
 	bool bIsInAir;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
-	class APawn* Pawn;
+	APawn* Pawn;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
-	class AMain* Main;
+	AMain* Main;
 };

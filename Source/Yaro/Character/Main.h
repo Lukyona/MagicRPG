@@ -6,6 +6,21 @@
 #include "Student.h"
 #include "Main.generated.h"
 
+class AMainPlayerController;
+class UMainAnimInstance;
+class UGameManager;
+class UDialogueManager;
+class UUIManager;
+class UNPCManager;
+class USpringArmComponent;
+class UCameraComponent;
+class USphereComponent;
+class AItem;
+class AActor;
+class AWeapon;
+class AItemStorage;
+class USoundBase;
+
 UENUM(BlueprintType)
 enum class EMovementStatus :uint8
 {
@@ -36,11 +51,8 @@ struct FLevelStats
 	GENERATED_BODY()
 
 	float MaxExp = 0.f;
-
 	float MaxHP = 0.f;
-
 	float MaxMP = 0.f;
-
 	float MaxSP = 0.f;
 
 	FLevelStats()
@@ -74,30 +86,30 @@ public: // Constructor and overrides
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	class AMainPlayerController* MainPlayerController;
+	AMainPlayerController* MainPlayerController;
 
 	UPROPERTY()
-	class UMainAnimInstance* MainAnimInstance;
+	UMainAnimInstance* MainAnimInstance;
 
 	//Managers
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UGameManager* GameManager;
+	UGameManager* GameManager;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UDialogueManager* DialogueManager;
+	UDialogueManager* DialogueManager;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UUIManager* UIManager;
+	UUIManager* UIManager;
 
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UNPCManager* NPCManager;
+	UNPCManager* NPCManager;
 
 	// Camera settings
 	// CameraBoom positioning the camera behind the player, 카메라붐은 플레이어 뒤에 카메라를 위치시킴
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class USpringArmComponent* CameraBoom;
+	USpringArmComponent* CameraBoom;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class UCameraComponent* FollowCamera;
+	UCameraComponent* FollowCamera;
 
 	// About CameraZoom
 	float MinZoomLength = 100.f;
@@ -143,23 +155,23 @@ protected:
 
 	// Item
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Items)
-	class USphereComponent* ItemSphere;
+	USphereComponent* ItemSphere;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Items)
-	class AItem* ActiveOverlappingItem;
+	AItem* ActiveOverlappingItem;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Items)
-	class AActor* CurrentOverlappedActor;
+	AActor* CurrentOverlappedActor;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items)
-	class AWeapon* EquippedWeapon;
+	AWeapon* EquippedWeapon;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Items)
-	class AItem* ItemInHand;
+	AItem* ItemInHand;
 	UPROPERTY(EditDefaultsOnly, Category = Items)
-	TSubclassOf<class AItemStorage> ObjectStorage;
+	TSubclassOf<AItemStorage> ObjectStorage;
 	UPROPERTY()
-	class AItemStorage* Storage;
+	AItemStorage* Storage;
 
 
 	UPROPERTY()
-	class USoundBase* LevelUpSound;
+	USoundBase* LevelUpSound;
 
 
 	// Initialization
@@ -172,31 +184,64 @@ protected:
 
 
 public: // Getters and Setters
-	AMainPlayerController* GetMainPlayerController() { return MainPlayerController; }
+	AMainPlayerController* GetMainPlayerController() 
+	{ 
+		return MainPlayerController;
+	}
 
 	//Camera
-	class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	USpringArmComponent* GetCameraBoom() const 
+	{
+		return CameraBoom; 
+	}
+	UCameraComponent* GetFollowCamera() const 
+	{
+		return FollowCamera; 
+	}
 
 	//Movements
-	EMovementStatus GetMovementStatus() { return MovementStatus; }
-	void SetMovementStatus(EMovementStatus Status) { MovementStatus = Status; }
+	EMovementStatus GetMovementStatus() 
+	{
+		return MovementStatus; 
+	}
+	void SetMovementStatus(EMovementStatus Status) 
+	{
+		MovementStatus = Status; 
+	}
 
 	UFUNCTION(BlueprintCallable)
-	void SetCanMove(bool value) { bCanMove = value; }
+	void SetCanMove(bool value) 
+	{
+		bCanMove = value; 
+	}
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	int32 GetFallCount() { return FallCount; }
+	int32 GetFallCount() 
+	{
+		return FallCount; 
+	}
 	UFUNCTION(BlueprintCallable)
-	void SetFallCount(int32 Count) { FallCount = Count; }
+	void SetFallCount(int32 Count) 
+	{
+		FallCount = Count; 
+	}
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	bool IsFallenInDungeon() { return bFallenInDungeon; }
+	bool IsFallenInDungeon() 
+	{
+		return bFallenInDungeon; 
+	}
 	UFUNCTION(BlueprintCallable)
-	void SetFallenInDungeon(bool Value) { bFallenInDungeon = Value; }
+	void SetFallenInDungeon(bool Value) 
+	{
+		bFallenInDungeon = Value; 
+	}
 
 	UFUNCTION(BlueprintCallable)
-	bool IsDead() { return MovementStatus == EMovementStatus::EMS_Dead ? true : false; }
+	bool IsDead() 
+	{
+		return MovementStatus == EMovementStatus::EMS_Dead ? true : false; 
+	}
 
 	bool IsInAir();
 
@@ -207,20 +252,41 @@ public: // Getters and Setters
 	void SetStat(EPlayerStat StatName, float Value);
 
 	//Item
-	const TMap<FString, TSubclassOf<class AItem>>* AMain::GetItemMap();
+	const TMap<FString, TSubclassOf<AItem>>* AMain::GetItemMap();
 	
-	void SetActiveOverlappingItem(AItem* Item) { ActiveOverlappingItem = Item; }
+	void SetActiveOverlappingItem(AItem* Item) 
+	{
+		ActiveOverlappingItem = Item; 
+	}
 
-	AWeapon* GetEquippedWeapon() { return EquippedWeapon; }
-	void SetEquippedWeapon(AWeapon* wp) { EquippedWeapon = wp; }
+	AWeapon* GetEquippedWeapon() 
+	{
+		return EquippedWeapon; 
+	}
+	void SetEquippedWeapon(AWeapon* wp) 
+	{
+		EquippedWeapon = wp; 
+	}
 
-	AItem* GetItemInHand() { return ItemInHand; }
-	void SetItemInHand(AItem* item) { ItemInHand = item; }
+	AItem* GetItemInHand() 
+	{
+		return ItemInHand; 
+	}
+	void SetItemInHand(AItem* item) 
+	{
+		ItemInHand = item; 
+	}
 
 	// Combat
-	TArray<AEnemy*> GetTargets() { return Targets; }
+	TArray<AEnemy*> GetTargets() 
+	{
+		return Targets; 
+	}
 
-	void SetAutoTargeting(bool value) { bAutoTargeting = value; }
+	void SetAutoTargeting(bool value) 
+	{
+		bAutoTargeting = value; 
+	}
 
 public: // Core Methods
 	// Movements
@@ -238,7 +304,10 @@ public: // Core Methods
 
 	//Stats
 	void AddHP(float Value);
-	void AddSP(float Value) { SetStat(EPlayerStat::SP, PlayerStats[EPlayerStat::SP] + Value); }
+	void AddSP(float Value) 
+	{
+		SetStat(EPlayerStat::SP, PlayerStats[EPlayerStat::SP] + Value); 
+	}
 
 	void RecoveryHP();
 	void RecoveryMP();
@@ -273,7 +342,6 @@ public: // Core Methods
 	void RecoverWithLogo();
 
 	void UsePotion();
-
 
 	void LMBDown();
 

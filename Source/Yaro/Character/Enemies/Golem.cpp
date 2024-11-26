@@ -27,7 +27,10 @@ AGolem::AGolem()
 
 void AGolem::HitGround() //Golem's third skill
 {
-	if (SkillSound) UGameplayStatics::PlaySound2D(this, SkillSound);
+	if (SkillSound) 
+	{
+		UGameplayStatics::PlaySound2D(this, SkillSound);
+	}
 
 	if (CombatTarget)
 	{

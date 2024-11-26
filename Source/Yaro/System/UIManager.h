@@ -85,6 +85,7 @@ public:
         if (Instance == nullptr)
         {
             Instance = NewObject<UUIManager>(Outer, UUIManager::StaticClass());
+            Instance->AddToRoot();
         }
         return Instance;
     }

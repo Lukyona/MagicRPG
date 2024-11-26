@@ -25,50 +25,12 @@ void UGameManager::Init()
 		{
 			UGameManager* GameManager = WeakGameManager.Get();
 
-			// DialogueManager 积己 棺 蜡瓤己 眉农
+			// 概聪历甸 积己 棺 蜡瓤己 眉农
 			if (GameManager)
 			{
-				GameManager->DialogueManager = NewObject<UDialogueManager>(GameManager, UDialogueManager::StaticClass());
-				if (GameManager->DialogueManager && IsValid(GameManager->DialogueManager))
-				{
-					GameManager->DialogueManager->AddToRoot();
-					GameManager->DialogueManager->SetGameManager(GameManager);
-				}
-				else
-				{
-					UE_LOG(LogTemp, Error, TEXT("Failed to create DialogueManager or DialogueManager is invalid."));
-				}
-			}
-
-			// UIManager 积己 棺 蜡瓤己 眉农
-			if (GameManager)
-			{
-				GameManager->UIManager = NewObject<UUIManager>(GameManager, UUIManager::StaticClass());
-				if (GameManager->UIManager && IsValid(GameManager->UIManager))
-				{
-					GameManager->UIManager->AddToRoot();
-					GameManager->UIManager->SetGameManager(GameManager);
-				}
-				else
-				{
-					UE_LOG(LogTemp, Error, TEXT("Failed to create UIManager or UIManager is invalid."));
-				}
-			}
-
-			// NPCManager 积己 棺 蜡瓤己 眉农
-			if (GameManager)
-			{
-				GameManager->NPCManager = NewObject<UNPCManager>(GameManager, UNPCManager::StaticClass());
-				if (GameManager->NPCManager && IsValid(GameManager->NPCManager))
-				{
-					GameManager->NPCManager->AddToRoot();
-					GameManager->NPCManager->SetGameManager(GameManager);
-					GameManager->NPCManager->Init();
-				}
-				else
-				{
-					UE_LOG(LogTemp, Error, TEXT("Failed to create NPCManager or NPCManager is invalid."));
-				}
+				GameManager->DialogueManager = CreateManager<UDialogueManager>(GameManager);
+				GameManager->UIManager = CreateManager<UUIManager>(GameManager);
+				GameManager->NPCManager = CreateManager<UNPCManager>(GameManager);
 			}
 		}
 		else
@@ -174,6 +136,7 @@ void UGameManager::SaveGame()
 void UGameManager::LoadGame()
 {
 	UYaroSaveGame* LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
+	if (LoadGameInstance) return;
 
 	LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot(LoadGameInstance->SaveName, LoadGameInstance->UserIndex));
 

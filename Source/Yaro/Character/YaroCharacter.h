@@ -7,6 +7,13 @@
 #include "Yaro/Character/Enemies/Enemy.h"
 #include "YaroCharacter.generated.h"
 
+class AAIController;
+class UGameManager;
+class UDialogueManager;
+class UNPCManager;
+class AMain;
+class USphereComponent;
+
 UENUM(BlueprintType)
 enum class ENPCType : uint8
 {
@@ -38,7 +45,7 @@ protected:
 
 protected:
 	UPROPERTY()
-	class AAIController* AIController;
+	AAIController* AIController;
 	UPROPERTY()
 	UAnimInstance* AnimInstance;
 	UPROPERTY(EditDefaultsOnly)
@@ -46,15 +53,15 @@ protected:
 
 	//Managers
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UGameManager* GameManager;
+	UGameManager* GameManager;
 	UPROPERTY()
-	class UDialogueManager* DialogueManager;
+	UDialogueManager* DialogueManager;
 	UPROPERTY()
-	class UNPCManager* NPCManager;
+	UNPCManager* NPCManager;
 
 
 	UPROPERTY()
-	class AMain* Player;
+	AMain* Player;
 
 	UPROPERTY(BlueprintReadOnly)
 	FTimerHandle PlayerFollowTimer;
@@ -62,7 +69,7 @@ protected:
 
 	//Combat
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	class USphereComponent* AgroSphere;
+	USphereComponent* AgroSphere;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<AEnemy*> AgroTargets;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
@@ -80,7 +87,7 @@ protected:
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	class USphereComponent* NotAllowSphere;
+	USphereComponent* NotAllowSphere;
 
 	FTimerHandle SafeDistanceTimer;
 
@@ -113,6 +120,8 @@ public: //Getters and Setters
 	void SetSmileStatus(bool Value) { bIsSmiling = Value; }
 	void SetSpeakingStatus(bool Value) { bIsSpeaking = Value; }
 
+	void SetMovementSpeed(bool bEnableRunning);
+
 	TArray<AEnemy*> GetAgroTargets() { return AgroTargets; }
 
 	void SetTeamMovePosList();
@@ -134,6 +143,7 @@ public: // Core Methods
 
 	void TeleportToPlayer();
 
+	void CheckGolem();
 
 	// Clear Timers
 	void ClearTeamMoveTimer();

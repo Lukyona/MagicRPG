@@ -51,6 +51,8 @@ public:
 		if (Instance == nullptr)
 		{
 			Instance = NewObject<UNPCManager>(Outer, UNPCManager::StaticClass());
+			Instance->AddToRoot();
+			Instance->Init();
 		}
 		return Instance;
 	}
@@ -84,6 +86,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	const TMap<FString, AYaroCharacter*>& GetNPCMap() const { return NPCMap; }
 
+	void SetAllNpcMovementSpeed(bool bEnableRunning);
 	void MoveNPCToLocation(FString NPCName, FVector Location);
 	void MoveNPCToLocation(AYaroCharacter* NPC, FVector Location);
 

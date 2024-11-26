@@ -20,5 +20,3 @@ ALizard::ALizard()
 	CreateSpheresAndCollisions();
 
 }
-
-

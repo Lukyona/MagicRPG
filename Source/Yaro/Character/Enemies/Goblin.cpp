@@ -14,5 +14,4 @@ AGoblin::AGoblin()
 	CombatSphereRadius = 110.f;
 
 	CreateSpheresAndCollisions();
-
 }

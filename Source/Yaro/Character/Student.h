@@ -7,6 +7,13 @@
 #include "Engine/DataTable.h"
 #include "Student.generated.h"
 
+class ACharacter;
+class USphereComponent;
+class AEnemy;
+class UArrowComponent;
+class AMagicSkill;
+class UAnimMontage;
+
 UCLASS()
 class YARO_API AStudent : public ACharacter
 {
@@ -34,23 +41,23 @@ protected:
 
 
 	//Combat
-	int SkillNum;
-	class ACharacter* TargetCharacter; // Who the character looks at
+	int32 SkillNum;
+	ACharacter* TargetCharacter; // Who the character looks at
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	class USphereComponent* CombatSphere;
+	USphereComponent* CombatSphere;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	bool bOverlappingCombatSphere;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	class AEnemy* CombatTarget;
+	AEnemy* CombatTarget;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	FVector CombatTargetLocation;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	class UArrowComponent* AttackArrow;
+	UArrowComponent* AttackArrow;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	bool bAttacking;
@@ -59,17 +66,17 @@ protected:
 	UDataTable* AttackSkillData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
-	TWeakObjectPtr<class AMagicSkill> MagicAttack;
+	TWeakObjectPtr<AMagicSkill> MagicAttack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skills")
-	TSubclassOf<class AMagicSkill> ToSpawn;
+	TSubclassOf<AMagicSkill> ToSpawn;
 
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
-		class UAnimMontage* NormalMontage;
+		UAnimMontage* NormalMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
-		class UAnimMontage* CombatMontage;
+		UAnimMontage* CombatMontage;
 
 public: //Getters and Setters
 	float GetInterpSpeed() { return InterpSpeed; }
@@ -88,8 +95,8 @@ public: //Getters and Setters
 	int GetSkillNum() { return SkillNum; }
 	void SetSkillNum(int num) { SkillNum = num; }
 
-	class ACharacter* GetTargetCharacter() { return TargetCharacter; }
-	void SetTargetCharacter(class ACharacter* ch) { TargetCharacter = ch; }
+	ACharacter* GetTargetCharacter() { return TargetCharacter; }
+	void SetTargetCharacter(ACharacter* ch) { TargetCharacter = ch; }
 
 	AEnemy* GetCombatTarget() { return CombatTarget; }
 	void SetCombatTarget(AEnemy* target) { CombatTarget = target; }

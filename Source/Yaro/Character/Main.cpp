@@ -57,7 +57,7 @@ AMain::AMain()
 void AMain::InitializeCamera()
 {
 	//Create CameraBoom (pulls towards the player if there's a collision), 콜리전이 있으면 카메라를 플레이어쪽으로 당김 
-	CameraBoom = CreateAbstractDefaultSubobject<USpringArmComponent>(TEXT("Camera"));
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("Camera"));
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->TargetArmLength = 500.f; //Camera follows at this distance
 	CameraBoom->bUsePawnControlRotation = true; // Rotate arm based on controller
@@ -124,15 +124,24 @@ void AMain::InitializeLevelData()
 // Called when the game starts or when spawned
 void AMain::BeginPlay()
 {
-	if (GetWorld()->GetName().Contains("Start")) return;
+	if (GetWorld()->GetName().Contains("Start")) 
+	{
+		return;
+	}
 
 	Super::BeginPlay();
 
 	InitializeManagers();
 	BindComponentEvents();
 
-	if (this->GetName().Contains("Boy")) SetStat(EPlayerStat::Gender, 1);
-	if (this->GetName().Contains("Girl")) SetStat(EPlayerStat::Gender, 2);
+	if (this->GetName().Contains("Boy")) 
+	{
+		SetStat(EPlayerStat::Gender, 1);
+	}
+	if (this->GetName().Contains("Girl"))
+	{
+		SetStat(EPlayerStat::Gender, 2);
+	}
 
 	// 아이템 정보 관련
 	Storage = GetWorld()->SpawnActor<AItemStorage>(ObjectStorage);
@@ -160,13 +169,20 @@ void AMain::BindComponentEvents()
 void AMain::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (GetLevel()->GetName().Contains("Start")) return;
+	if (GetLevel()->GetName().Contains("Start")) 
+	{
+		return;
+	}
 
     if (!MainPlayerController)
-        MainPlayerController = Cast<AMainPlayerController>(GetController());
+	{
+		MainPlayerController = Cast<AMainPlayerController>(GetController());
+	}
 
 	if(!MainAnimInstance)
+	{
 		MainAnimInstance = Cast<UMainAnimInstance>(GetMesh()->GetAnimInstance());
+	}
 
 	if (CombatTarget) 
 	{
@@ -176,7 +192,9 @@ void AMain::Tick(float DeltaTime)
         if (CombatTarget->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead) // 현재 전투 타겟이 죽었다면
         {
 			if(Targets.Contains(CombatTarget)) 
-				Targets.Remove(CombatTarget); //타겟팅 가능 몹 배열에서 제거
+			{
+				Targets.Remove(CombatTarget);
+			}
 
 			UnsetCombatTarget();
         }
@@ -243,7 +261,9 @@ void AMain::Move(float Value, EAxis::Type Axis)
 		AddMovementInput(Direction, Value);
 
 		if (bRunning && PlayerStats[EPlayerStat::SP] > 0.f) // 달리고 있는 상태 + 스태미나가 0이상일 때 스태미나 감소
+		{
 			AddSP(-1);
+		}
 	}
 }
 
@@ -306,18 +326,28 @@ void AMain::LookUpAtRate(float Rate)
 
 void AMain::CameraZoom(const float Value)
 {
-	if (Value == 0.f || !Controller) return;
+	if (Value == 0.f || !Controller) 
+	{
+		return;
+	}
 
 	// 특정 시점에는 줌 불가능
 	{
-		if (DialogueManager->GetDialogueNum() == 0) return;
+		if (DialogueManager->GetDialogueNum() == 0) 
+		{
+			return;
+		}
 
 		if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("cave")
 			&& DialogueManager->GetDialogueNum() == 19)
+		{
 			return;
+		}
 
 		if (DialogueManager->IsDialogueUIVisible() && DialogueManager->GetDialogueNum() == 11) 
+		{
 			return;
+		}
 	}
 	
 	const float NewTargetArmLength = CameraBoom->TargetArmLength + Value * ZoomStep;
@@ -336,13 +366,25 @@ void AMain::LMBDown() //Left Mouse Button Down
 	if (DialogueManager->IsDialogueUIVisible() && DialogueManager->GetDialogueUI()->GetCurrentState() != 3
 		&& !UIManager->IsMenuVisible())
 	{
-		if (DialogueManager->GetDialogueUI()->IsInputDisabled()) return;
-		else DialogueManager->GetDialogueUI()->Interact();
+		if (DialogueManager->GetDialogueUI()->IsInputDisabled()) 
+		{
+			return;
+		}
+		else 
+		{
+			DialogueManager->GetDialogueUI()->Interact();
+		}
 	}
 
 
-	if (!MainAnimInstance || !NormalMontage) return;
-	if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return; // 중복 재생 방지
+	if (!MainAnimInstance || !NormalMontage)
+	{
+		return;
+	}
+	if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) 
+	{
+		return; // 중복 재생 방지
+	}
 
 	// 아이템 상호작용 몽타주 관련
 	if (ActiveOverlappingItem && !EquippedWeapon) // 오버랩된 아이템 존재, 장착한 무기가 없을 때
@@ -376,7 +418,10 @@ void AMain::LMBDown() //Left Mouse Button Down
 	{
 		if (DialogueManager->GetDialogueNum() == 21)
 		{
-			if (DialogueManager->GetDialogueUI()->GetSelectedReply() != 1 || DialogueManager->IsDialogueUIVisible()) return;
+			if (DialogueManager->GetDialogueUI()->GetSelectedReply() != 1 || DialogueManager->IsDialogueUIVisible()) 
+			{
+				return;
+			}
 
 			PlayMontageWithItem();
 			MainAnimInstance->Montage_JumpToSection(FName("PickStone"), NormalMontage); // 돌 챙기기
@@ -388,21 +433,27 @@ void AMain::PlayMontageWithItem()
 {
 	bCanMove = false; // 이동 조작 불가
 
-	if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) return; // 중복 재생 방지
+	if (MainAnimInstance->Montage_IsPlaying(NormalMontage) == true) 
+	{
+		return; // 중복 재생 방지
+	}
 
 	FRotator LookAtYaw;
-
 	if (DialogueManager->GetDialogueNum() == 9 && ItemInHand)
 	{
 		if (ItemInHand->GetName().Contains("Yellow") && CurrentOverlappedActor != nullptr)
+		{
 			LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
+		}
 	}
 	else if (DialogueManager->GetDialogueNum() == 21 && CurrentOverlappedActor->GetName().Contains("Divinum"))
 	{
 		LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
 	}
 	else if(ActiveOverlappingItem)
+	{
 		LookAtYaw = GetLookAtRotationYaw(ActiveOverlappingItem->GetActorLocation());
+	}
 
 	SetActorRotation(LookAtYaw); // 아이템 방향으로 회전
 
@@ -413,14 +464,20 @@ void AMain::PlayMontageWithItem()
 void AMain::Attack()
 {
 	// 특정 상황엔 공격 불가
-	if (DialogueManager->GetDialogueNum() < 3 || DialogueManager->GetDialogueNum() > 20) return;
+	if (DialogueManager->GetDialogueNum() < 3 || DialogueManager->GetDialogueNum() > 20)
+	{
+		return;
+	}
 
 	if (EquippedWeapon && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead 
 		&& !DialogueManager->IsDialogueUIVisible())
 	{
 		SetSkillNum(MainPlayerController->WhichKeyDown()); // 눌린 키로 어떤 스킬 사용인지 구분
 		
-		if (PlayerStats[EPlayerStat::Level] < GetSkillNum()) return;
+		if (PlayerStats[EPlayerStat::Level] < GetSkillNum())
+		{
+			return;
+		}
 
 		ToSpawn = AttackSkillData->FindRow<FAttackSkillData>("Attack", "")->Skills[GetSkillNum()-1];
 
@@ -453,7 +510,10 @@ void AMain::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent,
 		{
 			bOverlappingCombatSphere = true;
 
-			if(Targets.Contains(Enemy)) return;
+			if(Targets.Contains(Enemy)) 
+			{
+				return;
+			}
 
 			Targets.Add(Enemy); // 타겟팅 가능 몹 배열에 추가
 		}
@@ -467,7 +527,10 @@ void AMain::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, A
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 		if (Enemy)
 		{
-			if (Targets.Contains(Enemy)) Targets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
+			if (Targets.Contains(Enemy)) 
+			{
+				Targets.Remove(Enemy); //타겟팅 가능 몹 배열에서 제거
+			}
 
 			if (Targets.Num() == 0) // 타겟팅 가능 몬스터가 없으면
 			{
@@ -487,7 +550,10 @@ void AMain::Targeting() //Targeting using Tap key
 	if (bOverlappingCombatSphere) //There is a enemy in combatsphere
 	{
 		 //타겟인덱스가 총 타겟 가능 몹 수 이상이면 다시 0으로 초기화
-		if(Targets.Num() != 0) TargetIndex %= Targets.Num();
+		if(Targets.Num() != 0) 
+		{
+			TargetIndex %= Targets.Num();
+		}
 
 		//There is already exist targeted enemy, then targetArrow remove
 		if (UIManager->IsTargetArrowVisible())
@@ -496,12 +562,18 @@ void AMain::Targeting() //Targeting using Tap key
 			UIManager->RemoveEnemyHPBar();
 		}
 
-		if (Targets.Num() == 0) return; // 타겟팅 가능 몬스터가 없으면 리턴
+		if (Targets.Num() == 0) 
+		{
+			return;
+		}
 
 		if (!bAutoTargeting) // 수동 타겟팅
 		{
 			// 죽은 몬스터는 타겟팅 불가
-			if (Targets[TargetIndex]->GetEnemyMovementStatus() == EEnemyMovementStatus::EMS_Dead) return;
+			if (Targets[TargetIndex]->IsDead())
+			{
+				return;
+			}
 
             CombatTarget = Targets[TargetIndex];
             TargetIndex++;
@@ -534,7 +606,10 @@ void AMain::Spawn()
 	{
 		//If player have not enough MP, then player can't use magic
 		float MPCost = 10.f + GetSkillNum() * 5;
-        if (CurrentMP < MPCost) return;
+        if (CurrentMP < MPCost) 
+		{
+			return;
+		}
 
 		FTimerHandle WaitHandle;
 		GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
@@ -566,7 +641,9 @@ void AMain::Spawn()
 
 					// 적에게로 이동하는 공격은 공격이 어디로 날라갈지를 정해줘야함.
 					if ((GetSkillNum() == 1 || GetSkillNum() == 3) &&CombatTarget)
+					{
 						MagicAttack->SetTarget(CombatTarget);
+					}
 				}
 				
 			}
@@ -576,7 +653,9 @@ void AMain::Spawn()
 		SetStat(EPlayerStat::MP, CurrentMP);
 
 		if(!GetWorldTimerManager().IsTimerActive(MPTimer))
+		{
 			GetWorldTimerManager().SetTimer(MPTimer, this, &AMain::RecoveryMP, MPDelay, true);
+		}
 	}
 }
 
@@ -593,7 +672,9 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 		CurrentHP -= DamageAmount;
 		// HP 자동 회복
 		if(!GetWorldTimerManager().IsTimerActive(HPTimer))
-			GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);	
+		{
+			GetWorldTimerManager().SetTimer(HPTimer, this, &AMain::RecoveryHP, HPDelay, true);
+		}
 	}
 
 	SetStat(EPlayerStat::HP, CurrentHP);
@@ -601,7 +682,10 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 	if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) // 보스 스테이지
 	{
 		MagicAttack = Cast<AMagicSkill>(DamageCauser);
-		if (MagicAttack == nullptr) return DamageAmount;
+		if (MagicAttack == nullptr) 
+		{
+			return DamageAmount;
+		}
 		
 		if (MagicAttack->GetCaster() == ECasterType::Boss) // 보스 몬스터에게 공격 당함
 		{
@@ -622,7 +706,10 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 
 void AMain::Die()
 {
-	if (MovementStatus == EMovementStatus::EMS_Dead) return;
+	if (MovementStatus == EMovementStatus::EMS_Dead)
+	{
+		return;
+	}
 
 	SetMovementStatus(EMovementStatus::EMS_Dead);
 
@@ -631,7 +718,10 @@ void AMain::Die()
 	GetWorldTimerManager().ClearTimer(MPTimer);
 	GetWorldTimerManager().ClearTimer(SPTimer);
 
-	if (bAttacking) AttackEnd();
+	if (bAttacking) 
+	{
+		AttackEnd();
+	}
 
 	if (MainAnimInstance && CombatMontage)
 	{
@@ -659,7 +749,10 @@ void AMain::Revive() // if player is dead, spawn player at the initial location
 	else
 	{
 		APlayerStart* PlayerStart = Cast<APlayerStart>(UGameplayStatics::GetActorOfClass(GetWorld(), APlayerStart::StaticClass()));
-		if (!PlayerStart) return;
+		if (!PlayerStart) 
+		{
+			return;
+		}
 
 		this->SetActorLocation(PlayerStart->GetActorLocation());
 	}
@@ -688,8 +781,14 @@ void AMain::ItemSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, A
 {
 	if (OtherActor)
 	{
-		if (auto actor = Cast<AItem>(OtherActor)) return; // 오버랩된 게 아이템이면 실행X
-		if (auto actor = Cast<AYaroCharacter>(OtherActor)) return; // 오버랩된 게 npc면 실행X
+		if (auto actor = Cast<AItem>(OtherActor))
+		{
+			return; // 오버랩된 게 아이템이면 실행X
+		}
+		if (auto actor = Cast<AYaroCharacter>(OtherActor)) 
+		{
+			return; // 오버랩된 게 npc면 실행X
+		}
 
 		CurrentOverlappedActor = OtherActor;	
 	}
@@ -770,7 +869,10 @@ void AMain::RecoverySP()
 
 void AMain::GainExp(float Value)
 {
-	if (PlayerStats[EPlayerStat::Level] == 5) return; // 최고 레벨일 때는 리턴
+	if (PlayerStats[EPlayerStat::Level] == 5) 
+	{
+		return; // 최고 레벨일 때는 리턴
+	}
 
 	float CurrentExp = PlayerStats[EPlayerStat::Exp];
 	float MaxExp = PlayerStats[EPlayerStat::MaxExp];
@@ -793,15 +895,26 @@ void AMain::LevelUp()
 
 	CurrentLevel += 1; // 레벨 업
 	if (LevelUpSound)
+	{
 		UAudioComponent* AudioComponent = UGameplayStatics::SpawnSound2D(this, LevelUpSound);
+	}
 
 	// 경험치 수치 update
-	if (CurrentExp == MaxExp) CurrentExp = 0.f;
-	else CurrentExp -= MaxExp;
+	if (CurrentExp == MaxExp) 
+	{
+		CurrentExp = 0.f;
+	}
+	else
+	{
+		CurrentExp -= MaxExp;
+	}
 
 	SetStat(EPlayerStat::Exp, CurrentExp);
 
-	if (CurrentLevel == 5) CurrentExp = MaxExp;
+	if (CurrentLevel == 5) 
+	{
+		CurrentExp = MaxExp;
+	}
 
 	// 시스템 메세지 표시
 	switch ((int)CurrentLevel)
@@ -817,6 +930,8 @@ void AMain::LevelUp()
 			break;
 		case 5:
 			UIManager->SetSystemMessage(10);
+			break;
+		default:
 			break;
 	}
 
@@ -839,7 +954,10 @@ void AMain::LevelUp()
 
 const TMap<FString, TSubclassOf<class AItem>>* AMain::GetItemMap()
 {
-	if (Storage != nullptr) return &(Storage->ItemMap);
+	if (Storage != nullptr)
+	{
+		return &(Storage->ItemMap);
+	}
 	return nullptr;
 }
 
@@ -853,9 +971,18 @@ void AMain::RecoverWithLogo() // get school icon in second stage
 	float MaxMP = PlayerStats[EPlayerStat::MaxMP];
 	float MaxSP = PlayerStats[EPlayerStat::MaxSP];
 
-	if (CurrentHP >= MaxHP) CurrentHP = MaxHP;
-	if (CurrentMP >= MaxMP) CurrentMP = MaxMP;
-	if (CurrentSP >= MaxSP) CurrentSP = MaxSP;
+	if (CurrentHP >= MaxHP) 
+	{
+		CurrentHP = MaxHP;
+	}
+	if (CurrentMP >= MaxMP) 
+	{
+		CurrentMP = MaxMP;
+	}
+	if (CurrentSP >= MaxSP) 
+	{
+		CurrentSP = MaxSP;
+	}
 
 	SetStat(EPlayerStat::HP, CurrentHP);
 	SetStat(EPlayerStat::MP, CurrentMP);
@@ -864,7 +991,10 @@ void AMain::RecoverWithLogo() // get school icon in second stage
 
 void AMain::UsePotion()
 {
-	if (PlayerStats[EPlayerStat::PotionNum] <= 0 || DialogueManager->GetDialogueNum() < 3) return;
+	if (PlayerStats[EPlayerStat::PotionNum] <= 0 || DialogueManager->GetDialogueNum() < 3)
+	{
+		return;
+	}
 
 	SetStat(EPlayerStat::HP, PlayerStats[EPlayerStat::MaxHP]);
 	SetStat(EPlayerStat::MP, PlayerStats[EPlayerStat::MaxMP]);

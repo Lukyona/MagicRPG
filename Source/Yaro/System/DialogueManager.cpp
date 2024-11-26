@@ -270,8 +270,9 @@ void UDialogueManager::DialogueEndEvents()
         {
             FTimerHandle TimerHandle;
             GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([&]() {
+                GameManager->SaveGame();
                 GameManager->SetIsSaveAllowed(false);
-                }), 2.f, false);
+                }), 3.f, false);
         }
         break;
     case 5:
@@ -394,7 +395,7 @@ void UDialogueManager::DialogueEndEvents()
     }
 }
 
-void UDialogueManager::DisplaySpeechBuubble(class AYaroCharacter* npc)
+void UDialogueManager::DisplaySpeechBuubble(class AYaroCharacter* NPC)
 {
     if(!SpeechBubble)
     {
@@ -408,7 +409,7 @@ void UDialogueManager::DisplaySpeechBuubble(class AYaroCharacter* npc)
 
     if (SpeechBubble)
     {
-        SpeakingTarget = npc;
+        SpeakingTarget = NPC;
         SpeechBubble->SetActorHiddenInGame(false);
 
         bSpeechBuubbleVisible = true;

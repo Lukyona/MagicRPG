@@ -42,7 +42,10 @@ void AEnemy::BeginPlay()
 {
 	Super::BeginPlay();
 	GameManager = Cast<UGameManager>(GetWorld()->GetGameInstance());
-	if (GameManager) NPCManager = GameManager->GetNPCManager();
+	if (GameManager)
+	{
+		NPCManager = GameManager->GetNPCManager();
+	}
 
 	AIController = Cast<AAIController>(GetController());
 	AnimInstance = GetMesh()->GetAnimInstance();
@@ -54,7 +57,9 @@ void AEnemy::BeginPlay()
 
 	BindSphereComponentEvents();
 	if(!bIsRangedAttacker)
+	{
 		BindWeaponCollisionEvents();
+	}
 
 	SetMain();
 }
@@ -96,7 +101,9 @@ void AEnemy::CreateWeaponCollisions()
 {
 	CreateCollision("CombatCollision", "EnemySocket_1");
 	if (bHasSecondCollision)
+	{
 		CreateCollision("CombatCollision2", "EnemySocket_2");
+	}
 }
 
 void AEnemy::BindWeaponCollisionEvents()
@@ -115,14 +122,19 @@ void AEnemy::CreateSpheresAndCollisions()
 	AgroSphere = CreateSphereComponent("AgroSphere", AgroSphereRadius);
 	CombatSphere = CreateSphereComponent("CombatSphere", CombatSphereRadius);
 	if(!bIsRangedAttacker)
+	{
 		CreateWeaponCollisions();
+	}
 }
 
 void AEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-    if (!Main) SetMain();
+    if (!Main) 
+	{
+		SetMain();
+	}
 
 	if (bInterpToTarget && CombatTarget)
 	{
@@ -151,16 +163,24 @@ bool AEnemy::IsValidTarget(AActor* Target)
 
 void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!IsValidTarget(OtherActor)) return; 
+	if (!IsValidTarget(OtherActor))
+	{
+		return;
+	}
 	
 	if (AgroSound && AgroTargets.Num() == 0) // 인식 범위에 아무도 없었으면 인식 사운드 재생
 	{
 		if(!UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss"))
+		{
 			UGameplayStatics::PlaySound2D(this, AgroSound);
+		}
 	}
 
 	AStudent* Target = Cast<AStudent>(OtherActor);
-	if (!Target || AgroTargets.Contains(Target)) return;
+	if (!Target || AgroTargets.Contains(Target)) 
+	{
+		return;
+	}
 
 	AgroTargets.Add(Target); // Add to target list
 
@@ -179,7 +199,10 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 
 void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (!IsValidTarget(OtherActor)) return;
+	if (!IsValidTarget(OtherActor)) 
+	{
+		return;
+	}
 
 	AStudent* Target = Cast<AStudent>(OtherActor);
 	if (Target)
@@ -187,7 +210,9 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 		if (!UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss"))
 		{
 			if(AgroTargets.Contains(Target))
+			{
 				AgroTargets.Remove(Target);
+			}
 		}
 			
 		if (AgroTarget != nullptr && AgroTarget != Main) //npc를 쫓아가던 중이면(인식 범위 나간 것도 npc)
@@ -197,7 +222,9 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 			{
 				CombatTarget = CombatTargets[0];
 				if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)
+				{
 					AttackEnd();
+				}
 			}
 			else if (AgroTargets.Num() != 0) //전투범위에는 아무도 없지만 인식범위에 누군가가 있으면
 			{
@@ -222,16 +249,25 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 
 void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!IsValidTarget(OtherActor)) return;
+	if (!IsValidTarget(OtherActor)) 
+	{
+		return;
+	}
 
 	AStudent* Target = Cast<AStudent>(OtherActor);
 	if (Target)
 	{			
-		if (CombatTargets.Contains(Target)) return;
+		if (CombatTargets.Contains(Target)) 
+		{
+			return;
+		}
 
 		CombatTargets.Add(Target); // Add to target list
 
-		if (CombatTarget && Target != Main) return; //전투타겟이 있는데, 전투범위에 다른 npc가 들어오면 리턴
+		if (CombatTarget && Target != Main) //전투타겟이 있는데, 전투범위에 다른 npc가 들어오면 리턴
+		{
+			return;
+		}
 
 		if ((AgroTarget == Main && Target == Main) || AgroTarget != Main) //npc를 쫓아가던 중(누군가 전투범위에 들어옴) 혹은 플레이어를 쫓던 중에 전투범위에 플레이어가 들어왔을 때
 		{
@@ -244,10 +280,16 @@ void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent
 
 void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (!IsValidTarget(OtherActor)) return;
+	if (!IsValidTarget(OtherActor)) 
+	{
+		return;
+	}
 
 	AStudent* Target = Cast<AStudent>(OtherActor);
-	if (!Target) return;
+	if (!Target) 
+	{
+		return;
+	}
 
 	AnimInstance->Montage_Stop(0.1f, CombatMontage);
 		
@@ -255,11 +297,15 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 	{
 		CombatTarget = nullptr; //전투타겟이 전투범위를 나감
 		if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking)
+		{
 			AttackEnd();
+		}
 	}
 
 	if(CombatTargets.Contains(Target))
+	{
 		CombatTargets.Remove(Target);
+	}
 
 	if(Target == Main && Main->GetMovementStatus() != EMovementStatus::EMS_Dead) // 플레이어가 살아있는 상태로 전투범위를 나감 
 	{
@@ -268,12 +314,9 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 
 	if (CombatTargets.Num() == 0) // no one's in Combatsphere
 	{
-		if (AgroTarget != Main) // 플레이어를 쫓아가는 중이 아니라면
+		if (AgroTarget != Main && AgroTargets.Num() != 0)
 		{
-			if (AgroTargets.Num() != 0) // 인식범위 내에 다른 누군가가 있으면
-			{
-				MoveToTarget(AgroTargets[0]);
-			}
+			MoveToTarget(AgroTargets[0]);
 		}
 	}
 	else //전투범위 내에 다른 누군가가 있으면
@@ -288,12 +331,14 @@ void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 
 void AEnemy::WeaponCollisionOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
+	if (auto actor = Cast<AEnemy>(OtherActor)) 
+	{
+		return;
+	}
 
 	if (OtherActor)
 	{
 		AStudent* Target = Cast<AStudent>(OtherActor);
-
 		if (Target)
 		{
 			UGameplayStatics::ApplyDamage(Target, Damage, AIController, this, UDamageType::StaticClass());
@@ -309,14 +354,18 @@ void AEnemy::ActivateWeaponCollisions()
 {
 	CombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	if(bHasSecondCollision)
+	{
 		CombatCollision2->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	}
 }
 
 void AEnemy::DeactivateWeaponCollisions()
 {
 	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	if (bHasSecondCollision)
+	{
 		CombatCollision2->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
 }
 
 void AEnemy::MoveToTarget(AStudent* Target)
@@ -334,7 +383,9 @@ void AEnemy::MoveToTarget(AStudent* Target)
 		EnemyMovementStatus = EEnemyMovementStatus::EMS_MoveToTarget;
 
 		if(GetWorldTimerManager().IsTimerActive(CheckLocationTimer))
+		{
 			GetWorldTimerManager().ClearTimer(CheckLocationTimer);
+		}
 
 		AgroTarget = Target;
 		FAIMoveRequest MoveRequest;
@@ -368,7 +419,9 @@ void AEnemy::Attack()
 			}
 
 			if (AIController)
+			{
 				AIController->StopMovement();
+			}
 
 			EnemyMovementStatus = EEnemyMovementStatus::EMS_Attacking;
 			bInterpToTarget = false;
@@ -386,19 +439,25 @@ void AEnemy::Attack()
 				{
 					int32 MaxAttackNum = 0;
 					if(EnemyType == EEnemyType::LittleDino || EnemyType == EEnemyType::Lizard)
+					{
 						MaxAttackNum = 2;
+					}
 					else
+					{
 						MaxAttackNum = 3;
+					}
 
 					int32 AttackNum = FMath::RandRange(1, MaxAttackNum);
-
 					AnimInstance->Montage_JumpToSection(FName("Attack" + FString::FromInt(AttackNum)), CombatMontage);
 				}
 			}
 		}
 		else
 		{
-			if(EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking) AttackEnd();
+			if(EnemyMovementStatus == EEnemyMovementStatus::EMS_Attacking) 
+			{
+				AttackEnd();
+			}
 		}
 	}
 }
@@ -439,7 +498,9 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 {
 	MagicAttack = Cast<AMagicSkill>(DamageCauser);
 	if(MagicAttack != nullptr && MagicAttack->GetCaster() == ECasterType::Player)
+	{
 		bAttackFromPlayer = true;
+	}
 		
 	if (Health - DamageAmount <= 0.f) // Decrease Health
 	{
@@ -464,13 +525,22 @@ void AEnemy::Die()
 	{
 		GameManager->UpdateDeadEnemy(EnemyType);
 
-		if (AIController) AIController->StopMovement();
+		if (AIController) 
+		{
+			AIController->StopMovement();
+		}
 
 		bInterpToTarget = false;
 
-		if (DeathSound && !GameManager->IsSkipping()) UGameplayStatics::PlaySound2D(this, DeathSound);
+		if (DeathSound && !GameManager->IsSkipping())
+		{
+			UGameplayStatics::PlaySound2D(this, DeathSound);
+		}
 
-		if (bAttackFromPlayer) Main->GainExp(EnemyExp);
+		if (bAttackFromPlayer) 
+		{
+			Main->GainExp(EnemyExp);
+		}
 
 		if (AnimInstance && !GameManager->IsSkipping())
 		{
@@ -575,7 +645,10 @@ void AEnemy::HitEnd()
 		MoveToTarget(AgroTarget);
 	}
 
-	if (!CombatTarget && AgroSound) UGameplayStatics::PlaySound2D(this, AgroSound);
+	if (!CombatTarget && AgroSound) 
+	{
+		UGameplayStatics::PlaySound2D(this, AgroSound);
+	}
 	
 	/* When enemy doesn't have combat target, player attacks enemy
 	or when enemy's combat target is not player and player attacks enemy.
@@ -595,7 +668,10 @@ void AEnemy::HitEnd()
 						AnimInstance->Montage_Stop(0.1f, CombatMontage);
 					}
 				}
-				if (!Main->IsDead()) MoveToTarget(Main);
+				if (!Main->IsDead()) 
+				{
+					MoveToTarget(Main);
+				}
 			}
 		}
 
@@ -645,9 +721,12 @@ void AEnemy::CheckCurrentLocation()
 		}
 
 		ReturnCounter += 1;
-		if (ReturnCounter >= MAX_RETURN_COUNT) SetActorLocation(InitialLocation);
-		float distance = (GetActorLocation() - InitialLocation).Size();
+		if (ReturnCounter >= MAX_RETURN_COUNT) 
+		{
+			SetActorLocation(InitialLocation);
+		}
 
+		float distance = (GetActorLocation() - InitialLocation).Size();
 		if (distance <= 70.f)
 		{
 			if (AIController)

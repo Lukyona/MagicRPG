@@ -6,6 +6,17 @@
 #include "GameFramework/Character.h"
 #include "Enemy.generated.h"
 
+class USphereComponent;
+class UBoxComponent;
+class AAIController;
+class UGameManager;
+class UNPCManager;
+class AMagicSkill;
+class UAnimInstance;
+class UAnimMontage;
+class USoundCue;
+class AMain;
+
 UENUM(BlueprintType)
 enum class EEnemyMovementStatus :uint8
 {
@@ -33,11 +44,11 @@ protected:
 	void Tick(float DeltaTime) override;
 	float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 private:
-	class USphereComponent* CreateSphereComponent(FName Name, float Radius);
+	USphereComponent* CreateSphereComponent(FName Name, float Radius);
 	void BindSphereComponentEvents();
 
 	// 무기 콜리전
-	class UBoxComponent* CreateCollision(FName Name, FName SocketName);
+	UBoxComponent* CreateCollision(FName Name, FName SocketName);
 	void CreateWeaponCollisions();
 	void BindWeaponCollisionEvents();
 
@@ -62,15 +73,15 @@ protected:
 
 protected:
 	UPROPERTY()
-	class AAIController* AIController;
+	AAIController* AIController;
 	UPROPERTY()
 	EEnemyType EnemyType;
 
 	//Managers
 	UPROPERTY()
-	class UGameManager* GameManager;
+	UGameManager* GameManager;
 	UPROPERTY()
-	class UNPCManager* NPCManager;
+	UNPCManager* NPCManager;
 
 	EEnemyMovementStatus EnemyMovementStatus;
 
@@ -96,7 +107,7 @@ protected:
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	class USphereComponent* AgroSphere; // 인식 범위
+	USphereComponent* AgroSphere; // 인식 범위
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	USphereComponent* CombatSphere; // 공격 범위
 
@@ -122,7 +133,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
 	bool bAttackFromPlayer = false; //플레이어로부터의 공격인지 판단
 
-	class AMagicSkill* MagicAttack;
+	AMagicSkill* MagicAttack;
 
 	// 죽음 관련
 	float DeathDelay = 3.f; // 객체 소멸 텀
@@ -137,33 +148,36 @@ protected:
 
 
 	// 애니메이션
-	class UAnimInstance* AnimInstance;
+	UAnimInstance* AnimInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-	class UAnimMontage* CombatMontage;
+	UAnimMontage* CombatMontage;
 
 	// 효과음
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
-	class USoundCue* AgroSound;
+	USoundCue* AgroSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
-	class USoundCue* DeathSound;
+	USoundCue* DeathSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
-	class USoundCue* SkillSound;
+	USoundCue* SkillSound;
 
 	// 무기 콜리전
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	class UBoxComponent* CombatCollision;
+	UBoxComponent* CombatCollision;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	class UBoxComponent* CombatCollision2;
+	UBoxComponent* CombatCollision2;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	class AMain* Main; // 플레이어
+	AMain* Main; // 플레이어
 	
 public: // Getters and Setters
-	EEnemyMovementStatus GetEnemyMovementStatus() { return EnemyMovementStatus; }
+	EEnemyMovementStatus GetEnemyMovementStatus()
+	{
+		return EnemyMovementStatus;
+	}
 
 	void SetMain();
 
@@ -208,5 +222,8 @@ public: // Getters and Setters
 	// 타겟 추적 상태 확인 및 타겟 변경
 	void CheckChaseState();
 
-	bool IsDead() { return EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead;}
+	bool IsDead()
+	{ 
+		return EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead;
+	}
 };

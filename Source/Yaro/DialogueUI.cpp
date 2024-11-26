@@ -326,7 +326,7 @@ void UDialogueUI::DialogueEvents()
                     Player->GetCameraBoom()->TargetArmLength = 500.f;
                     DialogueManager->RemoveSpeechBuubble();
 
-                    // npc move except luko              
+                    // npc move except luko
                     Momo->GetAIController()->MoveToLocation(FVector(5200.f, 35.f, 100.f));
                     Vovo->GetAIController()->MoveToLocation(FVector(5200.f, 35.f, 100.f));
                     Vivi->GetAIController()->MoveToLocation(FVector(5200.f, 35.f, 100.f));
@@ -388,6 +388,7 @@ void UDialogueUI::DialogueEvents()
                 if (MessageIndex == 1)
                 {
                     // npc move to the boat except vovo
+                    NPCManager->SetAllNpcMovementSpeed(false);
                     Momo->GetAIController()->MoveToLocation(FVector(660.f, 1035.f, 1840.f));
                     Luko->GetAIController()->MoveToLocation(FVector(598.f, 1030.f, 1840.f));
                     Vivi->GetAIController()->MoveToLocation(FVector(710.f, 995.f, 1840.f));
@@ -635,6 +636,7 @@ void UDialogueUI::DialogueEvents()
                     MainPlayerController->SetViewTargetWithBlend(Player, 1.f); // 플레이어 카메라로 복귀
                     break;
                 case 4:
+                    NPCManager->SetAllNpcMovementSpeed(true);
                     Momo->GetAIController()->MoveToLocation(FVector(-260.f, -1900.f, -121.f)); //momo move to the table
                     break;
                 case 5: // 모모 방향으로 카메라 돌리기
@@ -660,16 +662,13 @@ void UDialogueUI::DialogueEvents()
                     GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 0.6f, false);
                     break;
                 case 9: //npc이동 지지 제외
-                    Luko->GetCharacterMovement()->MaxWalkSpeed = 450.f;
-                    Vovo->GetCharacterMovement()->MaxWalkSpeed = 450.f;
-                    Vivi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
+                    NPCManager->SetAllNpcMovementSpeed(true);
                     Luko->GetAIController()->MoveToLocation(FVector(-198.f, -2065.f, -118.f));
                     Vivi->GetAIController()->MoveToLocation(FVector(-347.f, -2040.f, -121.f));
                     Vovo->GetAIController()->MoveToLocation(FVector(-248.f, -2141.f, -118.f));
                     GetWorld()->GetTimerManager().SetTimer(AutoDialogueTimer, this, &UDialogueUI::AutoDialogue, 1.5f, false);
                     break;
                 case 10:
-                    Zizi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
                     Zizi->GetAIController()->MoveToLocation(FVector(-415.f, -2180.f, -116.f));
                     AutoCloseDialogue();
                     bInputDisabled = false;
@@ -791,6 +790,7 @@ void UDialogueUI::DialogueEvents()
                     if (SelectedReply == 1)
                     {
                         DialogueManager->RemoveSpeechBuubble();
+                        NPCManager->SetAllNpcMovementSpeed(false);
                         Vivi->GetAIController()->MoveToLocation(FVector(105.f, 3176.f, 182.f));
                         Momo->GetAIController()->MoveToLocation(FVector(-86.f, 3263.f, 177.f));
                         Luko->GetAIController()->MoveToLocation(FVector(184.f, 3317.f, 182.f));
@@ -809,6 +809,7 @@ void UDialogueUI::DialogueEvents()
                     if (SelectedReply == 2)
                     {
                         DialogueManager->RemoveSpeechBuubble();
+                        NPCManager->SetAllNpcMovementSpeed(false);
                         Vivi->GetAIController()->MoveToLocation(FVector(105.f, 3176.f, 182.f));
                         Momo->GetAIController()->MoveToLocation(FVector(-86.f, 3263.f, 177.f));
                         Luko->GetAIController()->MoveToLocation(FVector(184.f, 3317.f, 182.f));
@@ -842,6 +843,7 @@ void UDialogueUI::DialogueEvents()
                     Player->SetInterpToCharacter(true);
                     break;
                 case 10:
+                    NPCManager->SetAllNpcMovementSpeed(false);
                     Zizi->GetAIController()->MoveToLocation(FVector(18, 3090, 182.f));
                     bInputDisabled = true;
 
@@ -871,6 +873,7 @@ void UDialogueUI::DialogueEvents()
                     Vovo->SetSmileStatus(false);
                     Player->SetInterpToCharacter(false);
                     NPCManager->AllNpcDisableLookAt();
+                    NPCManager->SetAllNpcMovementSpeed(false);
                     Vivi->GetAIController()->MoveToLocation(FVector(100.f, 1997.f, 182.f));
                     Momo->GetAIController()->MoveToLocation(FVector(-86.f, 2150.f, 177.f));
                     Luko->GetAIController()->MoveToLocation(FVector(171.f, 2130.f, 182.f));
@@ -955,6 +958,7 @@ void UDialogueUI::DialogueEvents()
             {
                 case 3:
                     DialogueManager->RemoveSpeechBuubble();
+                    NPCManager->SetAllNpcMovementSpeed(false);
                     Momo->GetAIController()->MoveToLocation(FVector(-4660.f, 118.f, 393.f));
                     Luko->GetAIController()->MoveToLocation(FVector(-4545.f, -241.f, 401.f));
                     Vovo->GetAIController()->MoveToLocation(FVector(-4429.f, 103.f, 396.f));
@@ -994,7 +998,7 @@ void UDialogueUI::DialogueEvents()
                     }
                     break;
                 case 11:
-                    Vivi->GetCharacterMovement()->MaxWalkSpeed = 250.f;
+                    NPCManager->SetAllNpcMovementSpeed(false);
                     Vivi->GetAIController()->MoveToLocation(FVector(-4520.f, -50.f, 409.f));
                     AutoCloseDialogue();
                     return;
@@ -1021,11 +1025,7 @@ void UDialogueUI::DialogueEvents()
                     break;
                 case 14:
                     DialogueManager->RemoveSpeechBuubble();
-                    Momo->GetCharacterMovement()->MaxWalkSpeed = 600.f;
-                    Vivi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
-                    Zizi->GetCharacterMovement()->MaxWalkSpeed = 500.f;
-                    Vovo->GetCharacterMovement()->MaxWalkSpeed = 450.f;
-                    Luko->GetCharacterMovement()->MaxWalkSpeed = 450.f;
+                    NPCManager->SetAllNpcMovementSpeed(true);
                     Momo->GetAIController()->MoveToLocation(FVector(508.f, 120.f, 100.f));
                     Luko->GetAIController()->MoveToLocation(FVector(311.f, -78.f, 103.f));
                     Vovo->GetAIController()->MoveToLocation(FVector(469.f, -22.f, 103.f));
@@ -1066,6 +1066,7 @@ void UDialogueUI::DialogueEvents()
                     NPCManager->AllNpcDisableLookAt();
                     if (MessageIndex == 1)
                     {
+                        NPCManager->SetAllNpcMovementSpeed(false);
                         Zizi->GetAIController()->MoveToLocation(FVector(2560.f, 320.f, 157.f));
                         Vovo->GetAIController()->MoveToLocation(FVector(2570.f, 325.f, 154.f));
                         Luko->GetAIController()->MoveToLocation(FVector(1517.f, 325.f, 155.f));
