@@ -587,14 +587,6 @@ float AMain::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEve
 	{
 		CurrentHP = 0.f;
 		Die();
-		if (DamageCauser)
-		{
-			AEnemy* Enemy = Cast<AEnemy>(DamageCauser);
-			if (Enemy)
-			{
-				Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Idle);
-			}
-		}
 	}
 	else
 	{

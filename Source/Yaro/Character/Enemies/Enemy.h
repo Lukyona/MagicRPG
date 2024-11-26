@@ -9,10 +9,10 @@
 UENUM(BlueprintType)
 enum class EEnemyMovementStatus :uint8
 {
-	EMS_Idle			UMETA(DeplayName = "Idle"),
-	EMS_MoveToTarget	UMETA(DeplayName = "MoveToTarget"),
-	EMS_Attacking		UMETA(DeplayName = "Attacking"),
-	EMS_Dead			UMETA(DeplayName = "Dead"),
+	EMS_Idle			UMETA(DisplayName = "Idle"),
+	EMS_MoveToTarget	UMETA(DisplayName = "MoveToTarget"),
+	EMS_Attacking		UMETA(DisplayName = "Attacking"),
+	EMS_Dead			UMETA(DisplayName = "Dead"),
 };
 
 UENUM(BlueprintType)
@@ -34,8 +34,6 @@ protected:
 	float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 private:
 	class USphereComponent* CreateSphereComponent(FName Name, float Radius);
-	void SetAgroSphere(float Radius);
-	void SetCombatSphere(float Radius);
 	void BindSphereComponentEvents();
 
 	// 무기 콜리전
@@ -58,11 +56,6 @@ private:
 		void WeaponCollisionOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	UFUNCTION()
 		void WeaponCollisionOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-
-	void SetMain();
-
-	FRotator GetLookAtRotationYaw(FVector Target);
 
 protected:
 	void CreateSpheresAndCollisions();
@@ -100,28 +93,21 @@ protected:
 	// Enemy's back to their initial location
 	FVector InitialLocation;
 	FRotator InitialRotation;
-
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	class USphereComponent* AgroSphere; // 인식 범위
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	USphereComponent* CombatSphere; // 공격 범위
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	bool bOverlappingCombatSphere = false;
 
 	// 인식 중인 타겟과 공격 타겟
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
 	AStudent* AgroTarget;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
-	AStudent* CombatTarget;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<AStudent*> AgroTargets;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	AStudent* CombatTarget;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	TArray<AStudent*> CombatTargets;
 
@@ -133,9 +119,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	float AttackDelay; // 공격 텀
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	bool bAttacking; // 공격 중 true
-
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
 	bool bAttackFromPlayer = false; //플레이어로부터의 공격인지 판단
 
@@ -144,14 +127,13 @@ protected:
 	// 죽음 관련
 	float DeathDelay = 3.f; // 객체 소멸 텀
 
-
 	// 초기 위치 복귀 시 사용
-	FTimerHandle CheckHandle;
-	int Count = 0;
+	FTimerHandle CheckLocationTimer;
+	int32 ReturnCounter = 0;
 
-	// 우선순위 유저->npc로 변경하는 MovingNow()에서 사용
-	int MovingCount = 0;
-	FTimerHandle MovingTimer;
+	// 타겟 추적 상태 확인할 때 사용
+	FTimerHandle CheckChaseStateTimer;
+	int32 MoveFailCounter = 0;
 
 
 	// 애니메이션
@@ -178,34 +160,30 @@ protected:
 	class UBoxComponent* CombatCollision2;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-		class AMain* Main; // 플레이어
+	class AMain* Main; // 플레이어
 	
 public: // Getters and Setters
 	EEnemyMovementStatus GetEnemyMovementStatus() { return EnemyMovementStatus; }
-	void SetEnemyMovementStatus(EEnemyMovementStatus Status) { EnemyMovementStatus = Status; }
 
-	void SetInterpToTarget(bool Interp) { bInterpToTarget = Interp; }
+	void SetMain();
 
+	FRotator GetLookAtRotationYaw(FVector Target);
 
-
-	UFUNCTION(BlueprintCallable)
-	void MoveToTarget(AStudent* Target);
-
-	// 우선순위 유저->npc
-	void MovingNow();
-
+	bool IsValidTarget(AActor* Target);
 
 	// 초기 위치로 이동
-	void MoveToLocation();
-	void CheckLocation();
+	void MoveToInitialLocation();
+	void CheckCurrentLocation();
 
 
-
-	
+	//Components
 	UFUNCTION(BlueprintCallable)
 	void ActivateWeaponCollisions(); 
 	UFUNCTION(BlueprintCallable)
 	void DeactivateWeaponCollisions();
+
+	void DisableWeaponCollisions();
+	void DisableSphereCollisions();
 
 
 	// 공격
@@ -214,21 +192,21 @@ public: // Getters and Setters
 	UFUNCTION(BlueprintCallable)
 	void AttackEnd();
 
+	UFUNCTION(BlueprintCallable)
+	void HitEnd();
 
 	UFUNCTION(BlueprintCallable)
 	void Die();
 	UFUNCTION(BlueprintCallable)
 	void DeathEnd();
 
-	// 소멸
 	virtual void Disappear();
 
-	void DisableWeaponCollisions();
-	void DisableSphereCollisions();
+	UFUNCTION(BlueprintCallable)
+	void MoveToTarget(AStudent* Target);
+
+	// 타겟 추적 상태 확인 및 타겟 변경
+	void CheckChaseState();
 
 	bool IsDead() { return EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead;}
-
-	// 공격받은 뒤
-	UFUNCTION(BlueprintCallable)
-	void HitEnd();
 };

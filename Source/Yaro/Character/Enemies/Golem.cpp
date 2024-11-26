@@ -32,7 +32,7 @@ void AGolem::HitGround() //Golem's third skill
 	if (CombatTarget)
 	{
 		TArray<AActor*> ignoredActors;
-		UGameplayStatics::ApplyRadialDamage(GetWorld(), 80.f, GetActorLocation(), 300.f, UDamageType::StaticClass(),
+		UGameplayStatics::ApplyRadialDamage(GetWorld(), Damage + 20.f, GetActorLocation(), CombatSphereRadius + 100.f, UDamageType::StaticClass(),
 			ignoredActors,
 			this,
 			nullptr,
