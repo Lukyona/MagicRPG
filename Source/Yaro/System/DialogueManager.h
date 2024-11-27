@@ -28,37 +28,77 @@ class YARO_API UDialogueManager : public UObject
 
 	UPROPERTY()
 	UGameManager* GameManager;
-
 	UPROPERTY()
 	UNPCManager* NPCManager;
-
 	UPROPERTY()
 	UUIManager* UIManager;
 
 	UPROPERTY()
 	AMain* Player;
+	UPROPERTY()
+	AMainPlayerController* MainPlayerController;
 
 	UPROPERTY()
-		AMainPlayerController* MainPlayerController;
-
-	UPROPERTY()
-		UDialogueUI* DialogueUI;
-
-	int DialogueNum = 0; // 0 - intro
-
-	bool bDialogueUIVisible;
-
-	bool bSpeechBuubbleVisible;
-
-	ACharacter* SpeakingTarget;
-
-	UPROPERTY()
-	AActor* SpeechBubble;
-
+	UDialogueUI* DialogueUI;
 	UPROPERTY()
 	TArray <UDataTable*> DialogueDatas;
 
+	UPROPERTY()
+	AActor* SpeechBubble;
+	UPROPERTY()
+	ACharacter* SpeakingTarget;
+
+	int32 DialogueNum = 0; // 0 - intro
+
+	bool bDialogueUIVisible = false;
+	bool bSpeechBuubbleVisible = false;
+
+	template<class T>
+	UClass* LoadAsset(const FString& AssetPath)
+	{
+		TSoftClassPtr<T> AssetClass(FSoftObjectPath(AssetPath));
+		if (!AssetClass.IsValid())
+		{
+			AssetClass.LoadSynchronous();
+		}
+		return AssetClass.IsValid() ? AssetClass.Get() : nullptr;
+	}
+
 public:
+	//Getters and Setters
+	void SetGameManager(UGameManager* Manager)
+	{
+		GameManager = Manager;
+	}
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UDialogueUI* GetDialogueUI() 
+	{
+		return DialogueUI; 
+	}
+
+	UFUNCTION(BlueprintCallable)
+	int GetDialogueNum() const 
+	{
+		return DialogueNum; 
+	}
+	UFUNCTION(BlueprintCallable)
+	void SetDialogueNum(int Value) 
+	{
+		DialogueNum = Value; 
+	}
+
+	UFUNCTION(BlueprintCallable)
+	bool IsDialogueUIVisible() const 
+	{
+		return bDialogueUIVisible; 
+	}
+	void SetDialogueUIVisible(bool bVisible) 
+	{
+		bDialogueUIVisible = bVisible; 
+	}
+
+	//Core Methods
 	static UDialogueManager* CreateInstance(UGameInstance* Outer)
 	{
 		if (Instance == nullptr)
@@ -72,39 +112,20 @@ public:
 	void BeginPlay();
 	void Tick();
 
-
 	UFUNCTION(BlueprintCallable)
-		void CheckDialogueStartCondition();
+	void CheckDialogueStartCondition();
 
 	void TriggerNextDialogue();
 
-	void SetGameManager(UGameManager* Manager);
+	UFUNCTION(BlueprintCallable)
+	void DisplayDialogueUI();
+	UFUNCTION(BlueprintCallable)
+	void RemoveDialogueUI();
 
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-		UDialogueUI* GetDialogueUI() { return DialogueUI; }
+	void DialogueEndEvents();
 
 	UFUNCTION(BlueprintCallable)
-		int GetDialogueNum() const { return DialogueNum; }
-
-	UFUNCTION(BlueprintCallable)
-	void SetDialogueNum(int Value) { DialogueNum = Value; }
-
-	UFUNCTION(BlueprintCallable)
-		bool IsDialogueUIVisible() const { return bDialogueUIVisible; }
-
-	void SetDialogueUIVisible(bool bVisible) { bDialogueUIVisible = bVisible; }
-
-	UFUNCTION(BlueprintCallable)
-		void DisplayDialogueUI();
-
-	UFUNCTION(BlueprintCallable)
-		void RemoveDialogueUI();
-
-		void DialogueEndEvents();
-
-	UFUNCTION(BlueprintCallable)
-		void DisplaySpeechBuubble(AYaroCharacter* NPC);
-
+	void DisplaySpeechBuubble(AYaroCharacter* NPC);
 	void RemoveSpeechBuubble();
 
 };

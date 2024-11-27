@@ -12,7 +12,7 @@
 
 UUIManager* UUIManager::Instance = nullptr;
 
-void UUIManager::BeginPlay()
+void UUIManager::BeginPlay(FString WorldName)
 {
     if (GameManager)
     {
@@ -30,7 +30,7 @@ void UUIManager::BeginPlay()
     TSoftClassPtr<UUserWidget> EnemyHPBarBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/EnemyHPBar.EnemyHPBar_C")));
     TSoftClassPtr<UUserWidget> FadeInOutBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/FadeInOut.FadeInOut_C")));
 
-    if(!GetWorld()->GetName().Contains("2"))
+    if(!WorldName.Contains("2"))
     {
         if (!HUDBPClass.IsValid())
             HUDBPClass.LoadSynchronous();
@@ -147,11 +147,6 @@ void UUIManager::Tick()
         FVector2D SizeInViewport = FVector2D(150.f, 15.f);
         EnemyHPBar->SetDesiredSizeInViewport(SizeInViewport);
     }
-}
-
-void UUIManager::SetGameManager(UGameManager* Manager)
-{
-    this->GameManager = Manager;
 }
 
 void UUIManager::DisplayHUD()

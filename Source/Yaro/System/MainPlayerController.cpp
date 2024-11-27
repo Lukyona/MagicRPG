@@ -2,23 +2,17 @@
 
 
 #include "MainPlayerController.h"
-#include "Blueprint/UserWidget.h"
-#include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "Camera/CameraComponent.h"
-#include "BrainComponent.h"
-#include "BehaviorTree/BlackboardComponent.h"
-#include "Yaro/Character/Main.h"
-#include "Yaro/Character/YaroCharacter.h"
 #include "Yaro/System/GameManager.h"
 #include "Yaro/System/DialogueManager.h"
 #include "Yaro/System/UIManager.h"
-#include "AIController.h"
-
 
 void AMainPlayerController::BeginPlay()
 {
-    if (GetWorld()->GetName().Contains("Start")) return;
+    if (GetWorld()->GetName().Contains("Start"))
+    {
+        return;
+    }
 
     Super::BeginPlay();
 
@@ -26,56 +20,43 @@ void AMainPlayerController::BeginPlay()
     if (GameManager)
     {
         UIManager = GameManager->GetUIManager();
-        if (UIManager) UIManager->BeginPlay();
+        if (UIManager)
+        {
+            UIManager->BeginPlay(GetWorld()->GetName());
+        }
 
         DialogueManager = GameManager->GetDialogueManager();
-        if (DialogueManager) DialogueManager->BeginPlay();
+        if (DialogueManager)
+        {
+            DialogueManager->BeginPlay();
+        }
 
         NPCManager = GameManager->GetNPCManager();
         MainPlayer = GameManager->GetPlayer();
     }
-
     //카메라 회전 제한
     this->PlayerCameraManager->ViewPitchMin = -50.f; // 세로회전 위
     this->PlayerCameraManager->ViewPitchMax = 5.f; //아래
 }
 
-
-void AMainPlayerController::Tick(float DeltaTime)
+int32 AMainPlayerController::WhichKeyDown()
 {
-    if (GetWorld()->GetName().Contains("Start")) return;
+    static const TMap<FKey, int32> KeyMappings =
+    {
+        {EKeys::One, 1}, {EKeys::NumPadOne, 1},
+        {EKeys::Two, 2}, {EKeys::NumPadTwo, 2},
+        {EKeys::Three, 3}, {EKeys::NumPadThree, 3},
+        {EKeys::Four, 4}, {EKeys::NumPadFour, 4},
+        {EKeys::Five, 5}, {EKeys::NumPadFive, 5}
+    };
 
-    Super::Tick(DeltaTime);
+    for (const auto& KeyMapping : KeyMappings)
+    {
+        if (WasInputKeyJustPressed(KeyMapping.Key))
+        {
+            return KeyMapping.Value;
+        }
+    }
 
-    DialogueManager->Tick();
-    UIManager->Tick();
+    return 0;
 }
-
-int AMainPlayerController::WhichKeyDown()
-{
-    int result = 0;
-    if (WasInputKeyJustPressed(EKeys::One) || WasInputKeyJustPressed(EKeys::NumPadOne))
-    {
-        result = 1;
-    }
-    if (WasInputKeyJustPressed(EKeys::Two) || WasInputKeyJustPressed(EKeys::NumPadTwo))
-    {
-        result = 2;
-    }
-    if (WasInputKeyJustPressed(EKeys::Three) || WasInputKeyJustPressed(EKeys::NumPadThree))
-    {
-        result = 3;
-    }
-    if (WasInputKeyJustPressed(EKeys::Four) || WasInputKeyJustPressed(EKeys::NumPadFour))
-    {
-        result = 4;
-    }
-    if (WasInputKeyJustPressed(EKeys::Five) || WasInputKeyJustPressed(EKeys::NumPadFive))
-    {
-        result = 5;
-    }
-
-    return result;
-}
-
-

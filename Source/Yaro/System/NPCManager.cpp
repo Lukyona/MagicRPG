@@ -23,11 +23,6 @@ void UNPCManager::Init()
 	}
 }
 
-void UNPCManager::SetGameManager(UGameManager* Manager)
-{
-	this->GameManager = Manager;
-}
-
 FString UNPCManager::EnumToString(const FString& EnumName, ENPCType EnumValue)
 {
     const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, *EnumName, true);

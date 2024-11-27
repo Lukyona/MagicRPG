@@ -7,18 +7,23 @@
 #include "YaroSaveGame.h"
 #include "EnemySpawner.generated.h"
 
+class AEnemy;
+
 UCLASS()
 class YARO_API AEnemySpawner : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
+
+public:
 	AEnemySpawner();
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 protected:
+	AEnemy* SpawnedEnemy;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<class AEnemy> EnemyClass;
+	TSubclassOf<AEnemy> EnemyClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EEnemyType EnemyType;
@@ -32,15 +37,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bSpawnLater = false;
 
-	AEnemy* SpawnedEnemy;
-
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
+public:
 	UFUNCTION(BlueprintCallable)
 	void SpawnEnemies();
 };

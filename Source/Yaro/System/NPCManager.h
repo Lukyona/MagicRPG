@@ -59,7 +59,10 @@ public:
 
 	void Init();
 
-	void SetGameManager(UGameManager* Manager);
+	void SetGameManager(UGameManager* Manager)
+	{
+		GameManager = Manager;
+	}
 
 	FString EnumToString(const FString& EnumName, ENPCType EnumValue);
 

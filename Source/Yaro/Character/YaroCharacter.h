@@ -105,28 +105,60 @@ protected:
 
 
 	// 비비, 지지, 보보 팀 이동 위치
-	TArray<FVector> TeamMovePosList;
+	TArray<FVector> TeamMovePosList =
+	{ 
+		FVector(2517.f, 5585.f, 3351.f),
+		FVector(2345.f, 4223.f, 2833.f),
+		FVector(2080.f, 283.f, 2838.f),
+		FVector(1550.f, -1761.f, 2843.f),
+		FVector(1026.f, -1791.f, 2576.f)
+	};
 	int32 TeamMoveIndex = 0;
 	FTimerHandle TeamMoveTimer;
 
 public: //Getters and Setters
-	AAIController* GetAIController() { return AIController; }
-	UAnimInstance* GetAnimInstance() { return AnimInstance; }
-	ENPCType GetType() { return NPCType; }
+	AAIController* GetAIController() 
+	{
+		return AIController; 
+	}
+	UAnimInstance* GetAnimInstance() 
+	{
+		return AnimInstance; 
+	}
+	ENPCType GetType() 
+	{
+		return NPCType; 
+	}
 
-	int32 GetTeamMoveIndex() { return TeamMoveIndex; }
-	void SetTeamMoveIndex(int32 value) { TeamMoveIndex = value; }
+	int32 GetTeamMoveIndex() 
+	{
+		return TeamMoveIndex; 
+	}
+	void SetTeamMoveIndex(int32 value) 
+	{
+		TeamMoveIndex = value; 
+	}
 
-	void SetSmileStatus(bool Value) { bIsSmiling = Value; }
-	void SetSpeakingStatus(bool Value) { bIsSpeaking = Value; }
+	void SetSmileStatus(bool Value) 
+	{
+		bIsSmiling = Value; 
+	}
+	void SetSpeakingStatus(bool Value) 
+	{
+		bIsSpeaking = Value; 
+	}
 
 	void SetMovementSpeed(bool bEnableRunning);
 
-	TArray<AEnemy*> GetAgroTargets() { return AgroTargets; }
+	TArray<AEnemy*> GetAgroTargets() 
+	{
+		return AgroTargets; 
+	}
 
-	void SetTeamMovePosList();
-
-	void EnableStormCasting() { bCanCastStorm = true; }
+	void EnableStormCasting() 
+	{
+		bCanCastStorm = true; 
+	}
 
 public: // Core Methods
 	//Movements
@@ -164,4 +196,3 @@ public: // Core Methods
 	UFUNCTION()
 	virtual void NotAllowSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);	
 };
-

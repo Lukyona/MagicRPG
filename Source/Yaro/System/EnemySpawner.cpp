@@ -2,19 +2,16 @@
 
 
 #include "EnemySpawner.h"
-#include "Yaro/Character/Enemies/Enemy.h"
-#include "YaroSaveGame.h"
 #include "Kismet/GameplayStatics.h"
+#include "YaroSaveGame.h"
+#include "Yaro/Character/Enemies/Enemy.h"
 #include "Yaro/Character/Main.h"
 
-// Sets default values
 AEnemySpawner::AEnemySpawner()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-// Called when the game starts or when spawned
 void AEnemySpawner::BeginPlay()
 {
 	Super::BeginPlay();
@@ -25,7 +22,6 @@ void AEnemySpawner::BeginPlay()
 	}
 }
 
-// Called every frame
 void AEnemySpawner::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -33,27 +29,26 @@ void AEnemySpawner::Tick(float DeltaTime)
 
 void AEnemySpawner::SpawnEnemies()
 {
-	int32 count = 0;
+	int32 AliveCount = 0;
 	if (UGameplayStatics::DoesSaveGameExist("Default", 0)) // 저장 정보 존재하면
 	{
 		UYaroSaveGame* LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot("Default", 0));
-		int32* deadCount = LoadGameInstance->DeadEnemyList.Find(EnemyType);
-		if (deadCount != nullptr)
+		int32* DeadCount = LoadGameInstance->DeadEnemyList.Find(EnemyType);
+		if (DeadCount != nullptr)
 		{
-			count = NumberOfEnemies - *deadCount;
-			if (count <= 0) return;
+			AliveCount = NumberOfEnemies - *DeadCount;
+			if (AliveCount <= 0) return;
 		}
 		else
-			count = NumberOfEnemies;
+			AliveCount = NumberOfEnemies;
 	}
 	else
 	{
-		count = NumberOfEnemies;
+		AliveCount = NumberOfEnemies;
 	}
 
-	for (int i = 0; i < count; i++)
+	for (int i = 0; i < AliveCount; i++)
 	{
 		SpawnedEnemy = GetWorld()->SpawnActor<AEnemy>(EnemyClass, SpawnTransform[i]);
 	}
 }
-

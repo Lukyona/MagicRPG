@@ -8,11 +8,11 @@ struct FPlayerReplies
 {
 	GENERATED_USTRUCT_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadOnly)
-		FText ReplyText;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FText ReplyText;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-		int32 AnswerIndex;
+	int32 AnswerIndex;
 
 };
 
@@ -23,11 +23,11 @@ struct FNPCDialogue : public FTableRowBase
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FName CharacterName;
+	FName CharacterName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TArray<FText> Messages;
+	TArray<FText> Messages;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TArray<FPlayerReplies> PlayerReplies;
+	TArray<FPlayerReplies> PlayerReplies;
 };

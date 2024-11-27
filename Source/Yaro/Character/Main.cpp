@@ -576,7 +576,7 @@ void AMain::Targeting() //Targeting using Tap key
 			}
 
             CombatTarget = Targets[TargetIndex];
-            TargetIndex++;
+            ++TargetIndex;
 		}
 		
 		bHasCombatTarget = true;

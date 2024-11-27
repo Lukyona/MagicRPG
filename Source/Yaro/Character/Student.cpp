@@ -18,7 +18,6 @@ AStudent::AStudent()
 	GetCharacterMovement()->AirControl = 0.2f;
 	GetCharacterMovement()->MaxStepHeight = 55.f;
 
-	SetInterpSpeed(15.f);
 	bInterpToEnemy = false;
 
 	bOverlappingCombatSphere = false;
@@ -41,14 +40,14 @@ void AStudent::Tick(float DeltaTime)
 	if (bInterpToEnemy && CombatTarget) // 전투 타겟이 존재하고, 회전 가능할 때
 	{
 		FRotator LookAtYaw = GetLookAtRotationYaw(CombatTarget->GetActorLocation());
-		FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, GetInterpSpeed()); //smooth transition
+		FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed); //smooth transition
 		SetActorRotation(InterpRotation);
 	}
 
-	if (bInterpToCharacter && GetTargetCharacter())
+	if (bInterpToCharacter && TargetCharacter)
 	{
-		FRotator LookAtYaw = GetLookAtRotationYaw(GetTargetCharacter()->GetActorLocation());
-		FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, GetInterpSpeed()); //smooth transition
+		FRotator LookAtYaw = GetLookAtRotationYaw(TargetCharacter->GetActorLocation());
+		FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed); //smooth transition
 		SetActorRotation(InterpRotation);
 	}
 }
@@ -72,6 +71,3 @@ void AStudent::SetAttackArrow()
 	AttackArrow->SetupAttachment(GetRootComponent());
 	AttackArrow->SetRelativeLocation(FVector(160.f, 4.f, 26.f));
 }
-
-
-

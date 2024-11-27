@@ -90,10 +90,13 @@ public:
         return Instance;
     }
 
-    void BeginPlay();
+    void BeginPlay(FString WorldName);
     void Tick();
 
-    void SetGameManager(UGameManager* Manager);
+    void SetGameManager(UGameManager* Manager)
+    {
+        GameManager = Manager;
+    }
 
     UFUNCTION(BlueprintCallable)
         void DisplayHUD();

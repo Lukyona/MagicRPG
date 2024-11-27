@@ -25,6 +25,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UFUNCTION()
+	virtual void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {};
+	UFUNCTION()
+	virtual void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) {};
+
 protected:
 	//Movements
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
@@ -32,7 +37,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	float RunSpeed;
 
-	float InterpSpeed;
+	float InterpSpeed = 15.f;
 
 	UPROPERTY(EditAnywhere)
 	bool bInterpToCharacter = false;
@@ -73,33 +78,56 @@ protected:
 
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
-		UAnimMontage* NormalMontage;
+	UAnimMontage* NormalMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
-		UAnimMontage* CombatMontage;
+	UAnimMontage* CombatMontage;
 
 public: //Getters and Setters
-	float GetInterpSpeed() { return InterpSpeed; }
-	void SetInterpSpeed(float value) { InterpSpeed = value; }
-
 	FRotator GetLookAtRotationYaw(FVector Target);
 
-	void SetInterpToEnemy(bool Interp) { bInterpToEnemy = Interp; };
-	void SetInterpToCharacter(bool value) { bInterpToCharacter = value;};
+	void SetInterpToEnemy(bool Interp) 
+	{
+		bInterpToEnemy = Interp; 
+	}
+	void SetInterpToCharacter(bool value) 
+	{
+		bInterpToCharacter = value;
+	}
 
 
-	UAnimMontage* GetCombatMontage() { return CombatMontage; }
-	UAnimMontage* GetNormalMontage() { return NormalMontage; }
+	UAnimMontage* GetCombatMontage() 
+	{
+		return CombatMontage; 
+	}
+	UAnimMontage* GetNormalMontage() 
+	{
+		return NormalMontage; 
+	}
 
 
-	int GetSkillNum() { return SkillNum; }
-	void SetSkillNum(int num) { SkillNum = num; }
+	int GetSkillNum() 
+	{
+		return SkillNum; 
+	}
+	void SetSkillNum(int num) 
+	{
+		SkillNum = num; 
+	}
 
-	ACharacter* GetTargetCharacter() { return TargetCharacter; }
-	void SetTargetCharacter(ACharacter* ch) { TargetCharacter = ch; }
+	void SetTargetCharacter(ACharacter* ch) 
+	{
+		TargetCharacter = ch; 
+	}
 
-	AEnemy* GetCombatTarget() { return CombatTarget; }
-	void SetCombatTarget(AEnemy* target) { CombatTarget = target; }
+	AEnemy* GetCombatTarget() 
+	{
+		return CombatTarget; 
+	}
+	void SetCombatTarget(AEnemy* target) 
+	{
+		CombatTarget = target; 
+	}
 
 	void SetAttackArrow();
 
@@ -110,10 +138,5 @@ public: //Getters and Setters
 
 	// 마법 스폰
 	virtual void Spawn() {};
-
-	UFUNCTION()
-		virtual void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {};
-	UFUNCTION()
-		virtual void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) {};
 
 };
