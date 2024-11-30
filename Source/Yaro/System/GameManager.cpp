@@ -35,39 +35,18 @@ void UGameManager::Shutdown()
 
 	if (DialogueManager && IsValid(DialogueManager))
 	{
-		DialogueManager->RemoveFromRoot();
-		DialogueManager = nullptr;
-		UDialogueManager::Instance = nullptr;
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("DialogueManager is already null or invalid during shutdown."));
+		CleanupManager(DialogueManager);
 	}
 
 	if (UIManager && IsValid(UIManager))
 	{
-		UIManager->RemoveFromRoot();
-		UIManager = nullptr;
-		UUIManager::Instance = nullptr;
-
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UIManager is already null or invalid during shutdown."));
+		CleanupManager(UIManager);
 	}
 
 	if (NPCManager && IsValid(NPCManager))
 	{
-		NPCManager->RemoveFromRoot();
-		NPCManager = nullptr;
-		UNPCManager::Instance = nullptr;
-
+		CleanupManager(NPCManager);
 	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("NPCManager is already null or invalid during shutdown."));
-	}
-
 }
 
 void UGameManager::StartGameInstance()
@@ -124,14 +103,14 @@ AMainPlayerController* UGameManager::GetMainPlayerController()
 
 void UGameManager::SaveGame()
 {
-	const int32 DialogueNum = DialogueManager->GetDialogueNum();
+	const EDialogueState DialogueState = static_cast<EDialogueState>(DialogueManager->GetDialogueNum());
 
-	if (DialogueNum >= 23 || !bIsSaveAllowed)
+	if (DialogueState >= EDialogueState::FinalLine || !bIsSaveAllowed)
 	{
 		return;
 	}
 
-	if (DialogueManager->IsDialogueUIVisible() || DialogueNum == 21
+	if (DialogueManager->IsDialogueUIVisible() || DialogueState == EDialogueState::AfterTookTheStone
 		|| Player->IsInAir() || Player->IsFallenInDungeon())
 	{
 		GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &UGameManager::SaveGame, 2.f, false);
@@ -153,14 +132,14 @@ void UGameManager::SaveGame()
 	SavePlayerInfo(SaveGameInstance);
 
 	SaveGameInstance->WorldName = FName(*GetWorld()->GetName());
-	SaveGameInstance->DialogueNum = DialogueNum;
+	SaveGameInstance->DialogueNum = DialogueManager->GetDialogueNum();
 
-	if (DialogueNum < 23 && DialogueNum != 19)
+	if (DialogueState < EDialogueState::FinalLine && DialogueState != EDialogueState::BackToCave)
 	{
 		SaveNPCLocations(SaveGameInstance);
 	}
 
-	if (DialogueNum < 4)
+	if (DialogueState < EDialogueState::MoveToBoat)
 	{
 		SaveGameInstance->NpcInfo.TeamMoveIndex = NPCManager->GetNPC("Vivi")->GetTeamMoveIndex();
 	}
@@ -174,7 +153,7 @@ void UGameManager::SaveGame()
 
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
 
-	if (DialogueNum == 18 && UIManager->GetSystemMessageNum() == 13)
+	if (DialogueState == EDialogueState::AfterCombatWithBoss && UIManager->GetSystemMessageNum() == 13)
 	{
 		return;
 	}
@@ -196,9 +175,9 @@ void UGameManager::LoadGame()
 
 	DeadEnemies = LoadGameInstance->DeadEnemyList;
 
-	const int32 DialogueNum = DialogueManager->GetDialogueNum();
+	const EDialogueState DialogueState = static_cast<EDialogueState>(DialogueManager->GetDialogueNum());
 
-	if (DialogueNum < 4)
+	if (DialogueState < EDialogueState::MoveToBoat)
 	{
 		NPCManager->GetNPC("Vovo")->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
 		NPCManager->GetNPC("Vivi")->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
@@ -215,8 +194,8 @@ void UGameManager::LoadGame()
 		}
 	}
 
-	if ((DialogueNum == 15 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss"))
-		|| (DialogueNum == 4 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second")))
+	if ((DialogueState == EDialogueState::SecondDungeonFinished && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss"))
+		|| (DialogueState == EDialogueState::MoveToBoat && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second")))
 	{
 		return;
 	}
@@ -224,14 +203,14 @@ void UGameManager::LoadGame()
 	Player->SetActorLocation(LoadGameInstance->CharacterStats.Location);
 	Player->SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
 
-	if (DialogueNum == 19) 
+	if (DialogueState == EDialogueState::BackToCave)
 	{
 		return;
 	}
 
 	LoadNPCLocations(LoadGameInstance);
 
-	if (DialogueNum == 4)
+	if (DialogueState == EDialogueState::MoveToBoat)
 	{
 		bIsSaveAllowed = false;
 	}
@@ -302,27 +281,27 @@ void UGameManager::SkipCombat() // 전투 스킵, 몬스터 제거
 		return;
 	}
 
-	const int32 DialogueNum = DialogueManager->GetDialogueNum();
+	const EDialogueState DialogueState = static_cast<EDialogueState>(DialogueManager->GetDialogueNum());
 
-	if (DialogueNum < 4) // first dungeon
+	if (DialogueState < EDialogueState::MoveToBoat) // first dungeon
 	{
-		if (DialogueNum <= 2) 
+		if (DialogueState <= EDialogueState::BeforeFirstDungeon)
 		{
 			return;
 		}
 		SkipFirstDungeon.Broadcast();
 	}
-	else if (DialogueNum < 15)
+	else if (DialogueState < EDialogueState::SecondDungeonFinished)
 	{
-		if (DialogueNum <= 10) 
+		if (DialogueState <= EDialogueState::NPCMoveToBridge)
 		{
 			return;
 		}
 		SkipSecondDungeon.Broadcast();
 	}
-	else if (DialogueNum < 19)
+	else if (DialogueState < EDialogueState::BackToCave)
 	{
-		if (DialogueNum <= 17) 
+		if (DialogueState <= EDialogueState::ReadyToFightWithBoss)
 		{
 			return;
 		}
@@ -336,7 +315,10 @@ void UGameManager::SkipCombat() // 전투 스킵, 몬스터 제거
 
 void UGameManager::StartFirstDungeon()
 {
-	if (DialogueManager->GetDialogueNum() == 3 && UIManager->IsSystemMessageVisible())
+	const EDialogueState DialogueState = static_cast<EDialogueState>(DialogueManager->GetDialogueNum());
+
+	if (DialogueState == EDialogueState::FirstDungeonStarted
+		&& UIManager->IsSystemMessageVisible())
 	{
 		UIManager->RemoveSystemMessage();
 
@@ -360,18 +342,19 @@ void UGameManager::StartFirstDungeon()
 
 void UGameManager::EscapeToSafeLocation() // 두 번째 던전에서의 긴급 탈출
 {
-	const int32 DialogueNum = DialogueManager->GetDialogueNum();
-	if (DialogueNum >= 6 && !DialogueManager->IsDialogueUIVisible() && !Player->IsDead())
+	const EDialogueState DialogueState = static_cast<EDialogueState>(DialogueManager->GetDialogueNum());
+	if (DialogueState >= EDialogueState::FirstDungeonStarted
+		&& !DialogueManager->IsDialogueUIVisible() && !Player->IsDead())
 	{
-		if (DialogueNum <= 8)
+		if (DialogueState <= EDialogueState::PlayerJumpToPlatform)
 		{
 			Player->SetActorLocation(SafeLocationList[0]);
 		}
-		else if (DialogueNum <= 11)
+		else if (DialogueState <= EDialogueState::NPCCrossedBridge)
 		{
 			Player->SetActorLocation(SafeLocationList[1]);
 		}
-		else if (DialogueNum <= 15)
+		else if (DialogueState <= EDialogueState::SecondDungeonFinished)
 		{
 			Player->SetActorLocation(SafeLocationList[2]);
 		}

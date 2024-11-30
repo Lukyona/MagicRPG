@@ -20,6 +20,24 @@ class UYaroSaveGame;
  // 블루프린트에서 쓰려면 다이나믹 멀티캐스트여야함
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_Dynamic);
 
+enum class EDialogueState : int32
+{
+	BeforeFirstDungeon = 2,
+	FirstDungeonStarted = 3,
+	MoveToBoat = 4,
+	SecondDungeonStarted = 6,
+	PlayerJumpToPlatform = 8,
+	NPCMoveToBridge = 10,
+	NPCCrossedBridge = 11,
+	AfterCombatWithSpiders = 13,
+	SecondDungeonFinished = 15,
+	ReadyToFightWithBoss = 17,
+	AfterCombatWithBoss = 18,
+	BackToCave = 19,
+	AfterTookTheStone = 21,
+	FinalLine = 23,
+};
+
 UCLASS()
 class YARO_API UGameManager : public UGameInstance
 {
@@ -59,15 +77,11 @@ class YARO_API UGameManager : public UGameInstance
 		FVector(2726.f, -3353.f, -500.f)
 	};
 
-public:
-	UPROPERTY(BlueprintReadWrite)
-	TSubclassOf<APawn> PlayerClass;
 
 	template<typename T>
 	static T* CreateManager(UGameManager* GameManager)
 	{
 		T* Manager = T::CreateInstance(GameManager);
-		//T* Manager = NewObject<T>(GameManager, T::StaticClass());
 		if (Manager && IsValid(Manager))
 		{
 			Manager->SetGameManager(GameManager);
@@ -77,9 +91,28 @@ public:
 		{
 			UE_LOG(LogTemp, Error, TEXT("Failed to create %s or it is invalid."), *T::StaticClass()->GetName());
 		}
-		
+
 		return Manager;
 	}
+
+	template <typename T>
+	void CleanupManager(T*& Manager)
+	{
+		if (Manager && IsValid(Manager))
+		{
+			Manager->RemoveFromRoot();
+			Manager = nullptr;
+			T::Instance = nullptr;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s is already null or invalid."), *T::StaticClass()->GetName());
+		}
+	}
+
+public:
+	UPROPERTY(BlueprintReadWrite)
+	TSubclassOf<APawn> PlayerClass;
 
 	// Getters and Setters
 	UFUNCTION(BlueprintCallable, BlueprintPure)
