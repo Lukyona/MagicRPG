@@ -15,6 +15,7 @@ class AMainPlayerController;
 class UDialogueManager;
 class UNPCManager;
 class UUIManager;
+class UYaroSaveGame;
 
  // 블루프린트에서 쓰려면 다이나믹 멀티캐스트여야함
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_Dynamic);
@@ -29,15 +30,15 @@ class YARO_API UGameManager : public UGameInstance
 	virtual void StartGameInstance() override;
 
 	UPROPERTY()
-	AMain* Player;
+	AMain* Player = nullptr;
 	UPROPERTY()
-	AMainPlayerController* MainPlayerController;
-	UPROPERTY()
-	UDialogueManager* DialogueManager;
-	UPROPERTY()
-	UNPCManager* NPCManager;
-	UPROPERTY()
-	UUIManager* UIManager;
+	AMainPlayerController* MainPlayerController = nullptr;
+	//UPROPERTY()
+	UDialogueManager* DialogueManager = nullptr;
+	//UPROPERTY()
+	UNPCManager* NPCManager = nullptr;
+	//UPROPERTY()
+	UUIManager* UIManager = nullptr;
 
 	bool bIsSkipping = false;
 	bool bIsSkippable = false; // 스킵 가능한지
@@ -49,6 +50,15 @@ class YARO_API UGameManager : public UGameInstance
 
 	bool bIsSaveAllowed = true;
 
+	FDelegateHandle TickerHandle;
+
+	TArray<FVector> SafeLocationList =
+	{
+		FVector(4620.f, -3975.f, -2117.f),
+		FVector(5165.f, -2307.f, -2117.f),
+		FVector(2726.f, -3353.f, -500.f)
+	};
+
 public:
 	UPROPERTY(BlueprintReadWrite)
 	TSubclassOf<APawn> PlayerClass;
@@ -57,26 +67,38 @@ public:
 	static T* CreateManager(UGameManager* GameManager)
 	{
 		T* Manager = T::CreateInstance(GameManager);
+		//T* Manager = NewObject<T>(GameManager, T::StaticClass());
 		if (Manager && IsValid(Manager))
 		{
 			Manager->SetGameManager(GameManager);
+			Manager->AddToRoot();
 		}
 		else
 		{
 			UE_LOG(LogTemp, Error, TEXT("Failed to create %s or it is invalid."), *T::StaticClass()->GetName());
 		}
+		
 		return Manager;
 	}
 
 	// Getters and Setters
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	UDialogueManager* GetDialogueManager() const { return DialogueManager; }
+	UDialogueManager* GetDialogueManager() const 
+	{
+		return DialogueManager; 
+	}
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	UNPCManager* GetNPCManager() { return NPCManager; }
+	UNPCManager* GetNPCManager() 
+	{
+		return NPCManager; 
+	}
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	UUIManager* GetUIManager() { return UIManager; }
+	UUIManager* GetUIManager() 
+	{
+		return UIManager; 
+	}
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	AMain* GetPlayer();
@@ -84,25 +106,47 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	AMainPlayerController* GetMainPlayerController();
 
-	void SetIsSaveAllowed(bool Value) { bIsSaveAllowed = Value; }
+	void SetIsSaveAllowed(bool Value) 
+	{
+		bIsSaveAllowed = Value; 
+	}
 
 
 	// Core Methods
+	bool Tick(float DeltaTime);
+
 	UFUNCTION(BlueprintCallable)
 	void SaveGame();
 	UFUNCTION(BlueprintCallable)
 	void LoadGame();
 
+	void SavePlayerInfo(UYaroSaveGame* SaveGameInstance);
+	void LoadPlayerInfo(UYaroSaveGame* LoadGameInstance);
+	void SaveNPCLocations(UYaroSaveGame* SaveGameInstance);
+	void LoadNPCLocations(UYaroSaveGame* LoadGameInstance);
+
 
 	UFUNCTION(BlueprintCallable)
-	bool IsSkipping() const { return bIsSkipping; }
+	bool IsSkipping() const 
+	{
+		return bIsSkipping; 
+	}
 	UFUNCTION(BlueprintCallable)
-	void SetIsSkipping(bool bSkipping) { bIsSkipping = bSkipping; }
+	void SetIsSkipping(bool bSkipping) 
+	{
+		bIsSkipping = bSkipping; 
+	}
 
 	UFUNCTION(BlueprintCallable)
-	bool IsSkippable() const { return bIsSkippable; }
+	bool IsSkippable() const 
+	{
+		return bIsSkippable; 
+	}
 	UFUNCTION(BlueprintCallable)
-	void SetIsSkippable(bool bSkippable) { bIsSkippable = bSkippable; }
+	void SetIsSkippable(bool bSkippable) 
+	{
+		bIsSkippable = bSkippable; 
+	}
 
 	void SkipCombat();
 
@@ -110,7 +154,10 @@ public:
 
 	// 배열을 const 참조로 반환하여 배열의 복사가 일어나지 않도록, 마지막 const는 이 함수가 객체의 멤버 변수를 변경하지 않는 것을 의미
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	const TMap<EEnemyType, int32>& GetDeadEnemies() { return DeadEnemies; }
+	const TMap<EEnemyType, int32>& GetDeadEnemies() 
+	{
+		return DeadEnemies; 
+	}
 	void UpdateDeadEnemy(EEnemyType EnemyType);
 
 	void EscapeToSafeLocation(); // press E key, spawn player at the other location

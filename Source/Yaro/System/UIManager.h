@@ -14,7 +14,9 @@ class YARO_API UUIManager : public UObject
 {
     GENERATED_BODY()
 
-        static UUIManager* Instance;
+    friend class UGameManager;
+
+    static UUIManager* Instance;
 
     UPROPERTY()
         class UGameManager* GameManager;
@@ -85,7 +87,6 @@ public:
         if (Instance == nullptr)
         {
             Instance = NewObject<UUIManager>(Outer, UUIManager::StaticClass());
-            Instance->AddToRoot();
         }
         return Instance;
     }

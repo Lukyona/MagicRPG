@@ -15,6 +15,8 @@ class YARO_API UNPCManager : public UObject
 {
 	GENERATED_BODY()
 
+	friend class UGameManager;
+
 	static UNPCManager* Instance;
 
 	UPROPERTY()
@@ -51,7 +53,6 @@ public:
 		if (Instance == nullptr)
 		{
 			Instance = NewObject<UNPCManager>(Outer, UNPCManager::StaticClass());
-			Instance->AddToRoot();
 			Instance->Init();
 		}
 		return Instance;

@@ -3,6 +3,7 @@
 
 #include "Yaro/System/GameManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "Tickable.h"
 #include "Yaro/System/DialogueManager.h"
 #include "Yaro/System/NPCManager.h"
 #include "Yaro/System/UIManager.h"
@@ -15,42 +16,90 @@
 void UGameManager::Init()
 {
 	Super::Init();
+	
+	DialogueManager = CreateManager<UDialogueManager>(this);
+	UIManager = CreateManager<UUIManager>(this);
+	NPCManager = CreateManager<UNPCManager>(this);
 
-	TWeakObjectPtr<UGameManager> WeakGameManager = this;
+	TickerHandle = FTicker::GetCoreTicker().AddTicker(
+	FTickerDelegate::CreateUObject(this, &UGameManager::Tick), 0.0f); // 0.0f: 매 프레임 호출
 
-	// 비동기 작업으로 메인 스레드에서 초기화 진행
-	AsyncTask(ENamedThreads::GameThread, [WeakGameManager]()
-	{
-		if (WeakGameManager.IsValid())
-		{
-			UGameManager* GameManager = WeakGameManager.Get();
-
-			// 매니저들 생성 및 유효성 체크
-			if (GameManager)
-			{
-				GameManager->DialogueManager = CreateManager<UDialogueManager>(GameManager);
-				GameManager->UIManager = CreateManager<UUIManager>(GameManager);
-				GameManager->NPCManager = CreateManager<UNPCManager>(GameManager);
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("GameManager is not valid in AsyncTask."));
-		}
-	});
 }
 
 void UGameManager::Shutdown()
 {
 	Super::Shutdown();
-	if(IsValid(DialogueManager)) DialogueManager->RemoveFromRoot();
-	if (IsValid(UIManager)) UIManager->RemoveFromRoot();
-	if(IsValid(NPCManager)) NPCManager->RemoveFromRoot();
+
+	FTicker::GetCoreTicker().RemoveTicker(TickerHandle);
+	TickerHandle.Reset();
+
+	if (DialogueManager && IsValid(DialogueManager))
+	{
+		DialogueManager->RemoveFromRoot();
+		DialogueManager = nullptr;
+		UDialogueManager::Instance = nullptr;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DialogueManager is already null or invalid during shutdown."));
+	}
+
+	if (UIManager && IsValid(UIManager))
+	{
+		UIManager->RemoveFromRoot();
+		UIManager = nullptr;
+		UUIManager::Instance = nullptr;
+
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UIManager is already null or invalid during shutdown."));
+	}
+
+	if (NPCManager && IsValid(NPCManager))
+	{
+		NPCManager->RemoveFromRoot();
+		NPCManager = nullptr;
+		UNPCManager::Instance = nullptr;
+
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("NPCManager is already null or invalid during shutdown."));
+	}
+
 }
 
 void UGameManager::StartGameInstance()
 {
 	Super::StartGameInstance();
+}
+
+bool UGameManager::Tick(float DeltaTime)
+{
+	if (GetWorld()->GetName().Contains("Start"))
+	{
+		return true;
+	}
+
+	if (DialogueManager && IsValid(DialogueManager))
+	{
+		DialogueManager->Tick();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DialogueManager is null or invalid during Tick."));
+	}
+
+	if (UIManager && IsValid(UIManager))
+	{
+		UIManager->Tick();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UIManager is null or invalid during Tick."));
+	}
+	return true; // true를 반환하면 계속 호출됨
 }
 
 AMain* UGameManager::GetPlayer()
@@ -75,9 +124,14 @@ AMainPlayerController* UGameManager::GetMainPlayerController()
 
 void UGameManager::SaveGame()
 {
-	if (DialogueManager->GetDialogueNum() >= 23 || !bIsSaveAllowed) return;
+	const int32 DialogueNum = DialogueManager->GetDialogueNum();
 
-	if (DialogueManager->IsDialogueUIVisible() || DialogueManager->GetDialogueNum() == 21
+	if (DialogueNum >= 23 || !bIsSaveAllowed)
+	{
+		return;
+	}
+
+	if (DialogueManager->IsDialogueUIVisible() || DialogueNum == 21
 		|| Player->IsInAir() || Player->IsFallenInDungeon())
 	{
 		GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &UGameManager::SaveGame, 2.f, false);
@@ -91,33 +145,25 @@ void UGameManager::SaveGame()
 	}
 
 	UYaroSaveGame* SaveGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
-
-	SaveGameInstance->PlayerGender = Player->GetStat(EPlayerStat::Gender);
-	SaveGameInstance->CharacterStats.HP = Player->GetStat(EPlayerStat::HP);
-	SaveGameInstance->CharacterStats.MP = Player->GetStat(EPlayerStat::MP);
-	SaveGameInstance->CharacterStats.SP = Player->GetStat(EPlayerStat::SP);
-	SaveGameInstance->CharacterStats.Level = Player->GetStat(EPlayerStat::Level);
-	SaveGameInstance->CharacterStats.Exp = Player->GetStat(EPlayerStat::Exp);
-	SaveGameInstance->CharacterStats.PotionNum = Player->GetStat(EPlayerStat::PotionNum);
-
-	SaveGameInstance->WorldName = FName(*GetWorld()->GetName());
-	SaveGameInstance->DialogueNum = DialogueManager->GetDialogueNum();
-	SaveGameInstance->CharacterStats.FallCount = Player->GetFallCount();
-
-	SaveGameInstance->CharacterStats.Location = Player->GetActorLocation();
-	SaveGameInstance->CharacterStats.Rotation = Player->GetActorRotation();
-
-	if (DialogueManager->GetDialogueNum() < 23 && DialogueManager->GetDialogueNum() != 19)
+	if (!SaveGameInstance)
 	{
-		SaveGameInstance->NpcInfo.MomoLocation = NPCManager->GetNPC("Momo")->GetActorLocation();
-		SaveGameInstance->NpcInfo.LukoLocation = NPCManager->GetNPC("Luko")->GetActorLocation();
-		SaveGameInstance->NpcInfo.VovoLocation = NPCManager->GetNPC("Vovo")->GetActorLocation();
-		SaveGameInstance->NpcInfo.ViviLocation = NPCManager->GetNPC("Vivi")->GetActorLocation();
-		SaveGameInstance->NpcInfo.ZiziLocation = NPCManager->GetNPC("Zizi")->GetActorLocation();
+		return;
 	}
 
-	if (DialogueManager->GetDialogueNum() < 4)
+	SavePlayerInfo(SaveGameInstance);
+
+	SaveGameInstance->WorldName = FName(*GetWorld()->GetName());
+	SaveGameInstance->DialogueNum = DialogueNum;
+
+	if (DialogueNum < 23 && DialogueNum != 19)
+	{
+		SaveNPCLocations(SaveGameInstance);
+	}
+
+	if (DialogueNum < 4)
+	{
 		SaveGameInstance->NpcInfo.TeamMoveIndex = NPCManager->GetNPC("Vivi")->GetTeamMoveIndex();
+	}
 
 	SaveGameInstance->DeadEnemyList = DeadEnemies;
 
@@ -128,31 +174,31 @@ void UGameManager::SaveGame()
 
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex);
 
-	if (DialogueManager->GetDialogueNum() == 18 && UIManager->GetSystemMessageNum() == 13) return;
+	if (DialogueNum == 18 && UIManager->GetSystemMessageNum() == 13)
+	{
+		return;
+	}
 
 	GetWorld()->GetTimerManager().SetTimer(SaveTimer, this, &UGameManager::SaveGame, 1.f, false);
 }
 
 void UGameManager::LoadGame()
 {
-	UYaroSaveGame* LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::CreateSaveGameObject(UYaroSaveGame::StaticClass()));
-	if (LoadGameInstance) return;
-
-	LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot(LoadGameInstance->SaveName, LoadGameInstance->UserIndex));
+	UYaroSaveGame* LoadGameInstance = Cast<UYaroSaveGame>(UGameplayStatics::LoadGameFromSlot("Default", 0));
+	if (!LoadGameInstance)
+	{
+		return;
+	}
 
 	DialogueManager->SetDialogueNum(LoadGameInstance->DialogueNum);
-	Player->SetFallCount(LoadGameInstance->CharacterStats.FallCount);
 
-	Player->SetStat(EPlayerStat::HP, LoadGameInstance->CharacterStats.HP);
-	Player->SetStat(EPlayerStat::MP, LoadGameInstance->CharacterStats.MP);
-	Player->SetStat(EPlayerStat::SP, LoadGameInstance->CharacterStats.SP);
-	Player->SetStat(EPlayerStat::Level, LoadGameInstance->CharacterStats.Level);
-	Player->SetStat(EPlayerStat::Exp, LoadGameInstance->CharacterStats.Exp);
-	Player->SetStat(EPlayerStat::PotionNum, LoadGameInstance->CharacterStats.PotionNum);
+	LoadPlayerInfo(LoadGameInstance);
 
 	DeadEnemies = LoadGameInstance->DeadEnemyList;
 
-	if (DialogueManager->GetDialogueNum() < 4)
+	const int32 DialogueNum = DialogueManager->GetDialogueNum();
+
+	if (DialogueNum < 4)
 	{
 		NPCManager->GetNPC("Vovo")->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
 		NPCManager->GetNPC("Vivi")->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
@@ -169,24 +215,69 @@ void UGameManager::LoadGame()
 		}
 	}
 
-	if (DialogueManager->GetDialogueNum() == 15 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss")) return;
-	if (DialogueManager->GetDialogueNum() == 4 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second")) return;
+	if ((DialogueNum == 15 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("boss"))
+		|| (DialogueNum == 4 && UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("second")))
+	{
+		return;
+	}
 
 	Player->SetActorLocation(LoadGameInstance->CharacterStats.Location);
 	Player->SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
 
-	if (DialogueManager->GetDialogueNum() == 19) return;
+	if (DialogueNum == 19) 
+	{
+		return;
+	}
 
+	LoadNPCLocations(LoadGameInstance);
+
+	if (DialogueNum == 4)
+	{
+		bIsSaveAllowed = false;
+	}
+}
+
+void UGameManager::SavePlayerInfo(UYaroSaveGame* SaveGameInstance)
+{
+	SaveGameInstance->PlayerGender = Player->GetStat(EPlayerStat::Gender);
+	SaveGameInstance->CharacterStats.HP = Player->GetStat(EPlayerStat::HP);
+	SaveGameInstance->CharacterStats.MP = Player->GetStat(EPlayerStat::MP);
+	SaveGameInstance->CharacterStats.SP = Player->GetStat(EPlayerStat::SP);
+	SaveGameInstance->CharacterStats.Level = Player->GetStat(EPlayerStat::Level);
+	SaveGameInstance->CharacterStats.Exp = Player->GetStat(EPlayerStat::Exp);
+	SaveGameInstance->CharacterStats.PotionNum = Player->GetStat(EPlayerStat::PotionNum);
+	SaveGameInstance->CharacterStats.FallCount = Player->GetFallCount();
+	SaveGameInstance->CharacterStats.Location = Player->GetActorLocation();
+	SaveGameInstance->CharacterStats.Rotation = Player->GetActorRotation();
+}
+
+void UGameManager::LoadPlayerInfo(UYaroSaveGame* LoadGameInstance)
+{
+	Player->SetStat(EPlayerStat::HP, LoadGameInstance->CharacterStats.HP);
+	Player->SetStat(EPlayerStat::MP, LoadGameInstance->CharacterStats.MP);
+	Player->SetStat(EPlayerStat::SP, LoadGameInstance->CharacterStats.SP);
+	Player->SetStat(EPlayerStat::Level, LoadGameInstance->CharacterStats.Level);
+	Player->SetStat(EPlayerStat::Exp, LoadGameInstance->CharacterStats.Exp);
+	Player->SetStat(EPlayerStat::PotionNum, LoadGameInstance->CharacterStats.PotionNum);
+	Player->SetFallCount(LoadGameInstance->CharacterStats.FallCount);
+}
+
+void UGameManager::SaveNPCLocations(UYaroSaveGame* SaveGameInstance)
+{
+	SaveGameInstance->NpcInfo.MomoLocation = NPCManager->GetNPC("Momo")->GetActorLocation();
+	SaveGameInstance->NpcInfo.LukoLocation = NPCManager->GetNPC("Luko")->GetActorLocation();
+	SaveGameInstance->NpcInfo.VovoLocation = NPCManager->GetNPC("Vovo")->GetActorLocation();
+	SaveGameInstance->NpcInfo.ViviLocation = NPCManager->GetNPC("Vivi")->GetActorLocation();
+	SaveGameInstance->NpcInfo.ZiziLocation = NPCManager->GetNPC("Zizi")->GetActorLocation();
+}
+
+void UGameManager::LoadNPCLocations(UYaroSaveGame* LoadGameInstance)
+{
 	NPCManager->SetNPCLocation("Momo", LoadGameInstance->NpcInfo.MomoLocation);
 	NPCManager->SetNPCLocation("Luko", LoadGameInstance->NpcInfo.LukoLocation);
 	NPCManager->SetNPCLocation("Vovo", LoadGameInstance->NpcInfo.VovoLocation);
 	NPCManager->SetNPCLocation("Vivi", LoadGameInstance->NpcInfo.ViviLocation);
 	NPCManager->SetNPCLocation("Zizi", LoadGameInstance->NpcInfo.ZiziLocation);
-
-	if (DialogueManager->GetDialogueNum() == 4)
-	{
-		bIsSaveAllowed = false;
-	}
 }
 
 void UGameManager::UpdateDeadEnemy(EEnemyType EnemyType)
@@ -206,25 +297,41 @@ void UGameManager::UpdateDeadEnemy(EEnemyType EnemyType)
 
 void UGameManager::SkipCombat() // 전투 스킵, 몬스터 제거
 {
-	if (DialogueManager->IsDialogueUIVisible() || !IsSkippable() || IsSkipping()
-		|| Player->IsDead()) return;
-
-	if (DialogueManager->GetDialogueNum() < 4) // first dungeon
+	if (DialogueManager->IsDialogueUIVisible() || !IsSkippable() || IsSkipping() || Player->IsDead()) 
 	{
-		if (DialogueManager->GetDialogueNum() <= 2) return;
+		return;
+	}
+
+	const int32 DialogueNum = DialogueManager->GetDialogueNum();
+
+	if (DialogueNum < 4) // first dungeon
+	{
+		if (DialogueNum <= 2) 
+		{
+			return;
+		}
 		SkipFirstDungeon.Broadcast();
 	}
-	else if (DialogueManager->GetDialogueNum() < 15)
+	else if (DialogueNum < 15)
 	{
-		if (DialogueManager->GetDialogueNum() <= 10) return;
+		if (DialogueNum <= 10) 
+		{
+			return;
+		}
 		SkipSecondDungeon.Broadcast();
 	}
-	else if (DialogueManager->GetDialogueNum() < 19)
+	else if (DialogueNum < 19)
 	{
-		if (DialogueManager->GetDialogueNum() <= 17) return;
+		if (DialogueNum <= 17) 
+		{
+			return;
+		}
 		SkipFinalDungeon.Broadcast();
 	}
-	else return;
+	else
+	{
+		return;
+	}
 }
 
 void UGameManager::StartFirstDungeon()
@@ -253,19 +360,20 @@ void UGameManager::StartFirstDungeon()
 
 void UGameManager::EscapeToSafeLocation() // 두 번째 던전에서의 긴급 탈출
 {
-	if (DialogueManager->GetDialogueNum() >= 6 && !DialogueManager->IsDialogueUIVisible() && !Player->IsDead())
+	const int32 DialogueNum = DialogueManager->GetDialogueNum();
+	if (DialogueNum >= 6 && !DialogueManager->IsDialogueUIVisible() && !Player->IsDead())
 	{
-		if (DialogueManager->GetDialogueNum() <= 8)
+		if (DialogueNum <= 8)
 		{
-			Player->SetActorLocation(FVector(4620.f, -3975.f, -2117.f));
+			Player->SetActorLocation(SafeLocationList[0]);
 		}
-		else if (DialogueManager->GetDialogueNum() <= 11)
+		else if (DialogueNum <= 11)
 		{
-			Player->SetActorLocation(FVector(5165.f, -2307.f, -2117.f));
+			Player->SetActorLocation(SafeLocationList[1]);
 		}
-		else if (DialogueManager->GetDialogueNum() <= 15)
+		else if (DialogueNum <= 15)
 		{
-			Player->SetActorLocation(FVector(2726.f, -3353.f, -500.f));
+			Player->SetActorLocation(SafeLocationList[2]);
 		}
 	}
 }

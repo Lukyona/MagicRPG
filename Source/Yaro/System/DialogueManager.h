@@ -24,6 +24,8 @@ class YARO_API UDialogueManager : public UObject
 {
 	GENERATED_BODY()
 
+	friend class UGameManager;
+
 	static UDialogueManager* Instance;
 
 	UPROPERTY()
@@ -65,6 +67,15 @@ class YARO_API UDialogueManager : public UObject
 	}
 
 public:
+	static UDialogueManager* CreateInstance(UGameInstance* Outer)
+	{
+		if (Instance == nullptr)
+		{
+			Instance = NewObject<UDialogueManager>(Outer, UDialogueManager::StaticClass());
+		}
+		return Instance;
+	}
+
 	//Getters and Setters
 	void SetGameManager(UGameManager* Manager)
 	{
@@ -99,16 +110,6 @@ public:
 	}
 
 	//Core Methods
-	static UDialogueManager* CreateInstance(UGameInstance* Outer)
-	{
-		if (Instance == nullptr)
-		{
-			Instance = NewObject<UDialogueManager>(Outer, UDialogueManager::StaticClass());
-			Instance->AddToRoot();
-		}
-		return Instance;
-	}
-
 	void BeginPlay();
 	void Tick();
 
