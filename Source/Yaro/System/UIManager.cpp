@@ -6,9 +6,10 @@
 #include "System/GameManager.h"
 #include "System/DialogueManager.h"
 #include "System/MainPlayerController.h"
-#include "Character/Main.h"
 #include "Structs/SystemMessageData.h"
+#include "Character/Main.h"
 
+const FVector2D DEFAULT_WIDGET_ALIGNMENT(0.f, 0.f);
 
 UUIManager* UUIManager::Instance = nullptr;
 
@@ -19,7 +20,10 @@ void UUIManager::BeginPlay(FString WorldName)
         DialogueManager = GameManager->GetDialogueManager();
         MainPlayerController = GameManager->GetMainPlayerController();
     }
-    else return;
+    else
+    {
+        return;
+    }
 
     // 위젯들, 순서 있음
     TSoftClassPtr<UUserWidget> HUDBPClass(FSoftObjectPath(TEXT("/Game/HUDandWigets/HUDOverlay.HUDOverlay_C")));
@@ -32,92 +36,29 @@ void UUIManager::BeginPlay(FString WorldName)
 
     if(!WorldName.Contains("2"))
     {
-        if (!HUDBPClass.IsValid())
-            HUDBPClass.LoadSynchronous();
-        if (ensure(HUDBPClass.IsValid()))
-        {
-            HUDOverlay = CreateWidget<UUserWidget>(GameManager, HUDBPClass.Get());
-            if (HUDOverlay)
-            {
-                HUDOverlay->AddToViewport();
-                HUDOverlay->SetVisibility(ESlateVisibility::Hidden);
-            }
-        }
+        LoadAndCreateWidget(HUDBPClass, HUDOverlay);
     }
 
-    if (!SystemMessageBPClass.IsValid())
-        SystemMessageBPClass.LoadSynchronous();
+    LoadAndCreateWidget(SystemMessageBPClass, SystemMessage);
+    LoadAndCreateWidget(ControlGuideBPClass, ControlGuide);
+    LoadAndCreateWidget(MenuBPClass, Menu);
 
-    if (ensure(SystemMessageBPClass.IsValid()))
+    LoadAndCreateWidget(TargetArrowBPClass, TargetArrow);
+    if (TargetArrow)
     {
-        SystemMessage = CreateWidget<UUserWidget>(GameManager, SystemMessageBPClass.Get());
-        if (SystemMessage)
-        {
-            SystemMessage->AddToViewport();
-            SystemMessage->SetVisibility(ESlateVisibility::Hidden);
-        }
+        TargetArrow->SetAlignmentInViewport(DEFAULT_WIDGET_ALIGNMENT);
     }
 
-    if (!ControlGuideBPClass.IsValid())
-        ControlGuideBPClass.LoadSynchronous();
-
-    if (ensure(ControlGuideBPClass.IsValid()))
+    LoadAndCreateWidget(EnemyHPBarBPClass, EnemyHPBar);
+    if (EnemyHPBar)
     {
-        ControlGuide = CreateWidget<UUserWidget>(GameManager, Cast <UClass>(ControlGuideBPClass.Get()));
-        if (ControlGuide)
-        {
-            ControlGuide->AddToViewport();
-            ControlGuide->SetVisibility(ESlateVisibility::Hidden);
-        }
-    }
-
-    if (!MenuBPClass.IsValid())
-        MenuBPClass.LoadSynchronous();
-
-    if (ensure(MenuBPClass.IsValid()))
-    {
-        Menu = CreateWidget<UUserWidget>(GameManager, MenuBPClass.Get());
-        if (Menu)
-        {
-            Menu->AddToViewport();
-            Menu->SetVisibility(ESlateVisibility::Hidden);
-        }
-    }
-
-    if (!TargetArrowBPClass.IsValid())
-        TargetArrowBPClass.LoadSynchronous();
-
-    if (ensure(TargetArrowBPClass.IsValid()))
-    {
-        TargetArrow = CreateWidget<UUserWidget>(GameManager, TargetArrowBPClass.Get());
-        if (TargetArrow)
-        {
-            TargetArrow->AddToViewport();
-            TargetArrow->SetVisibility(ESlateVisibility::Hidden);
-        }
-
-        FVector2D Alignment(0.f, 0.f);
-        TargetArrow->SetAlignmentInViewport(Alignment);
-    }
-
-    if (!EnemyHPBarBPClass.IsValid())
-        EnemyHPBarBPClass.LoadSynchronous();
-
-    if (ensure(EnemyHPBarBPClass.IsValid()))
-    {
-        EnemyHPBar = CreateWidget<UUserWidget>(GameManager, EnemyHPBarBPClass.Get());
-        if (EnemyHPBar)
-        {
-            EnemyHPBar->AddToViewport();
-            EnemyHPBar->SetVisibility(ESlateVisibility::Hidden);
-        }
-
-        FVector2D Alignment(0.f, 0.f);
-        EnemyHPBar->SetAlignmentInViewport(Alignment);
+        EnemyHPBar->SetAlignmentInViewport(DEFAULT_WIDGET_ALIGNMENT);
     }
 
     if (!FadeInOutBPClass.IsValid())
+    {
         FadeInOutBPClass.LoadSynchronous();
+    }
 
     if (ensure(FadeInOutBPClass.IsValid()))
     {
@@ -127,11 +68,31 @@ void UUIManager::BeginPlay(FString WorldName)
     SystemMessageData = LoadObject<UDataTable>(nullptr, TEXT("/Game/DataTables/DT_SystemMessage"));
 }
 
+void UUIManager::LoadAndCreateWidget(TSoftClassPtr<UUserWidget> WidgetClass, UUserWidget*& WidgetInstance)
+{
+    if (!WidgetClass.IsValid())
+    {
+        WidgetClass.LoadSynchronous();
+    }
+    if (ensure(WidgetClass.IsValid()))
+    {
+        WidgetInstance = CreateWidget<UUserWidget>(GameManager, WidgetClass.Get());
+        if (WidgetInstance)
+        {
+            WidgetInstance->AddToViewport();
+            WidgetInstance->SetVisibility(ESlateVisibility::Hidden);
+        }
+    }
+}
+
 void UUIManager::Tick()
 {
     if (TargetArrow)
     {
-        if (!TargetArrow->IsInViewport() || TargetArrow->GetVisibility() == ESlateVisibility::Hidden) return;
+        if (!TargetArrow->IsInViewport() || TargetArrow->GetVisibility() == ESlateVisibility::Hidden)
+        {
+            return;
+        }
 
         FVector2D PositionInViewport;
         MainPlayerController->ProjectWorldLocationToScreen(EnemyLocation, PositionInViewport);
@@ -167,7 +128,11 @@ void UUIManager::RemoveHUD()
 
 void UUIManager::DisplayControlGuide()
 {
-    if (DialogueManager->GetDialogueNum() < 2 || GetSystemMessageNum() < 3) return;
+    if (DialogueManager->GetDialogueState() < EDialogueState::BeforeFirstDungeon || GetSystemMessageNum() < 3)
+    {
+        return;
+    }
+
     if (IsControlGuideVisible())
     {
         RemoveControlGuide();
@@ -178,15 +143,24 @@ void UUIManager::DisplayControlGuide()
     {
         if (bMenuVisible || DialogueManager->IsDialogueUIVisible())
         {
-            FTimerHandle TimerHandle;
             DisplaySystemMessage();
-            FString text = TEXT("대화 중이거나 메뉴가 활성화된 상태에서는\n조작 매뉴얼을 볼 수 없습니다.");
-            SystemText = FText::FromString(text);
-            GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([&]() {
+            FSystemMessage* Row = SystemMessageData->FindRow<FSystemMessage>(FName("CANNOT_SHOW_CONTROLGUIDE"), "");
+            if (!Row || Row->MessageText.IsEmpty())
+            {
+                UE_LOG(LogTemp, Warning, TEXT("SystemMessageData row not found"));
+                return;
+            }
+            FText Text = Row->MessageText;
+            SystemText = Text;
 
-                if (bSystemMessageVisible) RemoveSystemMessage();
-
-                }), 2.f, false);
+            FTimerHandle TimerHandle;
+            GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([&]()
+            {
+                if (bSystemMessageVisible)
+                {
+                    RemoveSystemMessage();
+                }
+            }), 2.f, false);
         }
         else
         {
@@ -202,11 +176,10 @@ void UUIManager::RemoveControlGuide()
     {
         bControlGuideVisible = false;
         ControlGuide->SetVisibility(ESlateVisibility::Hidden);
-        if (DialogueManager->GetDialogueNum() == 2 && SystemMessageNum < 4)
+        if (DialogueManager->GetDialogueState() == EDialogueState::BeforeFirstDungeon && SystemMessageNum < 4)
         {
             GameManager->GetPlayer()->SetCanMove(true);
             SetSystemMessage(4);
-
             DialogueManager->DialogueEndEvents();
         }
     }
@@ -216,12 +189,18 @@ void UUIManager::DisplayMenu()
 {
     if (Menu)
     {
-        if (bControlGuideVisible) RemoveControlGuide();
+        if (bControlGuideVisible)
+        {
+            RemoveControlGuide();
+        }
 
         bMenuVisible = true;
 
-        if (DialogueManager->GetDialogueNum() < 3 || DialogueManager->IsDialogueUIVisible())
+        if (DialogueManager->GetDialogueState() < EDialogueState::FirstDungeonStarted 
+            || DialogueManager->IsDialogueUIVisible())
+        {
             DisplaySystemMessage();
+        }
 
         Menu->SetVisibility(ESlateVisibility::Visible);
 
@@ -236,7 +215,10 @@ void UUIManager::RemoveMenu()
     if (Menu)
     {
         bMenuVisible = false;
-        if (bSystemMessageVisible) RemoveSystemMessage();
+        if (bSystemMessageVisible)
+        {
+            RemoveSystemMessage();
+        }
 
         Menu->SetVisibility(ESlateVisibility::Hidden);
 
@@ -251,26 +233,46 @@ void UUIManager::RemoveMenu()
 
 void UUIManager::ToggleMenu()
 {
-    if (bMenuVisible) RemoveMenu();
-    else DisplayMenu();
+    if (bMenuVisible)
+    {
+        RemoveMenu();
+    }
+    else
+    {
+        DisplayMenu();
+    }
 }
 
 void UUIManager::DisplaySystemMessage()
 {
     if (SystemMessage)
     {
-        FString WarningText = "";
-        if (bMenuVisible && DialogueManager->GetDialogueNum() < 3)
+        FText WarningText = FText::GetEmpty();
+        if (bMenuVisible && DialogueManager->GetDialogueState() < EDialogueState::FirstDungeonStarted)
         {
-            WarningText = FString(TEXT("이 곳에선 저장되지 않습니다."));
+            FSystemMessage* Row = SystemMessageData->FindRow<FSystemMessage>(FName("CANNOT_SHOW_CONTROLGUIDE"), "");
+            if (!Row || Row->MessageText.IsEmpty())
+            {
+                UE_LOG(LogTemp, Warning, TEXT("SystemMessageData row not found"));
+                return;
+            }
+            WarningText = Row->MessageText;
         }
         if (bMenuVisible && DialogueManager->IsDialogueUIVisible())
         {
-            WarningText = FString(TEXT("대화 중엔 저장되지 않습니다."));
+            FSystemMessage* Row = SystemMessageData->FindRow<FSystemMessage>(FName("CANNOT_SAVE_DURING_DIALOGUE"), "");
+            if (!Row || Row->MessageText.IsEmpty())
+            {
+                UE_LOG(LogTemp, Warning, TEXT("SystemMessageData row not found"));
+                return;
+            }
+            WarningText = Row->MessageText;
         }
 
-        if(WarningText != "")
-            SystemText = FText::FromString(WarningText);
+        if(!WarningText.IsEmpty())
+        {
+            SystemText = WarningText;
+        }
 
         bSystemMessageVisible = true;
         SystemMessage->SetVisibility(ESlateVisibility::Visible);
@@ -282,19 +284,25 @@ void UUIManager::RemoveSystemMessage()
     if (SystemMessage)
     {
         SystemMessage->SetVisibility(ESlateVisibility::Hidden);
-        SystemMessageOn = false;
         bSystemMessageVisible = false;
     }
 }
 
 void UUIManager::SetSystemMessage(int MessageNum)
 {
-    if (!SystemMessageData) return;
+    if (!SystemMessageData)
+    {
+        return;
+    }
 
     FName Index = FName(*FString::FromInt(MessageNum));
-    FText text = SystemMessageData->FindRow<FSystemMessage>(Index, "")->MessageText;
-
-    SystemText = text;
+    FText Text = SystemMessageData->FindRow<FSystemMessage>(Index, "")->MessageText;
+    if (Text.IsEmpty())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SystemMessageData row not found for %s"), *Index.ToString());
+        return;
+    }
+    SystemText = Text;
     SystemMessageNum = MessageNum;
     DisplaySystemMessage();
 }
@@ -345,12 +353,12 @@ void UUIManager::FadeAndDialogue()
         {
             bIsFading = true;
 
-            AMain* Player = GameManager->GetPlayer();
-
-            int dialogueNum = DialogueManager->GetDialogueNum();
-            if (dialogueNum == 11 || dialogueNum == 18 || dialogueNum == 20) // second dungeon food trap
+            const EDialogueState DialogueState = DialogueManager->GetDialogueState();
+            if (DialogueState == EDialogueState::FoodTableEvent 
+                || DialogueState == EDialogueState::AfterCombatWithBoss
+                || DialogueState == EDialogueState::GetMissionItem)
             {
-                Player->SetCanMove(false);
+                GameManager->GetPlayer()->SetCanMove(false);
                 MainPlayerController->SetCinematicMode(true, true, true);
             }
             MainPlayerController->FadeOutEvent();
@@ -378,7 +386,9 @@ void UUIManager::CreateFadeWidget(bool bExecuteFadeOutEvent)
             FadeInOut->AddToViewport();
 
             if(bExecuteFadeOutEvent)
+            {
                 MainPlayerController->FadeOutEvent();
+            }
         }
     }
 }

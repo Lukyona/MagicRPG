@@ -22,17 +22,17 @@ protected:
 
     // BP에서 사용
     UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-    class UGameManager* GameManager;
+    UGameManager* GameManager;
     UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-    class UDialogueManager* DialogueManager;
+    UDialogueManager* DialogueManager;
     UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-    class UNPCManager* NPCManager;
+    UNPCManager* NPCManager;
 
     // BeginPlay() 호출 위해
     UPROPERTY()
-    class UUIManager* UIManager;
+    UUIManager* UIManager;
 public:
-    UPROPERTY(BlueprintReadWrite)
+    UPROPERTY(BlueprintReadOnly)
     AMain* MainPlayer;
 
     void SetMouseCursorVisibility(bool Value) { bShowMouseCursor = Value; }

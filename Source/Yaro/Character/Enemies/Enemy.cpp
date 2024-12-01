@@ -769,6 +769,8 @@ void AEnemy::CheckChaseState()
 				{
 					if (AgroTargets[i] != AgroTarget)
 					{
+						MoveFailCounter = 0;
+						GetWorldTimerManager().ClearTimer(CheckChaseStateTimer);
 						MoveToTarget(AgroTargets[i]);
 						break;
 					}

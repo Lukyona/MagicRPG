@@ -14,6 +14,3 @@ class AYaroGameMode : public AGameModeBase
 public:
 	AYaroGameMode();
 };
-
-
-

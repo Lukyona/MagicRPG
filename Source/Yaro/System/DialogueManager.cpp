@@ -250,15 +250,15 @@ void UDialogueManager::DialogueEndEvents()
     switch (DialogueNum)
     {
         case 1: // luko moves to player   
-            NPCManager->GetNPC("Luko")->MoveToPlayer();
+            NPCManager->GetNPC(ENPCType::Luko)->MoveToPlayer();
             break;
         case 2:
             if (UIManager->GetSystemMessageNum() != 4)
             {
                 Player->SetInterpToCharacter(false);
                 Player->SetTargetCharacter(nullptr);
-                NPCManager->GetNPC("Luko")->ClearPlayerFollowTimer();
-                NPCManager->MoveNPCToLocation("Luko", FVector(5200.f, 35.f, 100.f));
+                NPCManager->GetNPC(ENPCType::Luko)->ClearPlayerFollowTimer();
+                NPCManager->MoveNPCToLocation(ENPCType::Luko, FVector(5200.f, 35.f, 100.f));
                 UIManager->SetSystemMessage(2);
 
                 FTimerHandle TimerHandle;
@@ -274,16 +274,16 @@ void UDialogueManager::DialogueEndEvents()
             }
             break;
         case 3: // enter the first dungeon
-            NPCManager->GetNPC("Luko")->SetInterpToCharacter(false);
-            NPCManager->GetNPC("Luko")->SetTargetCharacter(nullptr);
+            NPCManager->GetNPC(ENPCType::Luko)->SetInterpToCharacter(false);
+            NPCManager->GetNPC(ENPCType::Luko)->SetTargetCharacter(nullptr);
             GameManager->SaveGame();
             UIManager->SetSystemMessage(6);
             GameManager->SetIsSkippable(true);
             break;
         case 4: // move to boat
             MainPlayerController->SetCinematicMode(false, true, true);
-            NPCManager->GetNPC("Vovo")->SetInterpToCharacter(false);
-            NPCManager->MoveNPCToLocation("Vovo", FVector(630.f, 970.f, 1840.f));
+            NPCManager->GetNPC(ENPCType::Vovo)->SetInterpToCharacter(false);
+            NPCManager->MoveNPCToLocation(ENPCType::Vovo, FVector(630.f, 970.f, 1840.f));
             Player->SetInterpToCharacter(false);
             Player->SetTargetCharacter(nullptr);
             {
@@ -299,7 +299,7 @@ void UDialogueManager::DialogueEndEvents()
             break;
         case 6: // enter the second dungeon
             MainPlayerController->SetCinematicMode(false, true, true);
-            NPCManager->GetNPC("Momo")->SetSmileStatus(false);
+            NPCManager->GetNPC(ENPCType::Momo)->SetSmileStatus(false);
             for (auto NPC : NPCManager->GetNPCMap())
             {
                 if (NPC.Key != "Momo") // momo's already follwing to player
@@ -313,16 +313,16 @@ void UDialogueManager::DialogueEndEvents()
             Player->SetCanMove(true);
             break;
         case 9: // player go over the other side
-            if (NPCManager->GetNPC("Vivi")->GetNormalMontage() != nullptr)
+            if (NPCManager->GetNPC(ENPCType::Vivi)->GetNormalMontage() != nullptr)
             {
-                NPCManager->GetNPC("Vivi")->GetAnimInstance()->Montage_Play(NPCManager->GetNPC("Vivi")->GetNormalMontage());
-                NPCManager->GetNPC("Vivi")->GetAnimInstance()->Montage_JumpToSection(FName("Throw"));
+                NPCManager->GetNPC(ENPCType::Vivi)->GetAnimInstance()->Montage_Play(NPCManager->GetNPC(ENPCType::Vivi)->GetNormalMontage());
+                NPCManager->GetNPC(ENPCType::Vivi)->GetAnimInstance()->Montage_JumpToSection(FName("Throw"));
             }
             Player->SetInterpToCharacter(false);
             Player->SetTargetCharacter(nullptr);
             break;
         case 10:
-            NPCManager->GetNPC("Zizi")->SetInterpToCharacter(false);
+            NPCManager->GetNPC(ENPCType::Zizi)->SetInterpToCharacter(false);
             Player->SetInterpToCharacter(false);
             NPCManager->AllNpcMoveToPlayer();
             break;
@@ -335,11 +335,11 @@ void UDialogueManager::DialogueEndEvents()
             NPCManager->AllNpcDisableLookAt();
             if (DialogueNum == 19)
             {
-                NPCManager->MoveNPCToLocation("Momo", FVector(8.f, -3585.f, 684.f));
-                NPCManager->MoveNPCToLocation("Luko", FVector(8.f, -3585.f, 684.f));
-                NPCManager->MoveNPCToLocation("Vovo", FVector(8.f, -3585.f, 684.f));
-                NPCManager->MoveNPCToLocation("Vivi", FVector(8.f, -3585.f, 684.f));
-                NPCManager->MoveNPCToLocation("Zizi", FVector(8.f, -3585.f, 684.f));
+                NPCManager->MoveNPCToLocation(ENPCType::Momo, FVector(8.f, -3585.f, 684.f));
+                NPCManager->MoveNPCToLocation(ENPCType::Luko, FVector(8.f, -3585.f, 684.f));
+                NPCManager->MoveNPCToLocation(ENPCType::Vovo, FVector(8.f, -3585.f, 684.f));
+                NPCManager->MoveNPCToLocation(ENPCType::Vivi, FVector(8.f, -3585.f, 684.f));
+                NPCManager->MoveNPCToLocation(ENPCType::Zizi, FVector(8.f, -3585.f, 684.f));
                 UIManager->SetSystemMessage(14);
             }
             if (DialogueNum == 11)
@@ -359,7 +359,7 @@ void UDialogueManager::DialogueEndEvents()
             break;
         case 13:
         case 14:
-            NPCManager->GetNPC("Momo")->SetSmileStatus(false);
+            NPCManager->GetNPC(ENPCType::Momo)->SetSmileStatus(false);
             Player->SetCanMove(true);
 
             NPCManager->AllNpcMoveToPlayer();
@@ -383,7 +383,7 @@ void UDialogueManager::DialogueEndEvents()
             MainPlayerController->SetCinematicMode(false, true, true);
             Player->SetCanMove(true);
             if (DialogueNum == 23)
-                NPCManager->MoveNPCToLocation("Vivi", FVector(625.f, 318.f, 153.f));
+                NPCManager->MoveNPCToLocation(ENPCType::Vivi, FVector(625.f, 318.f, 153.f));
             break;
         case 18: // fog appear, boss combat soon
         {

@@ -9,6 +9,12 @@
 /**
  *
  */
+
+class UGameManager;
+class UDialogueManager;
+class AMainPlayerController;
+class UDataTable;
+
 UCLASS(BlueprintType)
 class YARO_API UUIManager : public UObject
 {
@@ -19,68 +25,50 @@ class YARO_API UUIManager : public UObject
     static UUIManager* Instance;
 
     UPROPERTY()
-        class UGameManager* GameManager;
+    UGameManager* GameManager;
+    UPROPERTY()
+    UDialogueManager* DialogueManager;
+    UPROPERTY()
+    AMainPlayerController* MainPlayerController;
+
+    // UI Managements
+    UPROPERTY()
+    UUserWidget* HUDOverlay;
 
     UPROPERTY()
-        class UDialogueManager* DialogueManager;
-
-    UPROPERTY()
-        class AMainPlayerController* MainPlayerController;
-
-
-    UPROPERTY()
-        UUserWidget* HUDOverlay;
-
-
-    UPROPERTY()
-        UUserWidget* ControlGuide;
-
+    UUserWidget* ControlGuide;
     bool bControlGuideVisible = false;
 
-
     UPROPERTY()
-        UUserWidget* Menu;
-
+    UUserWidget* Menu;
     bool bMenuVisible = false;
 
     UPROPERTY()
-        class UDataTable* SystemMessageData;
-        
+    UDataTable* SystemMessageData;
     UPROPERTY()
-        FText SystemText;
-
+    FText SystemText;
     UPROPERTY()
-        UUserWidget* SystemMessage;
-
-    bool SystemMessageOn = false;
-
+    UUserWidget* SystemMessage;
     bool bSystemMessageVisible = false;
-
-    UPROPERTY()
-        uint8 SystemMessageNum;
+    int32 SystemMessageNum;
 
     //Player can Targeting, then TargetArrow appear on Targeted enemy
     UPROPERTY()
-        UUserWidget* TargetArrow;
-
+    UUserWidget* TargetArrow;
     bool bTargetArrowVisible = false;
 
     UPROPERTY()
-        UUserWidget* EnemyHPBar;
-
+    UUserWidget* EnemyHPBar;
     bool bEnemyHPBarVisible = false;
-
     FVector EnemyLocation;
 
     UPROPERTY()
     TSubclassOf<UUserWidget> FadeInOutClass;
-
     UPROPERTY()
-        UUserWidget* FadeInOut;
-
+    UUserWidget* FadeInOut;
     bool bIsFading = false;
 
-
+    void LoadAndCreateWidget(TSoftClassPtr<UUserWidget> WidgetClass, UUserWidget*& WidgetInstance);
 public:
     static UUIManager* CreateInstance(UGameInstance* Outer)
     {
@@ -91,59 +79,89 @@ public:
         return Instance;
     }
 
-    void BeginPlay(FString WorldName);
-    void Tick();
-
+    //Getters and setters
     void SetGameManager(UGameManager* Manager)
     {
         GameManager = Manager;
     }
 
+    bool IsControlGuideVisible()
+    {
+        return bControlGuideVisible;
+    }
+
+    bool IsMenuVisible() 
+    {
+        return bMenuVisible; 
+    }
+
     UFUNCTION(BlueprintCallable)
-        void DisplayHUD();
-        void RemoveHUD();
+    bool IsSystemMessageVisible() const 
+    {
+        return bSystemMessageVisible; 
+    }
+    UFUNCTION(BlueprintCallable)
+    void SetSystemMessage(int MessageNum);
+    UFUNCTION(BlueprintCallable)
+    FText GetSystemText() const 
+    {
+        return SystemText; 
+    }
+    int32 GetSystemMessageNum() const 
+    {
+        return SystemMessageNum; 
+    }
+
+    void SetEnemyLocation(FVector Location) 
+    {
+        EnemyLocation = Location; 
+    }
+    bool IsTargetArrowVisible() 
+    {
+        return bTargetArrowVisible; 
+    }
+
+    bool IsFading() 
+    {
+        return bIsFading; 
+    }
+    void SetIsFading(bool Value) 
+    {
+        bIsFading = Value; 
+    }
+    UFUNCTION(BlueprintCallable, BlueprintPure)
+    UUserWidget* GetFadeInOut();
+
+
+    //Core Methods
+    void BeginPlay(FString WorldName);
+    void Tick();
+
+    UFUNCTION(BlueprintCallable)
+    void DisplayHUD();
+    void RemoveHUD();
 
     void DisplayControlGuide();
     void RemoveControlGuide();
-    bool IsControlGuideVisible() { return bControlGuideVisible; }
 
     void DisplayMenu();
     void RemoveMenu();
     void ToggleMenu();
-    bool IsMenuVisible() { return bMenuVisible; }
 
     UFUNCTION(BlueprintCallable)
-        void DisplaySystemMessage();
+    void DisplaySystemMessage();
     UFUNCTION(BlueprintCallable)
-        void RemoveSystemMessage();
+    void RemoveSystemMessage();
 
-    UFUNCTION(BlueprintCallable)
-    bool IsSystemMessageVisible() const { return bSystemMessageVisible; }
-
-    UFUNCTION(BlueprintCallable)
-        void SetSystemMessage(int MessageNum);
-
-    UFUNCTION(BlueprintCallable)
-    FText GetSystemText() const { return SystemText; }
-
-    uint8 GetSystemMessageNum() const { return SystemMessageNum; }
-
-    void SetEnemyLocation(FVector Location) { EnemyLocation = Location; }
     void DisplayTargetArrow();
     void RemoveTargetArrow();
-    bool IsTargetArrowVisible() { return bTargetArrowVisible; }
 
     void DisplayEnemyHPBar();
     void RemoveEnemyHPBar();
 
     UFUNCTION(BlueprintCallable)
-        void FadeAndDialogue();
-    bool IsFading() { return bIsFading; }
-    void SetIsFading(bool Value) { bIsFading = Value; }
-
-    UFUNCTION(BlueprintCallable, BlueprintPure)
-        UUserWidget* GetFadeInOut();
+    void FadeAndDialogue();
 
     UFUNCTION(BlueprintCallable)
-        void CreateFadeWidget(bool bExecuteFadeOutEvent);
+    void CreateFadeWidget(bool bExecuteFadeOutEvent);
 };

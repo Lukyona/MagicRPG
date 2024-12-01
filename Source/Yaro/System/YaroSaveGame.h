@@ -32,13 +32,11 @@ struct FCharacterStats
 
     UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
     float Exp;
-
     UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
     float MaxExp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
 	FVector Location;
-
 	UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
 	FRotator Rotation;
 
@@ -47,7 +45,6 @@ struct FCharacterStats
 
     UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
 	int FallCount;
-
 	UPROPERTY(VisibleAnywhere, Category = "SaveGameData")
 	int PotionNum;
 };
@@ -59,16 +56,12 @@ struct FNpcStats
 
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
     FVector MomoLocation;
-
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
     FVector LukoLocation;
-
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
     FVector VovoLocation;
-
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
     FVector ViviLocation;
-
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SaveGameData")
     FVector ZiziLocation;
 

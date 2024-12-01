@@ -20,24 +20,6 @@ class UYaroSaveGame;
  // 블루프린트에서 쓰려면 다이나믹 멀티캐스트여야함
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_Dynamic);
 
-enum class EDialogueState : int32
-{
-	BeforeFirstDungeon = 2,
-	FirstDungeonStarted = 3,
-	MoveToBoat = 4,
-	SecondDungeonStarted = 6,
-	PlayerJumpToPlatform = 8,
-	NPCMoveToBridge = 10,
-	NPCCrossedBridge = 11,
-	AfterCombatWithSpiders = 13,
-	SecondDungeonFinished = 15,
-	ReadyToFightWithBoss = 17,
-	AfterCombatWithBoss = 18,
-	BackToCave = 19,
-	AfterTookTheStone = 21,
-	FinalLine = 23,
-};
-
 UCLASS()
 class YARO_API UGameManager : public UGameInstance
 {
@@ -51,11 +33,11 @@ class YARO_API UGameManager : public UGameInstance
 	AMain* Player = nullptr;
 	UPROPERTY()
 	AMainPlayerController* MainPlayerController = nullptr;
-	//UPROPERTY()
+	UPROPERTY()
 	UDialogueManager* DialogueManager = nullptr;
-	//UPROPERTY()
+	UPROPERTY()
 	UNPCManager* NPCManager = nullptr;
-	//UPROPERTY()
+	UPROPERTY()
 	UUIManager* UIManager = nullptr;
 
 	bool bIsSkipping = false;

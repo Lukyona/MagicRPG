@@ -20,7 +20,10 @@ void UGameManager::Init()
 	DialogueManager = CreateManager<UDialogueManager>(this);
 	UIManager = CreateManager<UUIManager>(this);
 	NPCManager = CreateManager<UNPCManager>(this);
-
+	if (NPCManager)
+	{
+		NPCManager->Init();
+	}
 	TickerHandle = FTicker::GetCoreTicker().AddTicker(
 	FTickerDelegate::CreateUObject(this, &UGameManager::Tick), 0.0f); // 0.0f: 매 프레임 호출
 
@@ -61,22 +64,17 @@ bool UGameManager::Tick(float DeltaTime)
 		return true;
 	}
 
+	checkf(DialogueManager, TEXT("DialogueManager is null during Tick."));
+	checkf(UIManager, TEXT("UIManager is null during Tick."));
+
 	if (DialogueManager && IsValid(DialogueManager))
 	{
 		DialogueManager->Tick();
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("DialogueManager is null or invalid during Tick."));
 	}
 
 	if (UIManager && IsValid(UIManager))
 	{
 		UIManager->Tick();
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UIManager is null or invalid during Tick."));
 	}
 	return true; // true를 반환하면 계속 호출됨
 }
@@ -103,7 +101,7 @@ AMainPlayerController* UGameManager::GetMainPlayerController()
 
 void UGameManager::SaveGame()
 {
-	const EDialogueState DialogueState = static_cast<EDialogueState>(DialogueManager->GetDialogueNum());
+	const EDialogueState DialogueState = DialogueManager->GetDialogueState();
 
 	if (DialogueState >= EDialogueState::FinalLine || !bIsSaveAllowed)
 	{
@@ -141,7 +139,7 @@ void UGameManager::SaveGame()
 
 	if (DialogueState < EDialogueState::MoveToBoat)
 	{
-		SaveGameInstance->NpcInfo.TeamMoveIndex = NPCManager->GetNPC("Vivi")->GetTeamMoveIndex();
+		SaveGameInstance->NpcInfo.TeamMoveIndex = NPCManager->GetNPC(ENPCType::Vivi)->GetTeamMoveIndex();
 	}
 
 	SaveGameInstance->DeadEnemyList = DeadEnemies;
@@ -175,13 +173,13 @@ void UGameManager::LoadGame()
 
 	DeadEnemies = LoadGameInstance->DeadEnemyList;
 
-	const EDialogueState DialogueState = static_cast<EDialogueState>(DialogueManager->GetDialogueNum());
+	const EDialogueState DialogueState = DialogueManager->GetDialogueState();
 
 	if (DialogueState < EDialogueState::MoveToBoat)
 	{
-		NPCManager->GetNPC("Vovo")->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
-		NPCManager->GetNPC("Vivi")->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
-		NPCManager->GetNPC("Zizi")->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
+		NPCManager->GetNPC(ENPCType::Vovo)->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
+		NPCManager->GetNPC(ENPCType::Vivi)->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
+		NPCManager->GetNPC(ENPCType::Zizi)->SetTeamMoveIndex(LoadGameInstance->NpcInfo.TeamMoveIndex);
 	}
 
 	FString ItemName = LoadGameInstance->CharacterStats.ItemName;
@@ -243,20 +241,20 @@ void UGameManager::LoadPlayerInfo(UYaroSaveGame* LoadGameInstance)
 
 void UGameManager::SaveNPCLocations(UYaroSaveGame* SaveGameInstance)
 {
-	SaveGameInstance->NpcInfo.MomoLocation = NPCManager->GetNPC("Momo")->GetActorLocation();
-	SaveGameInstance->NpcInfo.LukoLocation = NPCManager->GetNPC("Luko")->GetActorLocation();
-	SaveGameInstance->NpcInfo.VovoLocation = NPCManager->GetNPC("Vovo")->GetActorLocation();
-	SaveGameInstance->NpcInfo.ViviLocation = NPCManager->GetNPC("Vivi")->GetActorLocation();
-	SaveGameInstance->NpcInfo.ZiziLocation = NPCManager->GetNPC("Zizi")->GetActorLocation();
+	SaveGameInstance->NpcInfo.MomoLocation = NPCManager->GetNPC(ENPCType::Momo)->GetActorLocation();
+	SaveGameInstance->NpcInfo.LukoLocation = NPCManager->GetNPC(ENPCType::Luko)->GetActorLocation();
+	SaveGameInstance->NpcInfo.VovoLocation = NPCManager->GetNPC(ENPCType::Vovo)->GetActorLocation();
+	SaveGameInstance->NpcInfo.ViviLocation = NPCManager->GetNPC(ENPCType::Vivi)->GetActorLocation();
+	SaveGameInstance->NpcInfo.ZiziLocation = NPCManager->GetNPC(ENPCType::Zizi)->GetActorLocation();
 }
 
 void UGameManager::LoadNPCLocations(UYaroSaveGame* LoadGameInstance)
 {
-	NPCManager->SetNPCLocation("Momo", LoadGameInstance->NpcInfo.MomoLocation);
-	NPCManager->SetNPCLocation("Luko", LoadGameInstance->NpcInfo.LukoLocation);
-	NPCManager->SetNPCLocation("Vovo", LoadGameInstance->NpcInfo.VovoLocation);
-	NPCManager->SetNPCLocation("Vivi", LoadGameInstance->NpcInfo.ViviLocation);
-	NPCManager->SetNPCLocation("Zizi", LoadGameInstance->NpcInfo.ZiziLocation);
+	NPCManager->SetNPCLocation(ENPCType::Momo, LoadGameInstance->NpcInfo.MomoLocation);
+	NPCManager->SetNPCLocation(ENPCType::Luko, LoadGameInstance->NpcInfo.LukoLocation);
+	NPCManager->SetNPCLocation(ENPCType::Vovo, LoadGameInstance->NpcInfo.VovoLocation);
+	NPCManager->SetNPCLocation(ENPCType::Vivi, LoadGameInstance->NpcInfo.ViviLocation);
+	NPCManager->SetNPCLocation(ENPCType::Zizi, LoadGameInstance->NpcInfo.ZiziLocation);
 }
 
 void UGameManager::UpdateDeadEnemy(EEnemyType EnemyType)
@@ -281,7 +279,7 @@ void UGameManager::SkipCombat() // 전투 스킵, 몬스터 제거
 		return;
 	}
 
-	const EDialogueState DialogueState = static_cast<EDialogueState>(DialogueManager->GetDialogueNum());
+	const EDialogueState DialogueState = DialogueManager->GetDialogueState();
 
 	if (DialogueState < EDialogueState::MoveToBoat) // first dungeon
 	{
@@ -315,7 +313,7 @@ void UGameManager::SkipCombat() // 전투 스킵, 몬스터 제거
 
 void UGameManager::StartFirstDungeon()
 {
-	const EDialogueState DialogueState = static_cast<EDialogueState>(DialogueManager->GetDialogueNum());
+	const EDialogueState DialogueState = DialogueManager->GetDialogueState();
 
 	if (DialogueState == EDialogueState::FirstDungeonStarted
 		&& UIManager->IsSystemMessageVisible())
@@ -324,12 +322,12 @@ void UGameManager::StartFirstDungeon()
 
 		MainPlayerController->SetCinematicMode(false, true, true);
 
-		NPCManager->GetNPC("Vovo")->MoveToTeamPos();
-		NPCManager->GetNPC("Vivi")->MoveToTeamPos();
-		NPCManager->GetNPC("Zizi")->MoveToTeamPos();
+		NPCManager->GetNPC(ENPCType::Vovo)->MoveToTeamPos();
+		NPCManager->GetNPC(ENPCType::Vivi)->MoveToTeamPos();
+		NPCManager->GetNPC(ENPCType::Zizi)->MoveToTeamPos();
 
-		NPCManager->GetNPC("Momo")->MoveToPlayer();
-		NPCManager->GetNPC("Luko")->MoveToPlayer();
+		NPCManager->GetNPC(ENPCType::Momo)->MoveToPlayer();
+		NPCManager->GetNPC(ENPCType::Luko)->MoveToPlayer();
 
 		FString SoundPath = TEXT("/Game/SoundEffectsAndBgm/the-buccaneers-haul.the-buccaneers-haul");
 		USoundBase* LoadedSound = LoadObject<USoundBase>(nullptr, *SoundPath);
@@ -342,7 +340,7 @@ void UGameManager::StartFirstDungeon()
 
 void UGameManager::EscapeToSafeLocation() // 두 번째 던전에서의 긴급 탈출
 {
-	const EDialogueState DialogueState = static_cast<EDialogueState>(DialogueManager->GetDialogueNum());
+	const EDialogueState DialogueState = DialogueManager->GetDialogueState();
 	if (DialogueState >= EDialogueState::FirstDungeonStarted
 		&& !DialogueManager->IsDialogueUIVisible() && !Player->IsDead())
 	{

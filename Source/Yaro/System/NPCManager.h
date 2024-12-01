@@ -10,6 +10,12 @@
 /**
  * 
  */
+
+class UGameManager;
+class UDialogueManager;
+class UUIManager;
+class AYaroCharacter;
+
 UCLASS()
 class YARO_API UNPCManager : public UObject
 {
@@ -20,32 +26,25 @@ class YARO_API UNPCManager : public UObject
 	static UNPCManager* Instance;
 
 	UPROPERTY()
-	class UGameManager* GameManager;
-
+	UGameManager* GameManager;
 	UPROPERTY()
-	class UDialogueManager* DialogueManager;
-
+	UDialogueManager* DialogueManager;
 	UPROPERTY()
-		class UUIManager* UIManager;
+	UUIManager* UIManager;
 
+	//NPC Management
 	UPROPERTY()
-		TMap<FString, class AYaroCharacter*> NPCMap;
-
-
+	TMap<FString, AYaroCharacter*> NPCMap;
 	UPROPERTY()
-		class AYaroCharacter* Momo;
-
+	AYaroCharacter* Momo;
 	UPROPERTY()
-		class AYaroCharacter* Luko;
-
+	AYaroCharacter* Luko;
 	UPROPERTY()
-		class AYaroCharacter* Vovo;
-
+	AYaroCharacter* Vovo;
 	UPROPERTY()
-		class AYaroCharacter* Vivi;
-
+	AYaroCharacter* Vivi;
 	UPROPERTY()
-		class AYaroCharacter* Zizi;
+	AYaroCharacter* Zizi;
 
 public:
 	static UNPCManager* CreateInstance(UGameInstance* Outer)
@@ -53,64 +52,60 @@ public:
 		if (Instance == nullptr)
 		{
 			Instance = NewObject<UNPCManager>(Outer, UNPCManager::StaticClass());
-			Instance->Init();
 		}
 		return Instance;
 	}
 
+	//Initialization
 	void Init();
+	UFUNCTION(BlueprintCallable)
+	void InitializeNPCs(UWorld* World);
 
+	//Utilities
+	FString EnumToString(const FString& EnumName, ENPCType EnumValue);
+
+	//NPC Management
+	void AddNPC(FString NPCName, AYaroCharacter* NPC);
+
+	UFUNCTION(BlueprintCallable)
+	void UpdateNPCPositions(int32 DialogueNum);
+
+	UFUNCTION(BlueprintCallable)
+	void SetPositionsForDialogue();
+
+	UFUNCTION(BlueprintCallable)
+	void AllNpcMoveToPlayer();
+	UFUNCTION(BlueprintCallable)
+	void AllNpcLookAtPlayer();
+	void AllNpcDisableLookAt();
+	UFUNCTION(BlueprintCallable)
+	void AllNpcStopFollowPlayer();
+
+	UFUNCTION(BlueprintCallable)
+	void OpenMouth(AYaroCharacter* npc);
+	void CloseAllMouth();
+
+	void MoveNPCToLocation(ENPCType NPC, FVector Location);
+	void SetNPCLocation(ENPCType NPC, FVector Location);
+
+	//Getters and Setters
 	void SetGameManager(UGameManager* Manager)
 	{
 		GameManager = Manager;
 	}
 
-	FString EnumToString(const FString& EnumName, ENPCType EnumValue);
-
-	UFUNCTION(BlueprintCallable)
-	void InitializeNPCs(UWorld* World);
-
-	void AddNPC(FString NPCName, AYaroCharacter* NPC);
-
-	UFUNCTION(BlueprintCallable)
-	void UpdateNPCPositions(int DialogueNum);
-
-	UFUNCTION(BlueprintCallable)
-		void SetPositionsForDialogue();
-
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-		bool IsNPCInTalkRange();
+	bool IsNPCInTalkRange();
+
+	UFUNCTION(BlueprintCallable)
+	const TMap<FString, AYaroCharacter*>& GetNPCMap() const 
+	{
+		return NPCMap; 
+	}
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	AYaroCharacter* GetNPC(ENPCType NPCType);
 
-	AYaroCharacter* UNPCManager::GetNPC(FString NPCName) const;
-
-
-	UFUNCTION(BlueprintCallable)
-	const TMap<FString, AYaroCharacter*>& GetNPCMap() const { return NPCMap; }
-
 	void SetAllNpcMovementSpeed(bool bEnableRunning);
-	void MoveNPCToLocation(FString NPCName, FVector Location);
-	void MoveNPCToLocation(AYaroCharacter* NPC, FVector Location);
 
-	void SetNPCLocation(FString NPCName, FVector Location);
-	void SetNPCLocation(AYaroCharacter* NPC, FVector Location);
-
-	UFUNCTION(BlueprintCallable)
-	void AllNpcMoveToPlayer();
-
-	UFUNCTION(BlueprintCallable)
-	void AllNpcLookAtPlayer();
-
-	void AllNpcDisableLookAt();
-
-	UFUNCTION(BlueprintCallable)
-	void AllNpcStopFollowPlayer();
-
-
-	UFUNCTION(BlueprintCallable)
-		void OpenMouth(AYaroCharacter* npc);
-
-	void CloseAllMouth();
 };

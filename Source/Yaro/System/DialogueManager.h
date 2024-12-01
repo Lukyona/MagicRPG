@@ -19,6 +19,35 @@ class AActor;
 class UDataTable;
 class AYaroCharacter;
 
+UENUM(BlueprintType)
+enum class EDialogueState : uint8
+{
+	Intro = 0,
+	BeforeFirstDungeon = 2,
+	FirstDungeonStarted = 3,
+	FirstDungeonFinished = 3,
+	MoveToBoat = 4,
+	SecondDungeonStarted = 6,
+	PlayerJumpToPlatform = 8,
+	InteractWithYellowStone = 9,
+	NPCMoveToBridge = 10,
+	NPCCrossedBridge = 11,
+	FoodTableEvent = 11,
+	CombatWithSpiders = 12,
+	AfterCombatWithSpiders = 13,
+	CombatWithLittleMonsters = 14,
+	SecondDungeonFinished = 15,
+	RockEventInBossStage = 16,
+	ReadyToFightWithBoss = 17,
+	CombatWithBoss = 18,
+	AfterCombatWithBoss = 18,
+	BackToCave = 19,
+	GetMissionItem = 20,
+	AfterTookTheStone = 21,
+	FinalDialogue = 22,
+	FinalLine = 23,
+};
+
 UCLASS(BlueprintType)
 class YARO_API UDialogueManager : public UObject
 {
@@ -89,7 +118,7 @@ public:
 	}
 
 	UFUNCTION(BlueprintCallable)
-	int GetDialogueNum() const 
+	int32 GetDialogueNum() const 
 	{
 		return DialogueNum; 
 	}
@@ -97,6 +126,12 @@ public:
 	void SetDialogueNum(int Value) 
 	{
 		DialogueNum = Value; 
+	}
+
+	UFUNCTION(BlueprintCallable)
+	const EDialogueState GetDialogueState() const
+	{
+		return static_cast<EDialogueState>(DialogueNum);
 	}
 
 	UFUNCTION(BlueprintCallable)
