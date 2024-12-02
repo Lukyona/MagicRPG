@@ -59,7 +59,6 @@ void UUIManager::BeginPlay(FString WorldName)
     {
         FadeInOutBPClass.LoadSynchronous();
     }
-
     if (ensure(FadeInOutBPClass.IsValid()))
     {
         FadeInOutClass = FadeInOutBPClass.Get();
@@ -98,11 +97,11 @@ void UUIManager::Tick()
         MainPlayerController->ProjectWorldLocationToScreen(EnemyLocation, PositionInViewport);
 
         PositionInViewport.Y -= 140.f;
-        PositionInViewport.X -= 130.f;
+        PositionInViewport.X -= 80.f; // -해서 왼쪽으로 조정
         EnemyHPBar->SetPositionInViewport(PositionInViewport);
 
         PositionInViewport.Y -= 120.f;
-        PositionInViewport.X += 60.f;
+        PositionInViewport.X += 40.f; // +해서 오른쪽으로 조정
         TargetArrow->SetPositionInViewport(PositionInViewport);
 
         FVector2D SizeInViewport = FVector2D(150.f, 15.f);

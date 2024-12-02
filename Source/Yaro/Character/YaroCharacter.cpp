@@ -136,7 +136,8 @@ void AYaroCharacter::MoveToPlayer()
 		{
 			// 다른 npc의 인식 범위에 몬스터가 있으면 도와주러 감, 단 첫번째 던전은 제외
 			if (NPC.Value->AgroTargets.Num() != 0
-				&& NPC.Value->AgroTargets[0]->GetEnemyMovementStatus() != EEnemyMovementStatus::EMS_Dead
+				&& NPC.Value->AgroTargets[0] &&
+				NPC.Value->AgroTargets[0]->GetEnemyMovementStatus() != EEnemyMovementStatus::EMS_Dead
 				&& !UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("first")) 
 			{
 				// 달리기 스피드로 변경

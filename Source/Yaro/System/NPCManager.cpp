@@ -7,6 +7,7 @@
 #include "Containers/Map.h"
 #include "EngineUtils.h"   // TActorIterator 사용을 위한 헤더
 #include "AIController.h"
+
 #include "System/GameManager.h"
 #include "System/DialogueManager.h"
 #include "System/UIManager.h"
@@ -395,7 +396,7 @@ void UNPCManager::AllNpcLookAtPlayer()
 {
 	for (auto NPC : NPCMap)
 	{
-		NPC.Value->SetTargetCharacter(Cast<ACharacter>(GameManager->GetPlayer()));
+		NPC.Value->SetTargetActor(Cast<ACharacter>(GameManager->GetPlayer()));
 	}
 }
 
@@ -403,7 +404,7 @@ void UNPCManager::AllNpcDisableLookAt()
 {
 	for (auto NPC : NPCMap)
 	{
-		NPC.Value->SetTargetCharacter(nullptr);
+		NPC.Value->SetTargetActor(nullptr);
 	}
 }
 

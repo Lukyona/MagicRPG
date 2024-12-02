@@ -118,7 +118,7 @@ void AMain::InitializeLevelData()
 	LevelData.Add(2, FLevelStats(150.f, 350.f, 175.f, 325.f));
 	LevelData.Add(3, FLevelStats(250.f, 450.f, 200.f, 350.f));
 	LevelData.Add(4, FLevelStats(360.f, 600.f, 230.f, 375.f));
-	LevelData.Add(5, FLevelStats(0.f, 700.f, 280.f, 400.f)); // 마지막 레벨은 경험치가 필요 없으니 MaxExp는 0
+	LevelData.Add(5, FLevelStats(375.f, 700.f, 280.f, 400.f)); 
 }
 
 // Called when the game starts or when spawned
@@ -901,13 +901,20 @@ void AMain::LevelUp()
 	}
 
 	// 경험치 수치 update
-	if (CurrentExp == MaxExp) 
+	if (CurrentLevel == 5)
 	{
-		CurrentExp = 0.f;
+		CurrentExp = MaxExp;
 	}
 	else
 	{
-		CurrentExp -= MaxExp;
+		if (CurrentExp == MaxExp)
+		{
+			CurrentExp = 0.f;
+		}
+		else
+		{
+			CurrentExp -= MaxExp;
+		}
 	}
 
 	SetStat(EPlayerStat::Exp, CurrentExp);

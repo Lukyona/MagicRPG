@@ -2,9 +2,8 @@
 
 #include "Yaro/System/DialogueManager.h"
 #include "Engine/DataTable.h"
-//#include "Engine/StreamableManager.h"
-//#include "Engine/AssetManager.h"
 #include "EngineUtils.h"
+
 #include "Yaro/System/GameManager.h"
 #include "Yaro/System/NPCManager.h"
 #include "Yaro/System/UIManager.h"
@@ -34,7 +33,6 @@ void UDialogueManager::BeginPlay()
     {
         DialogueBPClass.LoadSynchronous();
     }
-
     if (ensure(DialogueBPClass.IsValid()))
     {
         DialogueUI = CreateWidget<UDialogueUI>(GameManager, DialogueBPClass.Get());
@@ -255,7 +253,7 @@ void UDialogueManager::DialogueEndEvents()
         case 2:
             if (UIManager->GetSystemMessageNum() != 4)
             {
-                Player->SetTargetCharacter(nullptr);
+                Player->SetTargetActor(nullptr);
                 NPCManager->GetNPC(ENPCType::Luko)->ClearPlayerFollowTimer();
                 NPCManager->MoveNPCToLocation(ENPCType::Luko, FVector(5200.f, 35.f, 100.f));
                 UIManager->SetSystemMessage(2);
@@ -273,16 +271,16 @@ void UDialogueManager::DialogueEndEvents()
             }
             break;
         case 3: // enter the first dungeon
-            NPCManager->GetNPC(ENPCType::Luko)->SetTargetCharacter(nullptr);
+            NPCManager->GetNPC(ENPCType::Luko)->SetTargetActor(nullptr);
             GameManager->SaveGame();
             UIManager->SetSystemMessage(6);
             GameManager->SetIsSkippable(true);
             break;
         case 4: // move to boat
             MainPlayerController->SetCinematicMode(false, true, true);
-            NPCManager->GetNPC(ENPCType::Vovo)->SetTargetCharacter(nullptr);
+            NPCManager->GetNPC(ENPCType::Vovo)->SetTargetActor(nullptr);
             NPCManager->MoveNPCToLocation(ENPCType::Vovo, FVector(630.f, 970.f, 1840.f));
-            Player->SetTargetCharacter(nullptr);
+            Player->SetTargetActor(nullptr);
             {
                 FTimerHandle TimerHandle;
                 GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([&]() {
@@ -315,18 +313,18 @@ void UDialogueManager::DialogueEndEvents()
                 NPCManager->GetNPC(ENPCType::Vivi)->GetAnimInstance()->Montage_Play(NPCManager->GetNPC(ENPCType::Vivi)->GetNormalMontage());
                 NPCManager->GetNPC(ENPCType::Vivi)->GetAnimInstance()->Montage_JumpToSection(FName("Throw"));
             }
-            Player->SetTargetCharacter(nullptr);
+            Player->SetTargetActor(nullptr);
             break;
         case 10:
-            NPCManager->GetNPC(ENPCType::Zizi)->SetTargetCharacter(nullptr);
-            Player->SetTargetCharacter(nullptr);
+            NPCManager->GetNPC(ENPCType::Zizi)->SetTargetActor(nullptr);
+            Player->SetTargetActor(nullptr);
             NPCManager->AllNpcMoveToPlayer();
             break;
         case 11: // npcs went over the other side
         case 19: // after combat with boss
             MainPlayerController->SetCinematicMode(false, true, true);
             Player->SetCanMove(true);
-            Player->SetTargetCharacter(nullptr);
+            Player->SetTargetActor(nullptr);
             NPCManager->AllNpcDisableLookAt();
             if (DialogueNum == 19)
             {
@@ -368,7 +366,7 @@ void UDialogueManager::DialogueEndEvents()
         case 16:
             MainPlayerController->SetCinematicMode(false, true, true);
             NPCManager->AllNpcDisableLookAt();
-            Player->SetTargetCharacter(nullptr);
+            Player->SetTargetActor(nullptr);
             DialogueUI->SetInputDisabled(false);
             break;
         case 17:

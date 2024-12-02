@@ -100,7 +100,6 @@ void UDialogueUI::OnAnimationTimerCompleted()
     }
 }
 
-
 void UDialogueUI::InitializeDialogue(UDataTable* DialogueTable)
 {
     CurrentState = 0;
@@ -341,7 +340,7 @@ void UDialogueUI::DialogueEvents()
                         TimerManager.SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
                         {
                             DialogueManager->DisplayDialogueUI();
-                            Player->SetTargetCharacter(Luko);
+                            Player->SetTargetActor(Luko);
                             TimerManager.ClearTimer(Timer);
                         }), 2.f, false); // 2초 뒤 루코 대화
                     }
@@ -368,7 +367,7 @@ void UDialogueUI::DialogueEvents()
             switch (RowIndex)
             {
                 case 4:
-                    Luko->SetTargetCharacter(Player);
+                    Luko->SetTargetActor(Player);
                     break;
                 default:
                     break;
@@ -394,8 +393,8 @@ void UDialogueUI::DialogueEvents()
                     }
                     break;
                 case 3: // vovo look at player and player look at vovo
-                    Vovo->SetTargetCharacter(Player);
-                    Player->SetTargetCharacter(Vovo);
+                    Vovo->SetTargetActor(Player);
+                    Player->SetTargetActor(Vovo);
                     break;
                 case 5:
                     if (SelectedReply == 1)
@@ -452,23 +451,23 @@ void UDialogueUI::DialogueEvents()
                     GameManager->SetIsSaveAllowed(true);
                     break;
                 case 2:
-                    Momo->SetTargetCharacter(Vivi);
-                    Zizi->SetTargetCharacter(Vivi);
-                    Player->SetTargetCharacter(Vivi);
+                    Momo->SetTargetActor(Vivi);
+                    Zizi->SetTargetActor(Vivi);
+                    Player->SetTargetActor(Vivi);
                     break;
                 case 6:
                     if (MessageIndex == 2)
                     {
-                        Zizi->SetTargetCharacter(Player);
-                        Player->SetTargetCharacter(Zizi);
+                        Zizi->SetTargetActor(Player);
+                        Player->SetTargetActor(Zizi);
                     }
                     break;
                 case 7:
-                    Momo->SetTargetCharacter(Player);
-                    Vivi->SetTargetCharacter(Player);
-                    Luko->SetTargetCharacter(Player);
-                    Vovo->SetTargetCharacter(Player);
-                    Player->SetTargetCharacter(Momo);
+                    Momo->SetTargetActor(Player);
+                    Vivi->SetTargetActor(Player);
+                    Luko->SetTargetActor(Player);
+                    Vovo->SetTargetActor(Player);
+                    Player->SetTargetActor(Momo);
                     break;
                 case 8:
                     Momo->SetSmileStatus(true);
@@ -476,7 +475,7 @@ void UDialogueUI::DialogueEvents()
                 case 9:
                     Momo->SetSmileStatus(false);
                 case 10:
-                    Zizi->SetTargetCharacter(Vivi);
+                    Zizi->SetTargetActor(Vivi);
                     break;
                 case 13:
                     if (MessageIndex == 0)
@@ -487,7 +486,7 @@ void UDialogueUI::DialogueEvents()
                     else
                     {
                         NPCManager->AllNpcDisableLookAt();
-                        Player->SetTargetCharacter(nullptr);
+                        Player->SetTargetActor(nullptr);
                     }
                     break;
                 default:
@@ -545,7 +544,7 @@ void UDialogueUI::DialogueEvents()
                     FTimerHandle Timer;
                     TimerManager.SetTimer(Timer, FTimerDelegate::CreateLambda([&]()
                     {
-                        Player->SetTargetCharacter(Vivi);
+                        Player->SetTargetActor(Vivi);
                         TimerManager.ClearTimer(Timer);
                     }), 0.6f, false); // npc쪽 쳐다보기
                     break;
@@ -567,10 +566,10 @@ void UDialogueUI::DialogueEvents()
                 case 0:
                     Player->SetCanMove(false);
                     RowIndex = 10;
-                    Player->SetTargetCharacter(Vivi);
+                    Player->SetTargetActor(Vivi);
                     break;
                 case 11:
-                    Zizi->SetTargetCharacter(Vivi);
+                    Zizi->SetTargetActor(Vivi);
                     break;
                 case 12:
                     if (MessageIndex == 1)
@@ -596,23 +595,23 @@ void UDialogueUI::DialogueEvents()
                 case 0:
                     Momo->SetSmileStatus(true);
                     RowIndex = 13;
-                    Player->SetTargetCharacter(Momo);
-                    Momo->SetTargetCharacter(Player);
+                    Player->SetTargetActor(Momo);
+                    Momo->SetTargetActor(Player);
                     break;
                 case 14:
                     Vovo->SetSmileStatus(true);
-                    Vovo->SetTargetCharacter(Player);
-                    Player->SetTargetCharacter(Vovo);
+                    Vovo->SetTargetActor(Player);
+                    Player->SetTargetActor(Vovo);
                     break;
                 case 15:
                     Vivi->SetSmileStatus(true);
-                    Vivi->SetTargetCharacter(Player);
-                    Player->SetTargetCharacter(Vivi);
+                    Vivi->SetTargetActor(Player);
+                    Player->SetTargetActor(Vivi);
                     break;
                 case 16:
                     Zizi->SetSmileStatus(true);
-                    Zizi->SetTargetCharacter(Player);
-                    Player->SetTargetCharacter(Zizi);
+                    Zizi->SetTargetActor(Player);
+                    Player->SetTargetActor(Zizi);
                     break;
                 default:
                     break;
@@ -625,9 +624,9 @@ void UDialogueUI::DialogueEvents()
             {
                 case 2:
                     Vivi->SetActorRotation(FRotator(0.f, 0.f, 0.f));
-                    Luko->SetTargetCharacter(Vivi);
-                    Vovo->SetTargetCharacter(Vivi);
-                    Zizi->SetTargetCharacter(Vivi);
+                    Luko->SetTargetActor(Vivi);
+                    Vovo->SetTargetActor(Vivi);
+                    Zizi->SetTargetActor(Vivi);
                     Player->GetCameraBoom()->TargetArmLength = 290.f;
                     MainPlayerController->SetViewTargetWithBlend(Player, 1.f); // 플레이어 카메라로 복귀
                     break;
@@ -685,20 +684,20 @@ void UDialogueUI::DialogueEvents()
                 Momo->SetSmileStatus(true);
                 Player->SetCanMove(false);
                 RowIndex = 10;
-                Momo->SetTargetCharacter(Player);
+                Momo->SetTargetActor(Player);
                 for (auto NPC : NPCManager->GetNPCMap())
                 {
                     if (!NPC.Key.Contains("Momo"))
                     {
-                        NPC.Value->SetTargetCharacter(Momo);
+                        NPC.Value->SetTargetActor(Momo);
                     }
                 }
-                Player->SetTargetCharacter(Momo);
+                Player->SetTargetActor(Momo);
             }
             if (RowIndex == 12)
             {
                 NPCManager->AllNpcDisableLookAt();
-                Player->SetTargetCharacter(nullptr);
+                Player->SetTargetActor(nullptr);
                 AutoCloseDialogue();
                 return;
             }
@@ -711,35 +710,35 @@ void UDialogueUI::DialogueEvents()
                 case 0:
                     Player->SetCanMove(false);
                     RowIndex = 12;
-                    Vivi->SetTargetCharacter(Player);
+                    Vivi->SetTargetActor(Player);
                     NPCManager->AllNpcStopFollowPlayer();
                     for (auto NPC : NPCManager->GetNPCMap())
                     {
                         if (!NPC.Key.Contains("Vivi"))
                         {
-                            NPC.Value->SetTargetCharacter(Momo);
+                            NPC.Value->SetTargetActor(Momo);
                         }
                     }
-                    Player->SetTargetCharacter(Vivi);
+                    Player->SetTargetActor(Vivi);
                     break;
                 case 14:
-                    Vovo->SetTargetCharacter(Momo);
+                    Vovo->SetTargetActor(Momo);
                     break;
                 case 15:
                     if(MessageIndex == 1) 
                     {
-                        Momo->SetTargetCharacter(Player);
+                        Momo->SetTargetActor(Player);
                     }
                     break;
                 case 16:
                     Zizi->SetSmileStatus(true);
-                    Zizi->SetTargetCharacter(Player);
-                    Player->SetTargetCharacter(Zizi);
+                    Zizi->SetTargetActor(Player);
+                    Player->SetTargetActor(Zizi);
                     break;
                 case 17:
                     Player->SetCanMove(true);
                     NPCManager->AllNpcDisableLookAt();
-                    Player->SetTargetCharacter(nullptr);
+                    Player->SetTargetActor(nullptr);
                     AutoCloseDialogue();
                     Zizi->SetSmileStatus(false);
                     return;
@@ -765,16 +764,16 @@ void UDialogueUI::DialogueEvents()
                 case 2:
                     if (MessageIndex == 1)
                     {
-                        Momo->SetTargetCharacter(Player);
-                        Player->SetTargetCharacter(Momo);
+                        Momo->SetTargetActor(Player);
+                        Player->SetTargetActor(Momo);
                     }
                     break;
                 case 3:
-                    Luko->SetTargetCharacter(Momo);
+                    Luko->SetTargetActor(Momo);
                     break;
                 case 4:
-                    Vivi->SetTargetCharacter(Player);
-                    Player->SetTargetCharacter(Vivi);
+                    Vivi->SetTargetActor(Player);
+                    Player->SetTargetActor(Vivi);
                     break;
                 case 5:
                     bInputDisabled = true;
@@ -828,11 +827,11 @@ void UDialogueUI::DialogueEvents()
                     RowIndex = 7;
                     break;
                 case 8:
-                    Momo->SetTargetCharacter(Zizi);
-                    Luko->SetTargetCharacter(Zizi);
-                    Vovo->SetTargetCharacter(Zizi);
-                    Vivi->SetTargetCharacter(Zizi);
-                    Player->SetTargetCharacter(Zizi);
+                    Momo->SetTargetActor(Zizi);
+                    Luko->SetTargetActor(Zizi);
+                    Vovo->SetTargetActor(Zizi);
+                    Vivi->SetTargetActor(Zizi);
+                    Player->SetTargetActor(Zizi);
                     break;
                 case 10:
                     NPCManager->SetAllNpcMovementSpeed(false);
@@ -863,7 +862,7 @@ void UDialogueUI::DialogueEvents()
                     break;
                 case 17:
                     Vovo->SetSmileStatus(false);
-                    Player->SetTargetCharacter(nullptr);
+                    Player->SetTargetActor(nullptr);
                     NPCManager->AllNpcDisableLookAt();
                     NPCManager->SetAllNpcMovementSpeed(false);
                     Vivi->GetAIController()->MoveToLocation(FVector(100.f, 1997.f, 182.f));
@@ -886,17 +885,17 @@ void UDialogueUI::DialogueEvents()
                 case 0:
                     Player->SetCanMove(false);
                     RowIndex = 17;
-                    Vivi->SetTargetCharacter(Player);
+                    Vivi->SetTargetActor(Player);
                     break;
                 case 18:
                     if (MessageIndex == 0) DialogueManager->RemoveSpeechBuubble();
-                    Luko->SetTargetCharacter(Momo);
-                    Vovo->SetTargetCharacter(Momo);
-                    Zizi->SetTargetCharacter(Momo);
+                    Luko->SetTargetActor(Momo);
+                    Vovo->SetTargetActor(Momo);
+                    Zizi->SetTargetActor(Momo);
                     Momo->GetAIController()->MoveToLocation(FVector(-86.f, 2307.f, 177.f));
                     break;
                 case 20:
-                    Zizi->SetTargetCharacter(Player);
+                    Zizi->SetTargetActor(Player);
                     break;
                 case 21:
                     NPCManager->AllNpcDisableLookAt();
@@ -921,23 +920,23 @@ void UDialogueUI::DialogueEvents()
                     RowIndex = 21;
                     break;
                 case 23:
-                    Player->SetTargetCharacter(Vovo);
+                    Player->SetTargetActor(Vovo);
                 case 24:
                     if (MessageIndex == 0)
                     {
-                        Zizi->SetTargetCharacter(Vovo);
+                        Zizi->SetTargetActor(Vovo);
                     }
                     else
                     {
-                        Zizi->SetTargetCharacter(Vivi);
+                        Zizi->SetTargetActor(Vivi);
                     }
                     break;
                 case 25:
-                    Vovo->SetTargetCharacter(Vivi);
-                    Player->SetTargetCharacter(Vivi);
+                    Vovo->SetTargetActor(Vivi);
+                    Player->SetTargetActor(Vivi);
                     break;
                 case 26:
-                    Momo->SetTargetCharacter(Vivi);
+                    Momo->SetTargetActor(Vivi);
                     break;
                 default:
                     break;

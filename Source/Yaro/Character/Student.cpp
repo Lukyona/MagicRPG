@@ -44,9 +44,9 @@ void AStudent::Tick(float DeltaTime)
 		SetActorRotation(InterpRotation);
 	}
 
-	if (bInterpToCharacter && TargetCharacter)
+	if (bInterpToActor && TargetActor)
 	{
-		FRotator LookAtYaw = GetLookAtRotationYaw(TargetCharacter->GetActorLocation());
+		FRotator LookAtYaw = GetLookAtRotationYaw(TargetActor->GetActorLocation());
 		FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, DeltaTime, InterpSpeed); //smooth transition
 		SetActorRotation(InterpRotation);
 	}

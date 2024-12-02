@@ -40,14 +40,14 @@ protected:
 	float InterpSpeed = 15.f;
 
 	UPROPERTY(EditAnywhere)
-	bool bInterpToCharacter = false;
+	bool bInterpToActor = false;
 	UPROPERTY(EditAnywhere)
 	bool bInterpToEnemy;
 
 
 	//Combat
 	int32 SkillNum;
-	ACharacter* TargetCharacter; // Who the character looks at
+	AActor* TargetActor; // what or who the character looks at
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	USphereComponent* CombatSphere;
@@ -110,10 +110,11 @@ public: //Getters and Setters
 		SkillNum = num; 
 	}
 
-	void SetTargetCharacter(ACharacter* Character) 
+	UFUNCTION(BlueprintCallable)
+	void SetTargetActor(AActor* Actor) 
 	{
-		TargetCharacter = Character;
-		bInterpToCharacter = Character == nullptr? true : false;
+		TargetActor = Actor;
+		bInterpToActor = Actor != nullptr? true : false;
 	}
 
 	AEnemy* GetCombatTarget() 
