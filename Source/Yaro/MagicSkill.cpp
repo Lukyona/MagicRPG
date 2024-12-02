@@ -2,14 +2,18 @@
 
 
 #include "MagicSkill.h"
-#include "Yaro/Character/Enemies/Enemy.h"
-#include "Kismet/GameplayStatics.h"
 #include "Components/SphereComponent.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
-#include "Sound/SoundCue.h"
 #include "GameFramework/Controller.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
+
+#include "Yaro/Character/Enemies/Enemy.h"
 #include "Yaro/Character/Main.h"
+
+constexpr float DEFAULT_DESTROY_DELAY = 1.5f;
+constexpr float DEFAULT_LOCATION_UPDATE_DELAY = 0.5f;
 
 // Sets default values
 AMagicSkill::AMagicSkill()
@@ -27,13 +31,10 @@ AMagicSkill::AMagicSkill()
     Particle->SetupAttachment(Sphere);
 
     MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("MovementComponent"));
-
     MovementComponent->InitialSpeed = 0.f;
     MovementComponent->MaxSpeed = 500.f;
-
     MovementComponent->ProjectileGravityScale = 0.03f;
 
-    PrimaryActorTick.bCanEverTick = true;
 }
 
 // Called when the game starts or when spawned
@@ -41,33 +42,37 @@ void AMagicSkill::BeginPlay()
 {
 	Super::BeginPlay();
     Sphere->OnComponentBeginOverlap.AddDynamic(this, &AMagicSkill::OnComponentBeginOverlap);
-
-    if (MagicSound)
+    
+    PlaySound(MagicSound);
+    if(!MagicSound)
     {
-        UGameplayStatics::PlaySound2D(this, MagicSound);
-    }
-    else if (ExplosionSound) // 폭발 사운드만 존재하는 경우
-    {
-        UGameplayStatics::PlaySound2D(this, ExplosionSound);
+        PlaySound(ExplosionSound);
     }
 
-    FTimerHandle WaitHandle;
-    GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]() {
-        if (this->IsValidLowLevel())
-        {
-            if (this->GetName().Contains("Tornado") || this->GetName().Contains("Laser") || this->GetName().Contains("Healing")) return;
-            Destroy(true);
-        }
+    if(SkillType == EMagicSkillType::Hit
+        || SkillType == EMagicSkillType::Storm
+        || SkillType == EMagicSkillType::Basic)
+    {
+        StartDestroyTimer(DEFAULT_DESTROY_DELAY);
 
-    }), 1.5f, false);
-
-    FTimerHandle WaitHandle2;
-    GetWorld()->GetTimerManager().SetTimer(WaitHandle2, FTimerDelegate::CreateLambda([&]() {
-        if (this->GetName().Contains("Hit") || this->GetName().Contains("Storm"))
+        if (SkillType != EMagicSkillType::Basic)
         {
-            SetLocation();
+            StartLocationUpdateTimer(DEFAULT_LOCATION_UPDATE_DELAY);
         }
-    }), 0.05f, false);
+    }
+}
+
+void AMagicSkill::StartDestroyTimer(float Delay)
+{
+    GetWorld()->GetTimerManager().SetTimer(DestroyTimerHandle, FTimerDelegate::CreateLambda([this]()
+    {
+        Destroy();
+    }), Delay, false);
+}
+
+void AMagicSkill::StartLocationUpdateTimer(float Delay)
+{
+    GetWorld()->GetTimerManager().SetTimer(LocationTimerHandle, this, &AMagicSkill::SetLocation, Delay, false);
 }
 
 void AMagicSkill::Tick(float DeltaTime)
@@ -93,6 +98,71 @@ void AMagicSkill::SetMain()
     Main = Cast<AMain>(UGameplayStatics::GetPlayerCharacter(this, 0));
 }
 
+void AMagicSkill::PlaySound(USoundBase* Sound)
+{
+    if (Sound)
+    {
+        UGameplayStatics::PlaySound2D(this, Sound);
+    }
+}
+
+void AMagicSkill::HandleStudentCasterOverlap(AActor* OtherActor)
+{
+    AEnemy* Enemy = Cast<AEnemy>(OtherActor);
+    if (Enemy)
+    {
+        if (Caster == ECasterType::Player && Main->GetCombatTarget() == nullptr
+            && Main->GetTargets().Contains(Enemy))
+        {
+            Main->SetAutoTargeting(true);
+            Main->SetCombatTarget(Enemy); // 자동으로 타겟 지정
+            Main->Targeting();
+            Main->SetAutoTargeting(false);
+        }
+
+        PlaySound(ExplosionSound);
+
+        if (SkillType == EMagicSkillType::Hit)
+        {
+            UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleFX, GetActorLocation());
+            Destroy(true);
+        }
+
+        if (DamageTypeClass)
+        {
+            if (SkillType == EMagicSkillType::Laser)
+            {
+                return;
+            }
+            UGameplayStatics::ApplyDamage(Enemy, Damage, MagicInstigator, this, DamageTypeClass);
+        }
+    }
+}
+
+void AMagicSkill::HandleEnemyCasterOverlap(AActor* OtherActor)
+{
+    if (auto actor = Cast<AEnemy>(OtherActor))
+    {
+        return;
+    }
+
+    ACharacter* TargetCharacter = Cast<ACharacter>(OtherActor);
+    if (TargetCharacter)
+    {
+        PlaySound(ExplosionSound);
+
+        if (SkillType == EMagicSkillType::Hit)
+        {
+            UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleFX, GetActorLocation());
+            Destroy(true);
+        }
+        if (DamageTypeClass)
+        {
+            UGameplayStatics::ApplyDamage(TargetCharacter, Damage, MagicInstigator, this, DamageTypeClass);
+        }
+    }
+}
+
 void AMagicSkill::SetLocation()
 {
     if (Target != nullptr)
@@ -110,72 +180,25 @@ void AMagicSkill::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedCompone
 {
     if (OtherActor)
     {
-        if (this->GetName().Contains("Healing"))
+        if (!Main)
         {
-            if (!Main) SetMain();
+            SetMain();
+        }
 
-            if (Main == OtherActor)
-            {
-                Main->AddHP(150.f);
-            }
+        if (SkillType == EMagicSkillType::Healing && Main == OtherActor)
+        {
+            Main->AddHP(150.f);
             return;
         }
         
         if (Caster == ECasterType::Player || Caster == ECasterType::NPC)
         {
-            AEnemy* Enemy = Cast<AEnemy>(OtherActor);
-            if (Enemy)
-            {
-                if (Caster == ECasterType::Player)
-                {
-                    if (!Main) SetMain();
-                    if (Main->GetCombatTarget() == nullptr)
-                    {
-                        if (Main->GetTargets().Contains(Enemy))
-                        {
-                            Main->SetAutoTargeting(true);
-                            Main->SetCombatTarget(Enemy); // 자동으로 타겟 지정
-                            Main->Targeting();
-                            Main->SetAutoTargeting(false);
-                        }
-                    }
-                }
-
-                UGameplayStatics::PlaySound2D(this, ExplosionSound);
-                if (this->GetName().Contains("Hit"))
-                {
-                    UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleFX, GetActorLocation());
-                    Destroy(true);
-                }
-                if (DamageTypeClass)
-                {
-                    if (this->GetName().Contains("Laser")) return;
-                    UGameplayStatics::ApplyDamage(Enemy, Damage, MagicInstigator, this, DamageTypeClass);
-                }
-            }
+            HandleStudentCasterOverlap(OtherActor);
         }
        
         if (Caster == ECasterType::Enemy || Caster == ECasterType::Boss)
         {
-            if (auto actor = Cast<AEnemy>(OtherActor)) return; // 오버랩된 게 Enemy라면 코드 실행X
-
-            ACharacter* TargetCharacter = Cast<ACharacter>(OtherActor);
-            if (TargetCharacter)
-            {
-                UGameplayStatics::PlaySound2D(this, ExplosionSound);
-                if (this->GetName().Contains("Hit"))
-                {
-                    UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleFX, GetActorLocation());
-
-                    Destroy(true);
-                }
-                if (DamageTypeClass)
-                {
-                    UGameplayStatics::ApplyDamage(TargetCharacter, Damage, MagicInstigator, this, DamageTypeClass);
-
-                }
-            }
+            HandleEnemyCasterOverlap(OtherActor);
         }
     }
 }
-

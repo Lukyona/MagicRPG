@@ -396,7 +396,6 @@ void UNPCManager::AllNpcLookAtPlayer()
 	for (auto NPC : NPCMap)
 	{
 		NPC.Value->SetTargetCharacter(Cast<ACharacter>(GameManager->GetPlayer()));
-		NPC.Value->SetInterpToCharacter(true);
 	}
 }
 
@@ -404,7 +403,7 @@ void UNPCManager::AllNpcDisableLookAt()
 {
 	for (auto NPC : NPCMap)
 	{
-		NPC.Value->SetInterpToCharacter(false);
+		NPC.Value->SetTargetCharacter(nullptr);
 	}
 }
 

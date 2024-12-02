@@ -20,7 +20,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
-	
 	UPROPERTY(EditDefaultsOnly, Category = "SaveData")
 	TMap<FString, TSubclassOf<class AItem>> ItemMap;
 };

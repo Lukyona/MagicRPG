@@ -5,54 +5,47 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Yaro/Character/Main.h"
-
 #include "Item.generated.h"
+
+class USphereComponent;
+class UStaticMeshComponent;
+class UParticleSystem;
+class USoundCue;
 
 UCLASS()
 class YARO_API AItem : public AActor
 {
 	GENERATED_BODY()
-
 public:
-	// Sets default values for this actor's properties
 	AItem();
+
+protected:
+	virtual void BeginPlay() override;
+
+	UFUNCTION()
+	virtual void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION()
+	virtual void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	
 
 	//Base shpape collision
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item | Collision")
-		class USphereComponent* CollisionVolume;
+	USphereComponent* CollisionVolume;
 
 	//Base Mesh Component
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item | Mesh")
-		class UStaticMeshComponent* Mesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Particles")
-		UParticleSystemComponent* IdleParticlesComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Particles")
-		class UParticleSystem* OverlapParticles;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Sounds")
-		class USoundCue* OverlapSound;
+	UStaticMeshComponent* Mesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | ItemProperties")
-		bool bRotate;
+	bool bRotate = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | ItemProperties")
-		float RotationRate;
+	float RotationRate = 45.f;
 
+	bool IsValidTarget(AActor* OtherActor) const;
+
+public:
 	UFUNCTION(BlueprintCallable)
 	void PickUp(AMain* Char);
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-public:
-	// Called every frame
-	//virtual void Tick(float DeltaTime) override;
-
-	UFUNCTION()
-		virtual void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION()
-		virtual void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 };

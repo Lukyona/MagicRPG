@@ -90,11 +90,6 @@ public: //Getters and Setters
 	{
 		bInterpToEnemy = Interp; 
 	}
-	void SetInterpToCharacter(bool value) 
-	{
-		bInterpToCharacter = value;
-	}
-
 
 	UAnimMontage* GetCombatMontage() 
 	{
@@ -115,9 +110,10 @@ public: //Getters and Setters
 		SkillNum = num; 
 	}
 
-	void SetTargetCharacter(ACharacter* ch) 
+	void SetTargetCharacter(ACharacter* Character) 
 	{
-		TargetCharacter = ch; 
+		TargetCharacter = Character;
+		bInterpToCharacter = Character == nullptr? true : false;
 	}
 
 	AEnemy* GetCombatTarget() 

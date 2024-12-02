@@ -255,7 +255,6 @@ void UDialogueManager::DialogueEndEvents()
         case 2:
             if (UIManager->GetSystemMessageNum() != 4)
             {
-                Player->SetInterpToCharacter(false);
                 Player->SetTargetCharacter(nullptr);
                 NPCManager->GetNPC(ENPCType::Luko)->ClearPlayerFollowTimer();
                 NPCManager->MoveNPCToLocation(ENPCType::Luko, FVector(5200.f, 35.f, 100.f));
@@ -274,7 +273,6 @@ void UDialogueManager::DialogueEndEvents()
             }
             break;
         case 3: // enter the first dungeon
-            NPCManager->GetNPC(ENPCType::Luko)->SetInterpToCharacter(false);
             NPCManager->GetNPC(ENPCType::Luko)->SetTargetCharacter(nullptr);
             GameManager->SaveGame();
             UIManager->SetSystemMessage(6);
@@ -282,9 +280,8 @@ void UDialogueManager::DialogueEndEvents()
             break;
         case 4: // move to boat
             MainPlayerController->SetCinematicMode(false, true, true);
-            NPCManager->GetNPC(ENPCType::Vovo)->SetInterpToCharacter(false);
+            NPCManager->GetNPC(ENPCType::Vovo)->SetTargetCharacter(nullptr);
             NPCManager->MoveNPCToLocation(ENPCType::Vovo, FVector(630.f, 970.f, 1840.f));
-            Player->SetInterpToCharacter(false);
             Player->SetTargetCharacter(nullptr);
             {
                 FTimerHandle TimerHandle;
@@ -318,19 +315,17 @@ void UDialogueManager::DialogueEndEvents()
                 NPCManager->GetNPC(ENPCType::Vivi)->GetAnimInstance()->Montage_Play(NPCManager->GetNPC(ENPCType::Vivi)->GetNormalMontage());
                 NPCManager->GetNPC(ENPCType::Vivi)->GetAnimInstance()->Montage_JumpToSection(FName("Throw"));
             }
-            Player->SetInterpToCharacter(false);
             Player->SetTargetCharacter(nullptr);
             break;
         case 10:
-            NPCManager->GetNPC(ENPCType::Zizi)->SetInterpToCharacter(false);
-            Player->SetInterpToCharacter(false);
+            NPCManager->GetNPC(ENPCType::Zizi)->SetTargetCharacter(nullptr);
+            Player->SetTargetCharacter(nullptr);
             NPCManager->AllNpcMoveToPlayer();
             break;
         case 11: // npcs went over the other side
         case 19: // after combat with boss
             MainPlayerController->SetCinematicMode(false, true, true);
             Player->SetCanMove(true);
-            Player->SetInterpToCharacter(false);
             Player->SetTargetCharacter(nullptr);
             NPCManager->AllNpcDisableLookAt();
             if (DialogueNum == 19)
@@ -373,7 +368,7 @@ void UDialogueManager::DialogueEndEvents()
         case 16:
             MainPlayerController->SetCinematicMode(false, true, true);
             NPCManager->AllNpcDisableLookAt();
-            Player->SetInterpToCharacter(false);
+            Player->SetTargetCharacter(nullptr);
             DialogueUI->SetInputDisabled(false);
             break;
         case 17:

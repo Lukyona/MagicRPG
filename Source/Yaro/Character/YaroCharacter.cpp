@@ -126,7 +126,7 @@ void AYaroCharacter::MoveToPlayer()
 
 	if (CombatTarget == nullptr && !bAttacking && !bOverlappingCombatSphere && AgroTargets.Num() == 0) // 전투 중이 아닐 때
 	{
-		if (DialogueManager->IsDialogueUIVisible() || DialogueManager->GetDialogueNum() == 9) // 대화 중에는 대부분 이동X
+		if (DialogueManager->IsDialogueUIVisible() || DialogueManager->GetDialogueState() == EDialogueState::InteractWithYellowStone) // 대화 중에는 대부분 이동X
 		{
 			GetWorldTimerManager().SetTimer(PlayerFollowTimer, this, &AYaroCharacter::MoveToPlayer, 0.5f);
 			return;
@@ -350,9 +350,9 @@ void AYaroCharacter::Attack()
 		else // npc can't cast storm magic
 			MinSkillNum = 2;
 
-		if (DialogueManager->GetDialogueNum() <= 5)
+		if (DialogueManager->GetDialogueState() < EDialogueState::SecondDungeonStarted) // First Dungeon
 			MaxSkillNum = 3;
-		else if (DialogueManager->GetDialogueNum() <= 14)
+		else if (DialogueManager->GetDialogueState() <= EDialogueState::CombatWithLittleMonsters) // Second Dungeon
 			MaxSkillNum = 4;
 		else
 			MaxSkillNum = 5;

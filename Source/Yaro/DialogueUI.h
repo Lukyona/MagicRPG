@@ -4,84 +4,83 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Yaro/Character/YaroCharacter.h"
 #include "Yaro/Structs/DialogueData.h"
+#include "Yaro/Character/YaroCharacter.h"
 #include "DialogueUI.generated.h"
 /**
  * 
  */
+
+class UGameManager;
+class UDialogueManager;
+class UNPCManager;
+class AMain;
+class AMainPlayerController;
+class AYaroCharacter;
+class UTextBlock;
+class USoundBase;
+class UDataTable;
+
 UCLASS()
 class YARO_API UDialogueUI : public UUserWidget
 {
 	GENERATED_BODY()
 
+	virtual void NativeConstruct() override;
+
 protected:
+	// Managers
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UGameManager* GameManager;
-
+	UGameManager* GameManager;
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UDialogueManager* DialogueManager;
-
+	UDialogueManager* DialogueManager;
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UNPCManager* NPCManager;
+	UNPCManager* NPCManager;
 
+	//Player and player controller
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class AMain* Player;
-
+	AMain* Player;
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class AMainPlayerController* MainPlayerController;
+	AMainPlayerController* MainPlayerController;
 
+	//NPCs
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class AYaroCharacter* Momo;
-
+	AYaroCharacter* Momo;
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class AYaroCharacter* Luko;
-
+	AYaroCharacter* Luko;
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class AYaroCharacter* Vovo;
-
+	AYaroCharacter* Vovo;
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class AYaroCharacter* Vivi;
-
+	AYaroCharacter* Vivi;
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class AYaroCharacter* Zizi;
+	AYaroCharacter* Zizi;
 
 
+	//Dialogue properties
 	UPROPERTY(meta = (BindWidget))
-	class UTextBlock* NPCText;
-
+	UTextBlock* NPCText;
 	UPROPERTY(meta = (BindWidget), BlueprintReadWrite)
-	class UTextBlock* CharacterNameText;
-	
-	UPROPERTY(EditAnywhere, Category = "Dialogue")
+	UTextBlock* CharacterNameText;
+
+private:
+	TArray<FNPCDialogue*> Dialogue;
+	FTimerHandle TextTimer, AutoDialogueTimer;
+
+	FString InitialMessage, OutputMessage;
+	int32 iLetter;
+
 	float DelayBetweenLetters = 0.06f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	class USoundBase* SoundCueMessage;
-
-	UPROPERTY(EditAnywhere)
-	class USoundBase* ExplosionSound;
-
-	UPROPERTY(EditAnywhere)
-	class USoundBase* GriffonSound;
-
-	UPROPERTY(EditAnywhere)
-	class USoundBase* AfterAllCombat;
 
 	bool bInputDisabled = false;
 
-
+protected:
 	int32 CurrentState; // 0 = None, 1 = Animating, 2 = Text Completed, 3 = Dialogue is waiting for replies
-
 	UPROPERTY(BlueprintReadWrite)
 	int32 SelectedReply;
-
 	UPROPERTY(BlueprintReadWrite)
 	int32 RowIndex;
-
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	int32 MessageIndex;
-
 	//플레이어 대답 버튼들 Visibility 때문에 어쩔 수 없이 만든 변수
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	int32 NumOfReply;
@@ -90,36 +89,70 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	bool bCanStartDialogue = true;
 
-	virtual void NativeConstruct() override;
+	//Sounds
+	UPROPERTY(EditAnywhere)
+	USoundBase* TextSound;
+	UPROPERTY(EditAnywhere)
+	USoundBase* ExplosionSound;
+	UPROPERTY(EditAnywhere)
+	USoundBase* GriffonSound;
+	UPROPERTY(EditAnywhere)
+	USoundBase* AfterAllCombatBGM;
+
+public: //Getters and setters
+	UFUNCTION(BlueprintCallable)
+	int32 GetCurrentState() const 
+	{
+		return CurrentState; 
+	}
+	UFUNCTION(BlueprintCallable)
+	int32 GetSelectedReply() const
+	{
+		return SelectedReply; 
+	}
+	UFUNCTION(BlueprintCallable)
+	int32 GetRowIndex() const 
+	{
+		return RowIndex; 
+	}
+
+	bool CanStartDialogue() const 
+	{
+		return bCanStartDialogue; 
+	}
+
+	UFUNCTION(BlueprintCallable)
+	bool IsInputDisabled() const 
+	{
+		return bInputDisabled; 
+	}
+	UFUNCTION(BlueprintCallable)
+	void SetInputDisabled(bool Value) 
+	{
+		bInputDisabled = Value; 
+	}
 
 
-public:
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
-	void OnAnimationShowMessageUI();
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
-	void OnAnimationHideMessageUI();
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
-	void OnResetOptions();
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
-	void OnSetOption(int32 Option, const FText& OptionText);
-
-
+protected: //Core methods
 	void SetMessage(const FString& Text);
-
 	void SetCharacterName(const FString& Text);
 
 	void AnimateMessage(const FString& Text);
 
-	UFUNCTION(BlueprintCallable)
-	void InitializeDialogue(class UDataTable* DialogueTable);
+	UFUNCTION()
+	void OnAnimationTimerCompleted();
 
-	UFUNCTION(BlueprintCallable)
-    void Interact();
-   
+	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
+	void OnAnimationShowMessageUI();
+public:
+	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
+	void OnAnimationHideMessageUI();
+protected:
+	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
+	void OnResetOptions();
+	UFUNCTION(BlueprintImplementableEvent, Category = "Animation Events")
+	void OnSetOption(int32 Option, const FText& OptionText);
+
 	void DialogueEvents();
 
 	UFUNCTION(BlueprintImplementableEvent)
@@ -128,47 +161,13 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void SpawnGriffon();
 
-private:
-	FString InitialMessage;
-
-	FString OutputMessage;
-	
-	int32 iLetter;
-
-	TArray<FNPCDialogue*> Dialogue;
-
-
-	UFUNCTION()
-	void OnAnimationTimerCompleted();
-
-	FTimerHandle TextTimer;
-
-	FTimerHandle AutoDialogueTimer;
-
 public:
- 
 	UFUNCTION(BlueprintCallable)
-		int32 GetCurrentState() const { return CurrentState; }
-
-	UFUNCTION(BlueprintCallable)
-		int32 GetSelectedReply() const { return SelectedReply; }
+	void InitializeDialogue(UDataTable* DialogueTable);
 
 	UFUNCTION(BlueprintCallable)
-		int32 GetRowIndex() const { return RowIndex; }
-
-	bool CanStartDialogue() const { return bCanStartDialogue; }
-
-    FORCEINLINE void StartAnimatedMessage() { AnimateMessage(Dialogue[RowIndex]->Messages[MessageIndex].ToString()); }
+	void Interact();
 
 	void AutoCloseDialogue();
-	
-	void AutoDialogue();
-
 	void ClearAutoDialogueTimer();
-
-	UFUNCTION(BlueprintCallable)
-		bool IsInputDisabled() const { return bInputDisabled; }
-
-	UFUNCTION(BlueprintCallable)
-	void SetInputDisabled(bool Value) { bInputDisabled = Value; }
 };

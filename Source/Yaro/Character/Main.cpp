@@ -333,18 +333,19 @@ void AMain::CameraZoom(const float Value)
 
 	// 특정 시점에는 줌 불가능
 	{
-		if (DialogueManager->GetDialogueNum() == 0) 
+		if (DialogueManager->GetDialogueState() == EDialogueState::Intro) 
 		{
 			return;
 		}
 
-		if (UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("cave")
-			&& DialogueManager->GetDialogueNum() == 19)
+		if (DialogueManager->GetDialogueState() == EDialogueState::FoodTableEvent
+			&& DialogueManager->IsDialogueUIVisible())
 		{
 			return;
 		}
 
-		if (DialogueManager->IsDialogueUIVisible() && DialogueManager->GetDialogueNum() == 11) 
+		if (DialogueManager->GetDialogueState() == EDialogueState::BackToCave
+			&& UGameplayStatics::GetCurrentLevelName(GetWorld()).Contains("cave"))
 		{
 			return;
 		}
@@ -393,7 +394,7 @@ void AMain::LMBDown() //Left Mouse Button Down
 		MainAnimInstance->Montage_JumpToSection(FName("PickWand"), NormalMontage);
 	}
 
-	if (DialogueManager->GetDialogueNum() == 9)
+	if (DialogueManager->GetDialogueState() == EDialogueState::InteractWithYellowStone)
 	{
 		// pick up the yellow stone
 		if (ActiveOverlappingItem)
@@ -416,7 +417,7 @@ void AMain::LMBDown() //Left Mouse Button Down
 	// 마지막 과제 아이템
 	if (CurrentOverlappedActor && CurrentOverlappedActor->GetName().Contains("DivinumPraesidium"))
 	{
-		if (DialogueManager->GetDialogueNum() == 21)
+		if (DialogueManager->GetDialogueState() == EDialogueState::AfterTookTheStone)
 		{
 			if (DialogueManager->GetDialogueUI()->GetSelectedReply() != 1 || DialogueManager->IsDialogueUIVisible()) 
 			{
@@ -439,14 +440,14 @@ void AMain::PlayMontageWithItem()
 	}
 
 	FRotator LookAtYaw;
-	if (DialogueManager->GetDialogueNum() == 9 && ItemInHand)
+	if (DialogueManager->GetDialogueState() == EDialogueState::InteractWithYellowStone && ItemInHand)
 	{
 		if (ItemInHand->GetName().Contains("Yellow") && CurrentOverlappedActor != nullptr)
 		{
 			LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
 		}
 	}
-	else if (DialogueManager->GetDialogueNum() == 21 && CurrentOverlappedActor->GetName().Contains("Divinum"))
+	else if (DialogueManager->GetDialogueState() == EDialogueState::AfterTookTheStone && CurrentOverlappedActor->GetName().Contains("Divinum"))
 	{
 		LookAtYaw = GetLookAtRotationYaw(CurrentOverlappedActor->GetActorLocation());
 	}
@@ -464,7 +465,7 @@ void AMain::PlayMontageWithItem()
 void AMain::Attack()
 {
 	// 특정 상황엔 공격 불가
-	if (DialogueManager->GetDialogueNum() < 3 || DialogueManager->GetDialogueNum() > 20)
+	if (DialogueManager->GetDialogueState() < EDialogueState::FirstDungeonStarted || DialogueManager->GetDialogueState() > EDialogueState::GetMissionItem)
 	{
 		return;
 	}
@@ -991,7 +992,8 @@ void AMain::RecoverWithLogo() // get school icon in second stage
 
 void AMain::UsePotion()
 {
-	if (PlayerStats[EPlayerStat::PotionNum] <= 0 || DialogueManager->GetDialogueNum() < 3)
+	if (PlayerStats[EPlayerStat::PotionNum] <= 0 
+		|| DialogueManager->GetDialogueState() < EDialogueState::FirstDungeonStarted)
 	{
 		return;
 	}
