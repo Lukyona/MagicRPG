@@ -40,6 +40,8 @@ NPC의 머리 위에 나타나는 말풍선을 통해 누구의 대사인지 알
 
 ![ManualTargeting](https://github.com/user-attachments/assets/d2109248-4db4-493c-8d64-8fff865d93c6)
 ![AutoTargeting](https://github.com/user-attachments/assets/cf0c4270-50a9-4a7c-a967-28a26619a661)
+
+
 Tab키를 눌러 플레이어의 전투 범위 내에 들어와있는 적을 수동으로 타켓팅할 수 있다.
 
 
