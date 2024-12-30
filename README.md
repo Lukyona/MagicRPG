@@ -13,9 +13,8 @@
 ## 🎞️ 게임 영상
 [Otro Mundo(YUTUBE)](https://youtu.be/MVgG-HYuBYA)
 
-
-
-
+###
+####
 ## 📍 대화 시스템
 
 ![talk1](https://github.com/user-attachments/assets/da89bbde-5eca-4ac2-8d9d-eadaf044c114)
@@ -60,15 +59,20 @@ Tab키를 한 번 더 누르면 범위 내의 다른 적으로 타겟을 변경�
 
 
 ## 📍 아이템 상호작용
+![interact1](https://github.com/user-attachments/assets/153444c2-1d9c-42c6-8cf3-2522a94ee17c)
+![interact2](https://github.com/user-attachments/assets/1614874e-a43c-4e5b-b814-b4c8e08ab145)
+![interact3](https://github.com/user-attachments/assets/fbab0131-c1c9-4981-91d9-30cfac7715a3)
+![interact4](https://github.com/user-attachments/assets/56fc4118-47f5-40b2-873e-11b608a9d758)
 
 
 플레이어의 아이템 상호작용 범위에 특정 액터가 오버랩되어있을 경우
+
 
 마우스 왼쪽 클릭으로 아이템을 집는 등의 상호작용을 할 수 있다.
 
 
 ## 📍 저장/로드
 
-
+![save1](https://github.com/user-attachments/assets/40562bfd-9f7d-4c1e-85b7-5c30aefc6eb3)
 
 
