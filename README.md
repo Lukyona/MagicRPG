@@ -13,8 +13,7 @@
 ## 🎞️ 게임 영상
 [Otro Mundo(YUTUBE)](https://youtu.be/MVgG-HYuBYA)
 
-###
-####
+
 ## 📍 대화 시스템
 
 ![talk1](https://github.com/user-attachments/assets/da89bbde-5eca-4ac2-8d9d-eadaf044c114)
@@ -74,5 +73,10 @@ Tab키를 한 번 더 누르면 범위 내의 다른 적으로 타겟을 변경�
 ## 📍 저장/로드
 
 ![save1](https://github.com/user-attachments/assets/40562bfd-9f7d-4c1e-85b7-5c30aefc6eb3)
+![save2](https://github.com/user-attachments/assets/a5c45047-2615-483c-a74a-f0fda0641d84)
 
+
+매 초 게임의 진행 상태를 자동으로 저장하도록 되어있어서
+
+타이틀의 이어하기 메뉴를 통해 저장된 캐릭터들의 위치, 플레이어의 스탯, 게임의 진행상황을 불러올 수 있다.
 
